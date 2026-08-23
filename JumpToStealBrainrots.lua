@@ -84,8 +84,8 @@ ScreenGui.Parent = parentGui or LocalPlayer:FindFirstChildOfClass("PlayerGui")
 -- Main Outer Frame (Compact exact design)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 310, 0, 270)
-MainFrame.Position = UDim2.new(0.5, -155, 0.35, -135)
+MainFrame.Size = UDim2.new(0, 320, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -160, 0.35, -150)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -98,12 +98,12 @@ UICorner.Parent = MainFrame
 
 -- Header Title
 local HeaderTitle = Instance.new("TextLabel")
-HeaderTitle.Size = UDim2.new(1, -40, 0, 35)
-HeaderTitle.Position = UDim2.new(0, 14, 0, 6)
+HeaderTitle.Size = UDim2.new(1, -45, 0, 32)
+HeaderTitle.Position = UDim2.new(0, 16, 0, 10)
 HeaderTitle.BackgroundTransparency = 1
 HeaderTitle.Text = "JUMP TO STEAL BRAINROTS"
 HeaderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-HeaderTitle.TextSize = 13
+HeaderTitle.TextSize = 14
 HeaderTitle.Font = Enum.Font.SourceSansBold
 HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
 HeaderTitle.Parent = MainFrame
@@ -111,11 +111,11 @@ HeaderTitle.Parent = MainFrame
 -- Close Button (X)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -34, 0, 6)
+CloseBtn.Position = UDim2.new(1, -34, 0, 10)
 CloseBtn.BackgroundTransparency = 1
 CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
-CloseBtn.TextSize = 15
+CloseBtn.TextSize = 16
 CloseBtn.Font = Enum.Font.SourceSansBold
 CloseBtn.Parent = MainFrame
 
@@ -123,43 +123,43 @@ CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- Container for Toggles
+-- Container for Toggles (Generous spacing below header)
 local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -28, 0, 165)
-Container.Position = UDim2.new(0, 14, 0, 42)
+Container.Size = UDim2.new(1, -32, 0, 175)
+Container.Position = UDim2.new(0, 16, 0, 52)
 Container.BackgroundTransparency = 1
 Container.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, 6)
+UIListLayout.Padding = UDim.new(0, 7)
 UIListLayout.Parent = Container
 
--- Footer Branding
+-- Footer Branding (Prominent & Clear)
 local FooterTitle = Instance.new("TextLabel")
-FooterTitle.Size = UDim2.new(1, 0, 0, 16)
-FooterTitle.Position = UDim2.new(0, 0, 1, -38)
+FooterTitle.Size = UDim2.new(1, 0, 0, 20)
+FooterTitle.Position = UDim2.new(0, 0, 1, -44)
 FooterTitle.BackgroundTransparency = 1
 FooterTitle.Text = "ULTRA SCRIPT HUB"
 FooterTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-FooterTitle.TextSize = 13
+FooterTitle.TextSize = 15
 FooterTitle.Font = Enum.Font.SourceSansBold
 FooterTitle.Parent = MainFrame
 
 local FooterSub = Instance.new("TextLabel")
-FooterSub.Size = UDim2.new(1, 0, 0, 14)
-FooterSub.Position = UDim2.new(0, 0, 1, -22)
+FooterSub.Size = UDim2.new(1, 0, 0, 16)
+FooterSub.Position = UDim2.new(0, 0, 1, -24)
 FooterSub.BackgroundTransparency = 1
 FooterSub.Text = "Made by Junejo"
-FooterSub.TextColor3 = Color3.fromRGB(130, 130, 130)
-FooterSub.TextSize = 11
+FooterSub.TextColor3 = Color3.fromRGB(140, 140, 140)
+FooterSub.TextSize = 12
 FooterSub.Font = Enum.Font.SourceSans
 FooterSub.Parent = MainFrame
 
 -- Helper Function for Checkbox Row (Exact UI Theme)
 local function CreateToggleRow(name, callback)
     local Row = Instance.new("Frame")
-    Row.Size = UDim2.new(1, 0, 0, 26)
+    Row.Size = UDim2.new(1, 0, 0, 27)
     Row.BackgroundTransparency = 1
     Row.Parent = Container
 
@@ -168,14 +168,14 @@ local function CreateToggleRow(name, callback)
     Label.BackgroundTransparency = 1
     Label.Text = name
     Label.TextColor3 = Color3.fromRGB(240, 240, 240)
-    Label.TextSize = 13
+    Label.TextSize = 14
     Label.Font = Enum.Font.SourceSansBold
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = Row
 
     local Checkbox = Instance.new("TextButton")
-    Checkbox.Size = UDim2.new(0, 20, 0, 20)
-    Checkbox.Position = UDim2.new(1, -22, 0.5, -10)
+    Checkbox.Size = UDim2.new(0, 21, 0, 21)
+    Checkbox.Position = UDim2.new(1, -23, 0.5, -10)
     Checkbox.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
     Checkbox.BorderColor3 = Color3.fromRGB(45, 48, 60)
     Checkbox.Text = ""
