@@ -6,11 +6,9 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
-local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 -- State Variables
 local AutoSteal = false
@@ -23,30 +21,65 @@ local InfJumpEnabled = false
 local NormalSpeed = 16
 local BoostSpeed = 50
 
+-- Helper: Get Player Character and Parts safely without hanging
+local function getChar()
+    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+end
+
+local function getRoot()
+    local char = LocalPlayer.Character
+    return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+end
+
+local function getHum()
+    local char = LocalPlayer.Character
+    return char and char:FindFirstChildOfClass("Humanoid")
+end
+
 -- Respawn Handler
 LocalPlayer.CharacterAdded:Connect(function(char)
-    Character = char
-    Humanoid = char:WaitForChild("Humanoid")
-    RootPart = char:WaitForChild("HumanoidRootPart")
-    if SpeedBoostEnabled then
-        Humanoid.WalkSpeed = BoostSpeed
+    local hum = char:WaitForChild("Humanoid", 5)
+    if hum and SpeedBoostEnabled then
+        hum.WalkSpeed = BoostSpeed
     end
 end)
 
 ----------------------------------------------------------------
--- GUI Creation (ULTRA SCRIPT HUB Theme)
+-- GUI Creation (ULTRA SCRIPT HUB Theme) - Bulletproof Injection
 ----------------------------------------------------------------
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UltraScriptHub_Brainrots"
 ScreenGui.ResetOnSpawn = false
 
-local parentGui = LocalPlayer:WaitForChild("PlayerGui")
+-- Safe GUI Parent Resolution
+local parentGui = nil
 if gethui then
-    parentGui = gethui()
-elseif game:GetService("CoreGui") then
-    parentGui = game:GetService("CoreGui")
+    pcall(function() parentGui = gethui() end)
 end
-ScreenGui.Parent = parentGui
+
+if not parentGui then
+    pcall(function()
+        if syn and syn.protect_gui then
+            syn.protect_gui(ScreenGui)
+        end
+        parentGui = CoreGui
+    end)
+end
+
+if not parentGui then
+    pcall(function()
+        parentGui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+    end)
+end
+
+-- Clean old instance if exists
+pcall(function()
+    if parentGui and parentGui:FindFirstChild("UltraScriptHub_Brainrots") then
+        parentGui:FindFirstChild("UltraScriptHub_Brainrots"):Destroy()
+    end
+end)
+
+ScreenGui.Parent = parentGui or LocalPlayer:FindFirstChildOfClass("PlayerGui")
 
 -- Main Outer Frame
 local MainFrame = Instance.new("Frame")
@@ -180,7 +213,7 @@ end
 local function getBrainrotTargets()
     local targets = {}
     local char = LocalPlayer.Character
-    local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+    local root = getRoot()
     local myPos = root and root.Position or Vector3.new(0, 0, 0)
 
     for _, obj in ipairs(workspace:GetChildren()) do
@@ -233,8 +266,7 @@ local function getBrainrotTargets()
 end
 
 local function triggerTouch(part)
-    local char = LocalPlayer.Character
-    local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+    local root = getRoot()
     if root and part and part:IsA("BasePart") and firetouchinterest then
         firetouchinterest(root, part, 0)
         task.wait(0.01)
@@ -269,8 +301,7 @@ local HomeBaseCFrame = nil
 CreateToggleRow("Auto Steal Brainrots", function(state)
     AutoSteal = state
     if AutoSteal then
-        local char = LocalPlayer.Character
-        local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+        local root = getRoot()
         if root then
             HomeBaseCFrame = root.CFrame
         end
@@ -278,8 +309,7 @@ CreateToggleRow("Auto Steal Brainrots", function(state)
         task.spawn(function()
             while AutoSteal do
                 pcall(function()
-                    local char = LocalPlayer.Character
-                    local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+                    local root = getRoot()
                     if not root then return end
 
                     local targets = getBrainrotTargets()
@@ -307,8 +337,9 @@ CreateToggleRow("Auto Steal Brainrots", function(state)
 
                         task.wait(0.2)
 
-                        if HomeBaseCFrame and root then
-                            root.CFrame = HomeBaseCFrame
+                        local curRoot = getRoot()
+                        if HomeBaseCFrame and curRoot then
+                            curRoot.CFrame = HomeBaseCFrame
                             task.wait(0.25)
                         end
                     end
@@ -328,8 +359,7 @@ CreateToggleRow("Auto Collect Cash", function(state)
         task.spawn(function()
             while AutoCollectCash do
                 pcall(function()
-                    local char = LocalPlayer.Character
-                    local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+                    local root = getRoot()
                     if not root then return end
 
                     -- Detect and collect all floating Cash ($836, etc.) on BillboardGuis
@@ -513,11 +543,12 @@ end)
 ----------------------------------------------------------------
 CreateToggleRow("WalkSpeed Boost (50)", function(state)
     SpeedBoostEnabled = state
-    if Humanoid then
+    local hum = getHum()
+    if hum then
         if SpeedBoostEnabled then
-            Humanoid.WalkSpeed = BoostSpeed
+            hum.WalkSpeed = BoostSpeed
         else
-            Humanoid.WalkSpeed = NormalSpeed
+            hum.WalkSpeed = NormalSpeed
         end
     end
 end)
@@ -527,7 +558,8 @@ CreateToggleRow("Infinite Jump", function(state)
 end)
 
 UserInputService.JumpRequest:Connect(function()
-    if InfJumpEnabled and Humanoid then
-        Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    local hum = getHum()
+    if InfJumpEnabled and hum then
+        hum:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end)
