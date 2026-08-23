@@ -210,8 +210,8 @@ local function getWasherGunTool()
     return char and char:FindFirstChildOfClass("Tool") or bp and bp:FindFirstChildOfClass("Tool")
 end
 
--- Helper: Get Only Wall & Dirt Parts
-local function getNearbyWallsAndDirt()
+-- Helper: Get All Cleanable Dirt & Wall Objects in Entire House
+local function getAllDirtAndWalls()
     local targets = {}
     local char = LocalPlayer.Character
     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
@@ -220,19 +220,33 @@ local function getNearbyWallsAndDirt()
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") and not obj:IsDescendantOf(char) then
             local name = string.lower(obj.Name)
-            if string.find(name, "wall") 
-                or string.find(name, "dirt") 
-                or string.find(name, "mud") 
-                or string.find(name, "stain") 
-                or string.find(name, "floor") 
-                or string.find(name, "spot") then
-                if not string.find(name, "item") and not string.find(name, "seat") and not string.find(name, "chair") then
-                    table.insert(targets, obj)
-                end
+            local parentName = obj.Parent and string.lower(obj.Parent.Name) or ""
+            
+            -- Detect all dirt, mud, stains, walls, floors, washed objects, cleanables
+            local isDirt = string.find(name, "dirt") 
+                        or string.find(name, "stain") 
+                        or string.find(name, "mud") 
+                        or string.find(name, "wall") 
+                        or string.find(name, "floor") 
+                        or string.find(name, "clean") 
+                        or string.find(name, "wash") 
+                        or string.find(name, "mess") 
+                        or string.find(name, "tile") 
+                        or string.find(parentName, "dirt") 
+                        or string.find(parentName, "wall") 
+                        or string.find(parentName, "wash") 
+                        or string.find(parentName, "house") 
+                        or obj:FindFirstChildOfClass("Decal") 
+                        or obj:FindFirstChildOfClass("Texture")
+
+            -- Exclude player characters and UI
+            if isDirt and not string.find(name, "humanoid") and not string.find(name, "head") then
+                table.insert(targets, obj)
             end
         end
     end
 
+    -- Sort nearest first
     table.sort(targets, function(a, b)
         return (a.Position - myPos).Magnitude < (b.Position - myPos).Magnitude
     end)
@@ -240,7 +254,7 @@ local function getNearbyWallsAndDirt()
     return targets
 end
 
--- 1. Auto Clean Dirt (Instant Clean - 0 Mouse Clicks)
+-- 1. Auto Clean Dirt (Instant 1-Click Complete House & Wall Cleaner)
 CreateToggleRow("Auto Clean Dirt", function(state)
     AutoCleanDirt = state
     if AutoCleanDirt then
@@ -251,7 +265,7 @@ CreateToggleRow("Auto Clean Dirt", function(state)
                     local hum = char and char:FindFirstChildOfClass("Humanoid")
                     local tool = getWasherGunTool()
 
-                    -- Equip Washer Tool
+                    -- 1. Equip Washer Gun
                     if tool and hum then
                         if tool.Parent ~= char then
                             hum:UnequipTools()
@@ -261,16 +275,16 @@ CreateToggleRow("Auto Clean Dirt", function(state)
                         tool:Activate()
                     end
 
-                    -- Get all dirty parts in the room / house
-                    local targets = getNearbyWallsAndDirt()
+                    -- 2. Scan ALL dirt objects across entire house
+                    local allDirt = getAllDirtAndWalls()
 
-                    -- Instant Clean on all dirty targets without ANY mouse click
-                    for i = 1, math.min(25, #targets) do
+                    -- 3. Instant Clean Loop across all detected objects
+                    for i = 1, #allDirt do
                         if not AutoCleanDirt then break end
-                        local dirt = targets[i]
+                        local dirt = allDirt[i]
                         local dirtPos = dirt.Position
 
-                        -- 1. Tool Direct Remote Trigger
+                        -- Fire Tool Remotes
                         if tool then
                             for _, rem in ipairs(tool:GetDescendants()) do
                                 if rem:IsA("RemoteEvent") then
@@ -284,11 +298,17 @@ CreateToggleRow("Auto Clean Dirt", function(state)
                             end
                         end
 
-                        -- 2. Game ReplicatedStorage Cleaning Remotes
+                        -- Fire ReplicatedStorage Cleaning Remotes
                         for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
                             if rem:IsA("RemoteEvent") then
                                 local lower = string.lower(rem.Name)
-                                if string.find(lower, "clean") or string.find(lower, "wash") or string.find(lower, "spray") or string.find(lower, "water") or string.find(lower, "hit") or string.find(lower, "damage") then
+                                if string.find(lower, "clean") 
+                                    or string.find(lower, "wash") 
+                                    or string.find(lower, "spray") 
+                                    or string.find(lower, "water") 
+                                    or string.find(lower, "hit") 
+                                    or string.find(lower, "damage") 
+                                    or string.find(lower, "gun") then
                                     if not string.find(lower, "buy") and not string.find(lower, "shop") and not string.find(lower, "item") and not string.find(lower, "trade") then
                                         rem:FireServer(dirtPos, dirt)
                                         rem:FireServer(dirt, dirtPos)
@@ -298,18 +318,15 @@ CreateToggleRow("Auto Clean Dirt", function(state)
                             end
                         end
 
-                        -- 3. Visual Instant Clean (Destroy client dirt decals & stains)
+                        -- Clear dirt decals / textures instantly
                         for _, child in ipairs(dirt:GetChildren()) do
                             if child:IsA("Decal") or child:IsA("Texture") then
-                                local lowerChild = string.lower(child.Name)
-                                if string.find(lowerChild, "dirt") or string.find(lowerChild, "stain") or string.find(lowerChild, "mud") or string.find(lowerChild, "clean") then
-                                    child.Transparency = 1
-                                end
+                                child.Transparency = 1
                             end
                         end
                     end
                 end)
-                task.wait(0.1)
+                task.wait(0.15)
             end
         end)
     end
