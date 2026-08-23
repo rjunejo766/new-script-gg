@@ -191,61 +191,59 @@ local function getEquippedOrBackpackTool()
     return nil
 end
 
--- Helper: Find Dirty Objects (Floor, Walls, Stains, Mess, Items)
-local function getDirtyObjects()
-    local targets = {}
+-- Helper: Find Only Dirty Parts (Floor Dirt, Wall Dirt, Stains, Mud)
+local function getOnlyDirtyParts()
+    local dirtyParts = {}
     local char = LocalPlayer.Character
     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
     local myPos = root and root.Position or Vector3.new(0, 0, 0)
 
     for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") then
+        if obj:IsA("BasePart") and not obj:IsDescendantOf(char) then
             local name = string.lower(obj.Name)
-            -- Check for dirty parts, walls, floor, stains, trash, items
-            if string.find(name, "dirt") 
-                or string.find(name, "stain") 
-                or string.find(name, "wall") 
-                or string.find(name, "floor") 
-                or string.find(name, "mess") 
-                or string.find(name, "spot") 
-                or string.find(name, "clean") 
-                or string.find(name, "trash") 
-                or string.find(name, "item") 
-                or obj:FindFirstChildOfClass("Decal") 
-                or obj:FindFirstChildOfClass("Texture") 
-                or obj:FindFirstChildOfClass("SurfaceGui") 
-                or obj:FindFirstChildOfClass("ProximityPrompt") 
-                or obj:FindFirstChildOfClass("ClickDetector") then
-                
-                -- Exclude character parts
-                if not obj:IsDescendantOf(char) then
-                    table.insert(targets, obj)
-                end
+            -- ONLY match dirt, stains, mud, messes, dirty tiles, dirty walls
+            -- DO NOT match items, furniture, tools, or sorting objects
+            local isDirt = string.find(name, "dirt") 
+                        or string.find(name, "stain") 
+                        or string.find(name, "mud") 
+                        or string.find(name, "mess") 
+                        or string.find(name, "cleanable") 
+                        or string.find(name, "spot")
+                        or (string.find(name, "wall") and obj:FindFirstChildOfClass("Decal"))
+                        or (string.find(name, "floor") and obj:FindFirstChildOfClass("Decal"))
+                        or obj:GetAttribute("Dirt") ~= nil
+                        or obj:GetAttribute("Cleaned") ~= nil
+                        or obj:FindFirstChild("Dirt") ~= nil
+                        or obj:FindFirstChild("Health") ~= nil
+
+            if isDirt then
+                table.insert(dirtyParts, obj)
             end
         end
     end
 
-    -- Sort by nearest to player
-    table.sort(targets, function(a, b)
+    -- Sort nearest first
+    table.sort(dirtyParts, function(a, b)
         return (a.Position - myPos).Magnitude < (b.Position - myPos).Magnitude
     end)
 
-    return targets
+    return dirtyParts
 end
 
--- 1. Auto Clean House (Advanced Floor, Wall, & Object Cleaner)
+-- 1. Auto Clean House (Pure Floor & Wall Dirt Cleaner)
 CreateToggleRow("Auto Clean House", function(state)
     AutoClean = state
     if AutoClean then
-        -- Thread 1: Continuous Tool Shooting & Mouse Sim (Spray/Water Gun)
+        -- Thread 1: Auto-Equip Gun & Continuous Shooting towards Floor/Dirt
         task.spawn(function()
             while AutoClean do
                 pcall(function()
                     local char = LocalPlayer.Character
+                    local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
                     local hum = char and char:FindFirstChildOfClass("Humanoid")
                     local tool = getEquippedOrBackpackTool()
 
-                    -- Equip Gun / Washer Tool
+                    -- Equip Water Gun / Cleaner Tool
                     if tool and hum then
                         if tool.Parent ~= char then
                             hum:EquipTool(tool)
@@ -253,43 +251,69 @@ CreateToggleRow("Auto Clean House", function(state)
                         tool:Activate()
                     end
 
+                    -- Find nearest dirt to aim at
+                    local dirty = getOnlyDirtyParts()
+                    local targetPos = nil
+                    if #dirty > 0 then
+                        targetPos = dirty[1].Position
+                    elseif root then
+                        -- Default aim down at floor in front of player
+                        targetPos = root.Position + root.CFrame.LookVector * 5 - Vector3.new(0, 3, 0)
+                    end
+
+                    -- Aim character / Camera towards dirt floor
+                    if targetPos and root then
+                        pcall(function()
+                            root.CFrame = CFrame.new(root.Position, Vector3.new(targetPos.X, root.Position.Y, targetPos.Z))
+                        end)
+                    end
+
                     -- Simulate Mouse Click (Water Gun Shooting)
                     local cam = workspace.CurrentCamera
-                    local center = cam and cam.ViewportSize and Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2) or Vector2.new(500, 500)
+                    local screenPos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y * 0.65)
                     
+                    if targetPos and cam then
+                        local screen, onScreen = cam:WorldToViewportPoint(targetPos)
+                        if onScreen then
+                            screenPos = Vector2.new(screen.X, screen.Y)
+                        end
+                    end
+
                     if VirtualUser then
                         VirtualUser:CaptureController()
-                        VirtualUser:Button1Down(center)
-                        task.wait(0.05)
-                        VirtualUser:Button1Up(center)
+                        VirtualUser:Button1Down(screenPos)
+                        task.wait(0.04)
+                        VirtualUser:Button1Up(screenPos)
                     end
 
                     if VirtualInputManager then
-                        VirtualInputManager:SendMouseButtonEvent(center.X, center.Y, 0, true, game, 1)
-                        task.wait(0.05)
-                        VirtualInputManager:SendMouseButtonEvent(center.X, center.Y, 0, false, game, 1)
+                        VirtualInputManager:SendMouseButtonEvent(screenPos.X, screenPos.Y, 0, true, game, 1)
+                        task.wait(0.04)
+                        VirtualInputManager:SendMouseButtonEvent(screenPos.X, screenPos.Y, 0, false, game, 1)
                     end
                 end)
-                task.wait(0.1)
+                task.wait(0.08)
             end
         end)
 
-        -- Thread 2: Remote Spammer & Target Hit Fire
+        -- Thread 2: Fire Tool & Game Remotes directly with Dirt Targets
         task.spawn(function()
             while AutoClean do
                 pcall(function()
                     local char = LocalPlayer.Character
                     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
                     local tool = getEquippedOrBackpackTool()
-                    local dirtyList = getDirtyObjects()
+                    local dirtyParts = getOnlyDirtyParts()
 
-                    -- Fire Remotes inside Tool
+                    -- Fire Remotes inside the Player's Tool with Dirt Part references
                     if tool then
                         for _, child in ipairs(tool:GetDescendants()) do
                             if child:IsA("RemoteEvent") then
-                                for i = 1, math.min(5, #dirtyList) do
-                                    local target = dirtyList[i]
+                                for i = 1, math.min(10, #dirtyParts) do
+                                    local target = dirtyParts[i]
+                                    child:FireServer(target, target.Position)
                                     child:FireServer(target.Position, target)
+                                    child:FireServer(target)
                                 end
                                 child:FireServer()
                             elseif child:IsA("RemoteFunction") then
@@ -298,87 +322,42 @@ CreateToggleRow("Auto Clean House", function(state)
                         end
                     end
 
-                    -- Fire ReplicatedStorage Game Remotes
-                    local commonNames = {
-                        "shoot", "fire", "spray", "water", "clean", "wash", "hit", "damage", 
-                        "cleanhouse", "cleanwall", "interact", "pickup", "collect", "action"
-                    }
-
+                    -- Scan and Fire Cleaning Remotes in ReplicatedStorage
+                    local cleanKeywords = {"clean", "wash", "shoot", "spray", "water", "hit", "damage", "cleanhouse", "cleanwall"}
                     for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
-                        if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
-                            local lowerName = string.lower(remote.Name)
-                            for _, keyword in ipairs(commonNames) do
-                                if string.find(lowerName, keyword) then
-                                    if remote:IsA("RemoteEvent") then
-                                        for i = 1, math.min(3, #dirtyList) do
-                                            local target = dirtyList[i]
-                                            remote:FireServer(target, target.Position)
-                                        end
-                                        remote:FireServer()
-                                    elseif remote:IsA("RemoteFunction") then
-                                        pcall(function() remote:InvokeServer() end)
+                        if remote:IsA("RemoteEvent") then
+                            local lower = string.lower(remote.Name)
+                            for _, kw in ipairs(cleanKeywords) do
+                                if string.find(lower, kw) then
+                                    for i = 1, math.min(5, #dirtyParts) do
+                                        local target = dirtyParts[i]
+                                        remote:FireServer(target, target.Position)
+                                        remote:FireServer(target.Position, target)
                                     end
+                                    remote:FireServer()
                                     break
                                 end
                             end
                         end
                     end
-                end)
-                task.wait(0.15)
-            end
-        end)
 
-        -- Thread 3: ProximityPrompts, ClickDetectors, & TouchInterests (Walls/Floor/Items)
-        task.spawn(function()
-            while AutoClean do
-                pcall(function()
-                    local char = LocalPlayer.Character
-                    local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
-
-                    for _, obj in ipairs(workspace:GetDescendants()) do
-                        if not AutoClean then break end
-
-                        -- Instant Proximity Prompts (Pick up items, clean prompts, trash)
-                        if obj:IsA("ProximityPrompt") then
+                    -- Direct Part Touch / Interaction simulation on dirt parts only
+                    for i = 1, math.min(15, #dirtyParts) do
+                        local part = dirtyParts[i]
+                        if firetouchinterest and root then
                             pcall(function()
-                                obj.HoldDuration = 0
-                                obj.RequiresLineOfSight = false
-                                obj.MaxActivationDistance = 100
-                                if fireproximityprompt then
-                                    fireproximityprompt(obj, 0, true)
-                                end
+                                firetouchinterest(root, part, 0)
+                                firetouchinterest(root, part, 1)
                             end)
                         end
-
-                        -- Instant ClickDetectors (Floor/Walls click triggers)
-                        if obj:IsA("ClickDetector") and fireclickdetector then
+                        if fireclickdetector and part:FindFirstChildOfClass("ClickDetector") then
                             pcall(function()
-                                fireclickdetector(obj)
+                                fireclickdetector(part:FindFirstChildOfClass("ClickDetector"))
                             end)
-                        end
-
-                        -- Touch Interest (Walk/Wall Collision Simulation)
-                        if obj:IsA("BasePart") and not obj:IsDescendantOf(char) then
-                            local lowerObj = string.lower(obj.Name)
-                            if string.find(lowerObj, "dirt") 
-                                or string.find(lowerObj, "wall") 
-                                or string.find(lowerObj, "stain") 
-                                or string.find(lowerObj, "floor") 
-                                or string.find(lowerObj, "mess") 
-                                or string.find(lowerObj, "trash") 
-                                or string.find(lowerObj, "item") then
-                                
-                                if firetouchinterest and root then
-                                    pcall(function()
-                                        firetouchinterest(root, obj, 0)
-                                        firetouchinterest(root, obj, 1)
-                                    end)
-                                end
-                            end
                         end
                     end
                 end)
-                task.wait(0.2)
+                task.wait(0.15)
             end
         end)
     end
