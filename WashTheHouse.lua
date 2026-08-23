@@ -240,11 +240,12 @@ local function getNearbyWallsAndDirt()
     return targets
 end
 
--- 1. Auto Clean Dirt (Pure Water Gun Dirt & Wall Sprayer)
+-- 1. Auto Clean Dirt (Reliable Multi-Method Water Gun Sprayer)
 CreateToggleRow("Auto Clean Dirt", function(state)
     AutoCleanDirt = state
     if AutoCleanDirt then
         task.spawn(function()
+            local cam = workspace.CurrentCamera
             while AutoCleanDirt do
                 pcall(function()
                     local char = LocalPlayer.Character
@@ -252,18 +253,21 @@ CreateToggleRow("Auto Clean Dirt", function(state)
                     local hum = char and char:FindFirstChildOfClass("Humanoid")
                     local tool = getWasherGunTool()
 
-                    -- Equip Water Gun / Washer
+                    -- 1. Auto Equip Water Gun / Washer
                     if tool and hum then
                         if tool.Parent ~= char then
                             hum:UnequipTools()
                             task.wait(0.02)
                             hum:EquipTool(tool)
                         end
-                        -- Rapid Tool Activation (Fires water stream)
+                    end
+
+                    -- 2. Direct Tool Activate
+                    if tool then
                         tool:Activate()
                     end
 
-                    -- Aim at nearest wall / dirt in front of player
+                    -- 3. Aim Character at Nearest Dirt / Wall
                     local targets = getNearbyWallsAndDirt()
                     local targetDirt = targets[1]
                     if targetDirt and root then
@@ -272,7 +276,35 @@ CreateToggleRow("Auto Clean Dirt", function(state)
                         end)
                     end
 
-                    -- Fire Tool's internal remotes directly with target coordinates
+                    -- 4. Safe Mouse Spray (Upper screen area - NO avatar click, NO inspect menu)
+                    local vp = cam and cam.ViewportSize or Vector2.new(1920, 1080)
+                    local safeAimPos = Vector2.new(vp.X * 0.5, vp.Y * 0.28) -- Pointing directly at the wall above player head
+
+                    -- Method A: Executor Native Mouse API
+                    if mouse1press and mouse1release then
+                        mouse1press()
+                        task.wait(0.03)
+                        mouse1release()
+                    elseif mouse1click then
+                        mouse1click()
+                    end
+
+                    -- Method B: VirtualUser on Safe Screen Wall Position
+                    if VirtualUser then
+                        VirtualUser:CaptureController()
+                        VirtualUser:Button1Down(safeAimPos)
+                        task.wait(0.03)
+                        VirtualUser:Button1Up(safeAimPos)
+                    end
+
+                    -- Method C: VirtualInputManager
+                    if VirtualInputManager then
+                        VirtualInputManager:SendMouseButtonEvent(safeAimPos.X, safeAimPos.Y, 0, true, game, 1)
+                        task.wait(0.03)
+                        VirtualInputManager:SendMouseButtonEvent(safeAimPos.X, safeAimPos.Y, 0, false, game, 1)
+                    end
+
+                    -- Method D: Fire Tool Remotes
                     if tool and targetDirt then
                         for _, rem in ipairs(tool:GetDescendants()) do
                             if rem:IsA("RemoteEvent") then
@@ -285,7 +317,7 @@ CreateToggleRow("Auto Clean Dirt", function(state)
                         end
                     end
                 end)
-                task.wait(0.04)
+                task.wait(0.05)
             end
         end)
     end
