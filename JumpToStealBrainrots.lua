@@ -290,8 +290,10 @@ local function getBaseBedSlots()
     return slots
 end
 
+local VirtualUser = game:GetService("VirtualUser")
+
 ----------------------------------------------------------------
--- 1. Auto Steal Brainrots (Go -> Pick Up -> Deposit in Base)
+-- 1. Auto Steal Brainrots (Go -> Attack/Defeat -> Bring to Base)
 ----------------------------------------------------------------
 CreateToggleRow("Auto Steal Brainrots", function(state)
     AutoSteal = state
@@ -309,61 +311,85 @@ CreateToggleRow("Auto Steal Brainrots", function(state)
                     local hum = getHum()
                     if not root or not char then return end
 
-                    -- Auto-equip tool/grabber if available in backpack
+                    -- 1. Equip Bat / Weapon from Backpack
                     local bp = LocalPlayer:FindFirstChild("Backpack")
                     if bp and hum then
-                        local tool = bp:FindFirstChildOfClass("Tool")
-                        if tool then
-                            hum:EquipTool(tool)
+                        for _, tool in ipairs(bp:GetChildren()) do
+                            if tool:IsA("Tool") then
+                                hum:EquipTool(tool)
+                                break
+                            end
                         end
                     end
-                    local equippedTool = char:FindFirstChildOfClass("Tool")
 
+                    local equippedTool = char:FindFirstChildOfClass("Tool")
                     local targets = getBrainrotTargets()
+
                     if #targets > 0 then
                         local target = targets[1]
                         local targetPart = target.Part
 
-                        -- Step 1: Fly/Teleport directly onto Brainrot
-                        char:PivotTo(targetPart.CFrame + Vector3.new(0, 1.5, 0))
+                        -- 2. Fly/Teleport to Brainrot target
+                        char:PivotTo(targetPart.CFrame + Vector3.new(0, 1.2, 0))
                         root.Velocity = Vector3.new(0, 0, 0)
-                        task.wait(0.15)
+                        task.wait(0.1)
 
-                        -- Step 2: Grab / Tool attack
-                        if equippedTool then
-                            equippedTool:Activate()
-                        end
+                        -- 3. Multi-Hit Attack Loop (Spam attacks to defeat & steal Brainrot)
+                        for strike = 1, 8 do
+                            if not AutoSteal then break end
 
-                        -- Step 3: Trigger Prompts, Clicks, and Touch
-                        triggerPrompts(target.Model)
-                        triggerClicks(target.Model)
-                        for _, part in ipairs(target.Model:GetDescendants()) do
-                            if part:IsA("BasePart") then
-                                triggerTouch(part)
-                            end
-                        end
-
-                        -- Step 4: Fire Steal Remotes
-                        for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
-                            if rem:IsA("RemoteEvent") then
-                                local lower = string.lower(rem.Name)
-                                if string.find(lower, "steal") or string.find(lower, "grab") or string.find(lower, "take") or string.find(lower, "pickup") or string.find(lower, "claim") then
-                                    rem:FireServer(target.Model)
-                                    rem:FireServer(targetPart)
-                                    rem:FireServer()
+                            -- Tool activation
+                            if equippedTool then
+                                equippedTool:Activate()
+                                -- Fire Tool Remotes
+                                for _, rem in ipairs(equippedTool:GetDescendants()) do
+                                    if rem:IsA("RemoteEvent") then
+                                        rem:FireServer(target.Model)
+                                        rem:FireServer(targetPart)
+                                        rem:FireServer()
+                                    end
                                 end
                             end
+
+                            -- VirtualUser Attack / Left Click
+                            pcall(function()
+                                VirtualUser:Button1Down(Vector2.new(0, 0))
+                                task.wait(0.02)
+                                VirtualUser:Button1Up(Vector2.new(0, 0))
+                            end)
+
+                            -- Prompts, Clicks & Touch
+                            triggerPrompts(target.Model)
+                            triggerClicks(target.Model)
+                            for _, part in ipairs(target.Model:GetDescendants()) do
+                                if part:IsA("BasePart") then
+                                    triggerTouch(part)
+                                end
+                            end
+
+                            -- Game Remotes
+                            for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
+                                if rem:IsA("RemoteEvent") then
+                                    local lower = string.lower(rem.Name)
+                                    if string.find(lower, "steal") or string.find(lower, "hit") or string.find(lower, "attack") or string.find(lower, "damage") or string.find(lower, "grab") or string.find(lower, "pickup") then
+                                        rem:FireServer(target.Model)
+                                        rem:FireServer(targetPart)
+                                    end
+                                end
+                            end
+
+                            task.wait(0.12)
                         end
 
-                        task.wait(0.3)
+                        task.wait(0.2)
 
-                        -- Step 5: Return to Base and Drop/Deposit on Bed Slots
+                        -- 4. Return to Base and Drop on Bed Slots
                         if HomeBaseCFrame then
                             char:PivotTo(HomeBaseCFrame)
                             root.Velocity = Vector3.new(0, 0, 0)
                             task.wait(0.2)
 
-                            -- Step on bed slots
+                            -- Walk across bed slots to ensure placement
                             local slots = getBaseBedSlots()
                             for _, slotPart in ipairs(slots) do
                                 if not AutoSteal then break end
@@ -373,7 +399,7 @@ CreateToggleRow("Auto Steal Brainrots", function(state)
                                 task.wait(0.08)
                             end
 
-                            -- Back to base center
+                            -- Rest at home base
                             char:PivotTo(HomeBaseCFrame)
                         end
                     end
