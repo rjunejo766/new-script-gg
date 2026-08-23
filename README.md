@@ -8,7 +8,7 @@ Welcome to **Ultra Script Hub**! High-performance, clean scripts for Roblox game
 
 ### ⚡ Loadstring (Execute in Roblox)
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/JumpToStealBrainrots.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/JumpToStealBrainrots.lua?t=" .. tostring(os.time())))()
 ```
 
 ### ✨ Features (Exact 4 Features)
@@ -23,7 +23,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 
 ### ⚡ Loadstring (Execute in Roblox)
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/WashTheHouse.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/WashTheHouse.lua?t=" .. tostring(os.time())))()
 ```
 
 ### ✨ Features
