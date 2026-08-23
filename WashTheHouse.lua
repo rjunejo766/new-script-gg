@@ -240,124 +240,77 @@ local function getNearbyWallsAndDirt()
     return targets
 end
 
--- 1. Auto Clean Dirt (Continuous Wall & Floor Water Spray)
+-- 1. Auto Clean Dirt (Instant Clean - 0 Mouse Clicks)
 CreateToggleRow("Auto Clean Dirt", function(state)
     AutoCleanDirt = state
     if AutoCleanDirt then
-        -- Thread 1: Continuous Gun Firing & Fast Spray Hold
         task.spawn(function()
-            local cam = workspace.CurrentCamera
             while AutoCleanDirt do
                 pcall(function()
                     local char = LocalPlayer.Character
-                    local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
                     local hum = char and char:FindFirstChildOfClass("Humanoid")
                     local tool = getWasherGunTool()
 
-                    -- 1. Ensure Washer Gun is equipped
+                    -- Equip Washer Tool
                     if tool and hum then
                         if tool.Parent ~= char then
                             hum:UnequipTools()
                             task.wait(0.01)
                             hum:EquipTool(tool)
                         end
-                        -- Rapid Tool Activate
                         tool:Activate()
-                        if getconnections then
-                            for _, conn in ipairs(getconnections(tool.Activated)) do
-                                conn:Fire()
-                            end
-                        end
                     end
 
-                    -- 2. Aim at nearest wall / dirt
+                    -- Get all dirty parts in the room / house
                     local targets = getNearbyWallsAndDirt()
-                    local targetDirt = targets[1]
-                    if targetDirt and root then
-                        pcall(function()
-                            root.CFrame = CFrame.lookAt(root.Position, Vector3.new(targetDirt.Position.X, root.Position.Y, targetDirt.Position.Z))
-                        end)
-                    end
 
-                    -- 3. Continuous Mouse Spray Sweep across the Wall
-                    local vp = cam and cam.ViewportSize or Vector2.new(1920, 1080)
-                    for xOff = -0.2, 0.2, 0.1 do
+                    -- Instant Clean on all dirty targets without ANY mouse click
+                    for i = 1, math.min(25, #targets) do
                         if not AutoCleanDirt then break end
-                        local aimPos = Vector2.new(vp.X * (0.5 + xOff), vp.Y * 0.35)
+                        local dirt = targets[i]
+                        local dirtPos = dirt.Position
 
-                        if VirtualUser then
-                            VirtualUser:CaptureController()
-                            VirtualUser:Button1Down(aimPos)
-                        end
-
-                        if VirtualInputManager then
-                            VirtualInputManager:SendMouseButtonEvent(aimPos.X, aimPos.Y, 0, true, game, 1)
-                        end
-
-                        if mouse1press then
-                            mouse1press()
-                        end
-
-                        task.wait(0.02)
-                    end
-                end)
-                task.wait(0.02)
-            end
-
-            -- Release mouse when toggle turned off
-            pcall(function()
-                if mouse1release then mouse1release() end
-                if VirtualUser then VirtualUser:Button1Up(Vector2.new(0, 0)) end
-                if VirtualInputManager then VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1) end
-            end)
-        end)
-
-        -- Thread 2: Tool & Game Cleaning Remote Spammer
-        task.spawn(function()
-            while AutoCleanDirt do
-                pcall(function()
-                    local tool = getWasherGunTool()
-                    local targets = getNearbyWallsAndDirt()
-                    local targetDirt = targets[1]
-
-                    if targetDirt then
-                        -- Fire Tool Remotes
+                        -- 1. Tool Direct Remote Trigger
                         if tool then
                             for _, rem in ipairs(tool:GetDescendants()) do
                                 if rem:IsA("RemoteEvent") then
-                                    rem:FireServer(targetDirt.Position, targetDirt)
-                                    rem:FireServer(targetDirt, targetDirt.Position)
-                                    rem:FireServer(targetDirt)
-                                    rem:FireServer(targetDirt.Position)
+                                    rem:FireServer(dirtPos, dirt)
+                                    rem:FireServer(dirt, dirtPos)
+                                    rem:FireServer(dirt)
+                                    rem:FireServer(dirtPos)
                                 elseif rem:IsA("RemoteFunction") then
-                                    pcall(function() rem:InvokeServer(targetDirt.Position, targetDirt) end)
+                                    pcall(function() rem:InvokeServer(dirtPos, dirt) end)
                                 end
                             end
                         end
 
-                        -- Fire Game ReplicatedStorage Remotes that clean/wash
+                        -- 2. Game ReplicatedStorage Cleaning Remotes
                         for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
                             if rem:IsA("RemoteEvent") then
                                 local lower = string.lower(rem.Name)
-                                if string.find(lower, "clean") or string.find(lower, "wash") or string.find(lower, "spray") or string.find(lower, "water") or string.find(lower, "shoot") or string.find(lower, "hit") then
-                                    if not string.find(lower, "buy") and not string.find(lower, "shop") and not string.find(lower, "item") then
-                                        rem:FireServer(targetDirt.Position, targetDirt)
-                                        rem:FireServer(targetDirt, targetDirt.Position)
+                                if string.find(lower, "clean") or string.find(lower, "wash") or string.find(lower, "spray") or string.find(lower, "water") or string.find(lower, "hit") or string.find(lower, "damage") then
+                                    if not string.find(lower, "buy") and not string.find(lower, "shop") and not string.find(lower, "item") and not string.find(lower, "trade") then
+                                        rem:FireServer(dirtPos, dirt)
+                                        rem:FireServer(dirt, dirtPos)
+                                        rem:FireServer(dirt)
                                     end
                                 end
                             end
                         end
+
+                        -- 3. Visual Instant Clean (Destroy client dirt decals & stains)
+                        for _, child in ipairs(dirt:GetChildren()) do
+                            if child:IsA("Decal") or child:IsA("Texture") then
+                                local lowerChild = string.lower(child.Name)
+                                if string.find(lowerChild, "dirt") or string.find(lowerChild, "stain") or string.find(lowerChild, "mud") or string.find(lowerChild, "clean") then
+                                    child.Transparency = 1
+                                end
+                            end
+                        end
                     end
                 end)
-                task.wait(0.06)
+                task.wait(0.1)
             end
-        end)
-    else
-        -- Cleanup mouse hold on disable
-        pcall(function()
-            if mouse1release then mouse1release() end
-            if VirtualUser then VirtualUser:Button1Up(Vector2.new(0, 0)) end
-            if VirtualInputManager then VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1) end
         end)
     end
 end)
