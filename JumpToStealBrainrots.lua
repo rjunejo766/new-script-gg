@@ -37,36 +37,58 @@ end)
 -- Helper Functions: Player Base & Brainrot Detection
 ----------------------------------------------------------------
 
+-- Memory of Player Spawn / Base Position
+local SpawnBasePosition = nil
+task.spawn(function()
+    task.wait(1)
+    if RootPart then
+        SpawnBasePosition = RootPart.Position
+    end
+end)
+
 -- Find the Local Player's Personal Base / Plot
 local function getMyBase()
-    local playerName = LocalPlayer.Name
-    local userId = LocalPlayer.UserId
+    local playerName = string.lower(LocalPlayer.Name)
+    local displayName = string.lower(LocalPlayer.DisplayName)
+    local userId = tostring(LocalPlayer.UserId)
 
-    -- Common Base folder names
-    local baseContainers = {
-        workspace:FindFirstChild("Plots"),
-        workspace:FindFirstChild("Bases"),
-        workspace:FindFirstChild("Tycoons"),
-        workspace:FindFirstChild("Houses"),
-        workspace:FindFirstChild("Islands")
-    }
-
-    for _, container in ipairs(baseContainers) do
+    -- 1. Search common tycoon / plot folders
+    for _, container in ipairs({workspace:FindFirstChild("Plots"), workspace:FindFirstChild("Bases"), workspace:FindFirstChild("Tycoons"), workspace:FindFirstChild("Houses")}) do
         if container then
             for _, plot in ipairs(container:GetChildren()) do
-                local owner = plot:FindFirstChild("Owner") or plot:FindFirstChild("OwnerValue") or plot:FindFirstChild("Player")
-                if owner then
-                    if owner.Value == LocalPlayer or owner.Value == playerName or tostring(owner.Value) == tostring(userId) or string.find(string.lower(tostring(owner.Value)), string.lower(playerName)) then
-                        return plot
+                -- Check Owner value
+                for _, child in ipairs(plot:GetDescendants()) do
+                    if child:IsA("StringValue") or child:IsA("ObjectValue") then
+                        local valStr = string.lower(tostring(child.Value))
+                        if valStr == playerName or valStr == displayName or valStr == userId or (child.Value == LocalPlayer) then
+                            return plot
+                        end
+                    end
+                    -- Check BillboardGui Signs on Plot
+                    if child:IsA("TextLabel") or child:IsA("TextButton") then
+                        local text = string.lower(child.Text)
+                        if string.find(text, playerName) or string.find(text, displayName) then
+                            return plot
+                        end
                     end
                 end
-                -- Check attribute
-                if plot:GetAttribute("Owner") == playerName or plot:GetAttribute("OwnerId") == userId then
+                -- Check attributes
+                if plot:GetAttribute("Owner") == LocalPlayer.Name or tostring(plot:GetAttribute("OwnerId")) == userId then
                     return plot
                 end
-                -- Check plot name
-                if string.find(string.lower(plot.Name), string.lower(playerName)) then
-                    return plot
+            end
+        end
+    end
+
+    -- 2. Search entire workspace for any plot with player's name
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:IsA("Model") or obj:IsA("Folder") then
+            local objName = string.lower(obj.Name)
+            if string.find(objName, "plot") or string.find(objName, "base") or string.find(objName, "tycoon") then
+                for _, desc in ipairs(obj:GetDescendants()) do
+                    if (desc:IsA("TextLabel") or desc:IsA("TextButton")) and (string.find(string.lower(desc.Text), playerName) or string.find(string.lower(desc.Text), displayName)) then
+                        return obj
+                    end
                 end
             end
         end
@@ -79,28 +101,27 @@ end
 local function getBaseDepositPoint()
     local myBase = getMyBase()
     if myBase then
-        -- Search for deposit / drop pad inside base
         for _, obj in ipairs(myBase:GetDescendants()) do
             if obj:IsA("BasePart") then
                 local lower = string.lower(obj.Name)
-                if string.find(lower, "deposit") or string.find(lower, "drop") or string.find(lower, "delivery") or string.find(lower, "place") or string.find(lower, "spawn") then
+                if string.find(lower, "deposit") or string.find(lower, "drop") or string.find(lower, "delivery") or string.find(lower, "place") or string.find(lower, "spawn") or string.find(lower, "pad") then
                     return obj.Position + Vector3.new(0, 3, 0)
                 end
             end
         end
-        -- Fallback to base primary part or center
         if myBase.PrimaryPart then
             return myBase.PrimaryPart.Position + Vector3.new(0, 4, 0)
         end
-        local centerPart = myBase:FindFirstChildWhichIsA("BasePart")
-        if centerPart then
-            return centerPart.Position + Vector3.new(0, 4, 0)
-        end
+    end
+
+    -- Fallback to starting spawn position
+    if SpawnBasePosition then
+        return SpawnBasePosition + Vector3.new(0, 2, 0)
     end
     return nil
 end
 
--- Find all Brainrot Spawn Items on the Map
+-- Find all Brainrot NPCs / Items across the map (Universal Detection)
 local function getAllBrainrots()
     local brainrots = {}
     local char = LocalPlayer.Character
@@ -108,30 +129,51 @@ local function getAllBrainrots()
     local myPos = root and root.Position or Vector3.new(0, 0, 0)
 
     for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") or obj:IsA("BasePart") then
-            if not obj:IsDescendantOf(char) then
-                local name = string.lower(obj.Name)
-                local parentName = obj.Parent and string.lower(obj.Parent.Name) or ""
-                
-                -- Check if it's a Brainrot / Item / LuckyBlock
-                local isBrainrot = string.find(name, "brainrot") 
-                                or string.find(name, "sigma") 
-                                or string.find(name, "gigachad") 
-                                or string.find(name, "skibidi") 
-                                or string.find(name, "item") 
-                                or string.find(name, "steal") 
-                                or string.find(name, "lucky") 
-                                or string.find(name, "block") 
-                                or string.find(parentName, "brainrot") 
-                                or string.find(parentName, "spawner") 
-                                or string.find(parentName, "drops")
+        if obj:IsA("Model") and not obj:IsDescendantOf(char) then
+            -- Make sure it is NOT another real player
+            local isRealPlayer = Players:GetPlayerFromCharacter(obj) ~= nil
 
-                -- Ignore base structures, walls, pads
-                if isBrainrot and not string.find(name, "pad") and not string.find(name, "collector") and not string.find(name, "wall") and not string.find(name, "floor") then
-                    local targetPart = obj:IsA("BasePart") and obj or obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-                    if targetPart then
-                        table.insert(brainrots, {Instance = obj, Part = targetPart, Position = targetPart.Position})
+            if not isRealPlayer then
+                local hum = obj:FindFirstChildOfClass("Humanoid")
+                local hrp = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso") or obj:FindFirstChild("Head") or obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                local hasBillboard = obj:FindFirstChildWhichIsA("BillboardGui", true)
+                local hasPrompt = obj:FindFirstChildWhichIsA("ProximityPrompt", true)
+
+                -- Check if it's a Brainrot NPC (moving character with stats, tags, or prompts)
+                local isBrainrot = false
+                local objName = string.lower(obj.Name)
+
+                -- 1. Check BillboardGui text (e.g. "$23/s", "Common", "Rare", "Pipi", meme names)
+                if hasBillboard then
+                    for _, label in ipairs(obj:GetDescendants()) do
+                        if label:IsA("TextLabel") then
+                            local txt = string.lower(label.Text)
+                            if string.find(txt, "$") or string.find(txt, "/s") or string.find(txt, "common") or string.find(txt, "rare") or string.find(txt, "epic") or string.find(txt, "legendary") or string.find(txt, "secret") or string.find(txt, "brainrot") then
+                                isBrainrot = true
+                                break
+                            end
+                        end
                     end
+                end
+
+                -- 2. Check ProximityPrompt action text
+                if hasPrompt and not isBrainrot then
+                    local action = string.lower(hasPrompt.ActionText .. " " .. hasPrompt.ObjectText)
+                    if string.find(action, "steal") or string.find(action, "grab") or string.find(action, "take") or string.find(action, "pick") or string.find(action, "claim") then
+                        isBrainrot = true
+                    end
+                end
+
+                -- 3. Check general keywords
+                if not isBrainrot and (string.find(objName, "brainrot") or string.find(objName, "spawner") or string.find(objName, "npc") or (hum and hrp)) then
+                    -- Exclude base structures and tycoon models
+                    if not string.find(objName, "plot") and not string.find(objName, "tycoon") and not string.find(objName, "base") and not string.find(objName, "door") and not string.find(objName, "wall") then
+                        isBrainrot = true
+                    end
+                end
+
+                if isBrainrot and hrp then
+                    table.insert(brainrots, {Instance = obj, Part = hrp, Position = hrp.Position})
                 end
             end
         end
