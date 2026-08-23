@@ -84,8 +84,8 @@ ScreenGui.Parent = parentGui or LocalPlayer:FindFirstChildOfClass("PlayerGui")
 -- Main Outer Frame (Compact exact design)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 300)
-MainFrame.Position = UDim2.new(0.5, -160, 0.35, -150)
+MainFrame.Size = UDim2.new(0, 330, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -165, 0.35, -160)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -96,14 +96,14 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 10)
 UICorner.Parent = MainFrame
 
--- Header Title
+-- Header Title (Large & Prominent)
 local HeaderTitle = Instance.new("TextLabel")
-HeaderTitle.Size = UDim2.new(1, -45, 0, 32)
+HeaderTitle.Size = UDim2.new(1, -50, 0, 35)
 HeaderTitle.Position = UDim2.new(0, 16, 0, 10)
 HeaderTitle.BackgroundTransparency = 1
 HeaderTitle.Text = "JUMP TO STEAL BRAINROTS"
 HeaderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-HeaderTitle.TextSize = 14
+HeaderTitle.TextSize = 16
 HeaderTitle.Font = Enum.Font.SourceSansBold
 HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
 HeaderTitle.Parent = MainFrame
@@ -123,10 +123,10 @@ CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- Container for Toggles (Generous spacing below header)
+-- Container for Toggles (Clear gap below title)
 local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -32, 0, 175)
-Container.Position = UDim2.new(0, 16, 0, 52)
+Container.Size = UDim2.new(1, -32, 0, 180)
+Container.Position = UDim2.new(0, 16, 0, 56)
 Container.BackgroundTransparency = 1
 Container.Parent = MainFrame
 
@@ -135,24 +135,24 @@ UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Padding = UDim.new(0, 7)
 UIListLayout.Parent = Container
 
--- Footer Branding (Prominent & Clear)
+-- Footer Branding (Bold, Large & Clearly Distinct)
 local FooterTitle = Instance.new("TextLabel")
-FooterTitle.Size = UDim2.new(1, 0, 0, 20)
-FooterTitle.Position = UDim2.new(0, 0, 1, -44)
+FooterTitle.Size = UDim2.new(1, 0, 0, 22)
+FooterTitle.Position = UDim2.new(0, 0, 1, -48)
 FooterTitle.BackgroundTransparency = 1
 FooterTitle.Text = "ULTRA SCRIPT HUB"
 FooterTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-FooterTitle.TextSize = 15
+FooterTitle.TextSize = 17
 FooterTitle.Font = Enum.Font.SourceSansBold
 FooterTitle.Parent = MainFrame
 
 local FooterSub = Instance.new("TextLabel")
 FooterSub.Size = UDim2.new(1, 0, 0, 16)
-FooterSub.Position = UDim2.new(0, 0, 1, -24)
+FooterSub.Position = UDim2.new(0, 0, 1, -26)
 FooterSub.BackgroundTransparency = 1
 FooterSub.Text = "Made by Junejo"
-FooterSub.TextColor3 = Color3.fromRGB(140, 140, 140)
-FooterSub.TextSize = 12
+FooterSub.TextColor3 = Color3.fromRGB(150, 150, 150)
+FooterSub.TextSize = 13
 FooterSub.Font = Enum.Font.SourceSans
 FooterSub.Parent = MainFrame
 
@@ -167,8 +167,8 @@ local function CreateToggleRow(name, callback)
     Label.Size = UDim2.new(1, -35, 1, 0)
     Label.BackgroundTransparency = 1
     Label.Text = name
-    Label.TextColor3 = Color3.fromRGB(240, 240, 240)
-    Label.TextSize = 14
+    Label.TextColor3 = Color3.fromRGB(220, 220, 225)
+    Label.TextSize = 13
     Label.Font = Enum.Font.SourceSansBold
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = Row
