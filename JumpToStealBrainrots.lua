@@ -209,49 +209,28 @@ end
 -- Helper Functions: Target Detection & Interactions
 ----------------------------------------------------------------
 
--- Get all Brainrot NPC Models across workspace
+-- Get all Brainrot NPC Models across entire workspace
 local function getBrainrotTargets()
     local targets = {}
     local char = LocalPlayer.Character
     local root = getRoot()
     local myPos = root and root.Position or Vector3.new(0, 0, 0)
 
-    for _, obj in ipairs(workspace:GetChildren()) do
-        if obj:IsA("Model") and obj ~= char then
-            if not Players:GetPlayerFromCharacter(obj) then
-                local hrp = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso") or obj:FindFirstChild("Head") or obj.PrimaryPart
-                if hrp then
-                    local name = string.lower(obj.Name)
-                    if not string.find(name, "plot") and not string.find(name, "tycoon") and not string.find(name, "base") and not string.find(name, "house") then
-                        table.insert(targets, {Model = obj, Part = hrp, Position = hrp.Position})
-                    end
-                end
-            end
-        elseif obj:IsA("Folder") then
-            local fName = string.lower(obj.Name)
-            if string.find(fName, "brainrot") or string.find(fName, "npc") or string.find(fName, "spawn") or string.find(fName, "mob") or string.find(fName, "drop") or string.find(fName, "item") then
-                for _, sub in ipairs(obj:GetChildren()) do
-                    if sub:IsA("Model") and sub ~= char and not Players:GetPlayerFromCharacter(sub) then
-                        local hrp = sub:FindFirstChild("HumanoidRootPart") or sub:FindFirstChild("Torso") or sub:FindFirstChild("Head") or sub.PrimaryPart or sub:FindFirstChildWhichIsA("BasePart")
-                        if hrp then
-                            table.insert(targets, {Model = sub, Part = hrp, Position = hrp.Position})
-                        end
-                    elseif sub:IsA("BasePart") then
-                        table.insert(targets, {Model = sub, Part = sub, Position = sub.Position})
-                    end
-                end
-            end
-        end
-    end
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj ~= char and not Players:GetPlayerFromCharacter(obj) then
+            local hrp = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso") or obj:FindFirstChild("Head") or obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+            if hrp then
+                local name = string.lower(obj.Name)
+                local parentName = obj.Parent and string.lower(obj.Parent.Name) or ""
+                
+                -- Filter out plot / base / tycoon models
+                if not string.find(name, "plot") and not string.find(name, "tycoon") and not string.find(name, "base") and not string.find(name, "house") and not string.find(name, "door") and not string.find(name, "wall") then
+                    local hasBillboard = obj:FindFirstChildWhichIsA("BillboardGui", true) ~= nil
+                    local hasPrompt = obj:FindFirstChildWhichIsA("ProximityPrompt", true) ~= nil
+                    local hasHum = obj:FindFirstChildOfClass("Humanoid") ~= nil
 
-    if #targets == 0 then
-        for _, gui in ipairs(workspace:GetDescendants()) do
-            if gui:IsA("BillboardGui") then
-                local model = gui.Adornee or gui.Parent
-                if model and model:IsA("Model") and model ~= char and not Players:GetPlayerFromCharacter(model) then
-                    local hrp = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso") or model:FindFirstChild("Head") or model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
-                    if hrp then
-                        table.insert(targets, {Model = model, Part = hrp, Position = hrp.Position})
+                    if hasBillboard or hasPrompt or hasHum or string.find(name, "brainrot") or string.find(parentName, "brainrot") or string.find(parentName, "spawn") or string.find(parentName, "mob") then
+                        table.insert(targets, {Model = obj, Part = hrp, Position = hrp.Position})
                     end
                 end
             end
@@ -294,7 +273,7 @@ local function triggerClicks(obj)
 end
 
 ----------------------------------------------------------------
--- 1. Auto Steal Brainrots
+-- 1. Auto Steal Brainrots (Guaranteed Steal & Deposit)
 ----------------------------------------------------------------
 local HomeBaseCFrame = nil
 
@@ -317,9 +296,11 @@ CreateToggleRow("Auto Steal Brainrots", function(state)
                         local target = targets[1]
                         local targetPart = target.Part
 
+                        -- Step 1: Teleport directly above Brainrot
                         root.CFrame = targetPart.CFrame + Vector3.new(0, 1.5, 0)
-                        task.wait(0.12)
+                        task.wait(0.15)
 
+                        -- Step 2: Multi-vector interactions (Prompt, Click, Touch, Remote)
                         triggerPrompts(target.Model)
                         triggerClicks(target.Model)
                         triggerTouch(targetPart)
@@ -335,12 +316,13 @@ CreateToggleRow("Auto Steal Brainrots", function(state)
                             end
                         end
 
-                        task.wait(0.2)
+                        task.wait(0.25)
 
+                        -- Step 3: Teleport back to Home Base spot to deposit
                         local curRoot = getRoot()
                         if HomeBaseCFrame and curRoot then
                             curRoot.CFrame = HomeBaseCFrame
-                            task.wait(0.25)
+                            task.wait(0.3)
                         end
                     end
                 end)
