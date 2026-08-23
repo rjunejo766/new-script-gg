@@ -11,7 +11,6 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 -- State Variables
-local AutoSteal = false
 local AutoCollectCash = false
 local SpeedBoostEnabled = false
 local FlyEnabled = false
@@ -84,8 +83,8 @@ ScreenGui.Parent = parentGui or LocalPlayer:FindFirstChildOfClass("PlayerGui")
 -- Main Outer Frame (Compact exact design)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 330, 0, 320)
-MainFrame.Position = UDim2.new(0.5, -165, 0.35, -160)
+MainFrame.Size = UDim2.new(0, 320, 0, 275)
+MainFrame.Position = UDim2.new(0.5, -160, 0.35, -137)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -125,8 +124,8 @@ end)
 
 -- Container for Toggles (Clear gap below title)
 local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -32, 0, 180)
-Container.Position = UDim2.new(0, 16, 0, 56)
+Container.Size = UDim2.new(1, -32, 0, 140)
+Container.Position = UDim2.new(0, 16, 0, 54)
 Container.BackgroundTransparency = 1
 Container.Parent = MainFrame
 
@@ -138,7 +137,7 @@ UIListLayout.Parent = Container
 -- Footer Branding (Bold, Large & Clearly Distinct)
 local FooterTitle = Instance.new("TextLabel")
 FooterTitle.Size = UDim2.new(1, 0, 0, 22)
-FooterTitle.Position = UDim2.new(0, 0, 1, -48)
+FooterTitle.Position = UDim2.new(0, 0, 1, -46)
 FooterTitle.BackgroundTransparency = 1
 FooterTitle.Text = "ULTRA SCRIPT HUB"
 FooterTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -148,7 +147,7 @@ FooterTitle.Parent = MainFrame
 
 local FooterSub = Instance.new("TextLabel")
 FooterSub.Size = UDim2.new(1, 0, 0, 16)
-FooterSub.Position = UDim2.new(0, 0, 1, -26)
+FooterSub.Position = UDim2.new(0, 0, 1, -24)
 FooterSub.BackgroundTransparency = 1
 FooterSub.Text = "Made by Junejo"
 FooterSub.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -206,43 +205,8 @@ local function CreateToggleRow(name, callback)
 end
 
 ----------------------------------------------------------------
--- Helper Functions: Target Detection & Interactions
+-- Helper Interactions
 ----------------------------------------------------------------
-
--- Get all Brainrot NPC Models on the field / platforms
-local function getBrainrotTargets()
-    local targets = {}
-    local char = LocalPlayer.Character
-    local root = getRoot()
-    local myPos = HomeBaseCFrame and HomeBaseCFrame.Position or (root and root.Position) or Vector3.new(0, 0, 0)
-
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj ~= char and not Players:GetPlayerFromCharacter(obj) then
-            local hrp = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso") or obj:FindFirstChild("Head") or obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-            if hrp then
-                local dist = (hrp.Position - myPos).Magnitude
-                -- Target only Brainrots on the field / platforms (outside base)
-                if dist > 15 then
-                    local name = string.lower(obj.Name)
-                    local hasBillboard = obj:FindFirstChildWhichIsA("BillboardGui", true) ~= nil
-                    local hasPrompt = obj:FindFirstChildWhichIsA("ProximityPrompt", true) ~= nil
-                    local hasHum = obj:FindFirstChildOfClass("Humanoid") ~= nil
-
-                    if hasBillboard or hasPrompt or hasHum or string.find(name, "brainrot") or string.find(name, "npc") or string.find(name, "mob") then
-                        table.insert(targets, {Model = obj, Part = hrp, Position = hrp.Position})
-                    end
-                end
-            end
-        end
-    end
-
-    table.sort(targets, function(a, b)
-        return (a.Position - myPos).Magnitude < (b.Position - myPos).Magnitude
-    end)
-
-    return targets
-end
-
 local function triggerTouch(part)
     local root = getRoot()
     if root and part and part:IsA("BasePart") and firetouchinterest then
@@ -271,72 +235,8 @@ local function triggerClicks(obj)
     end
 end
 
--- Helper: Find Player's Base Bed Slots
-local function getBaseBedSlots()
-    local slots = {}
-    local myPos = HomeBaseCFrame and HomeBaseCFrame.Position or Vector3.new(0, 0, 0)
-
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            local lower = string.lower(obj.Name)
-            local parentLower = obj.Parent and string.lower(obj.Parent.Name) or ""
-            if string.find(lower, "bed") or string.find(lower, "slot") or string.find(lower, "pad") or string.find(parentLower, "bed") or string.find(parentLower, "slot") then
-                if (obj.Position - myPos).Magnitude < 100 then
-                    table.insert(slots, obj)
-                end
-            end
-        end
-    end
-    return slots
-end
-
-local VirtualUser = game:GetService("VirtualUser")
-
-local AutoEquipTeleport = false
-
 ----------------------------------------------------------------
--- 1. Auto Equip & Teleport
-----------------------------------------------------------------
-CreateToggleRow("Auto Equip & Teleport", function(state)
-    AutoEquipTeleport = state
-    if AutoEquipTeleport then
-        task.spawn(function()
-            while AutoEquipTeleport do
-                pcall(function()
-                    local char = LocalPlayer.Character
-                    local root = getRoot()
-                    local hum = getHum()
-                    if not root or not char then return end
-
-                    -- 1. Auto Equip Weapon from Backpack
-                    local bp = LocalPlayer:FindFirstChild("Backpack")
-                    if bp and hum then
-                        for _, tool in ipairs(bp:GetChildren()) do
-                            if tool:IsA("Tool") then
-                                hum:EquipTool(tool)
-                                break
-                            end
-                        end
-                    end
-
-                    -- 2. Teleport to Nearest Brainrot on Field
-                    local targets = getBrainrotTargets()
-                    if #targets > 0 then
-                        local target = targets[1]
-                        local targetPart = target.Part
-
-                        char:PivotTo(targetPart.CFrame + Vector3.new(0, 1.5, 0))
-                        root.Velocity = Vector3.new(0, 0, 0)
-                    end
-                end)
-                task.wait(0.5)
-            end
-        end)
-    end
-end)
-
-----------------------------------------------------------------
--- 2. Auto Collect Cash
+-- 1. Auto Collect Cash
 ----------------------------------------------------------------
 CreateToggleRow("Auto Collect Cash", function(state)
     AutoCollectCash = state
@@ -426,7 +326,7 @@ CreateToggleRow("Auto Collect Cash", function(state)
 end)
 
 ----------------------------------------------------------------
--- 3. WalkSpeed Boost (50)
+-- 2. WalkSpeed Boost (50)
 ----------------------------------------------------------------
 CreateToggleRow("WalkSpeed Boost (50)", function(state)
     SpeedBoostEnabled = state
@@ -441,7 +341,7 @@ CreateToggleRow("WalkSpeed Boost (50)", function(state)
 end)
 
 ----------------------------------------------------------------
--- 4. Fly Mode (Smooth Camera Flying)
+-- 3. Fly Mode (Smooth Camera Flying)
 ----------------------------------------------------------------
 local flyBodyVel, flyBodyGyro
 
@@ -508,7 +408,7 @@ CreateToggleRow("Fly Mode", function(state)
 end)
 
 ----------------------------------------------------------------
--- 5. Infinite Jump
+-- 4. Infinite Jump
 ----------------------------------------------------------------
 CreateToggleRow("Infinite Jump", function(state)
     InfJumpEnabled = state
