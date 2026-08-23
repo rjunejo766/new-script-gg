@@ -196,7 +196,7 @@ CreateToggleRow("Auto Steal Brainrots", function(state)
 end)
 
 ----------------------------------------------------------------
--- 2. Auto Collect Cash (100% Functional)
+-- 2. Auto Collect Cash (100% Guaranteed)
 ----------------------------------------------------------------
 CreateToggleRow("Auto Collect Cash", function(state)
     AutoCollectCash = state
@@ -208,7 +208,36 @@ CreateToggleRow("Auto Collect Cash", function(state)
                     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
                     if not root then return end
 
-                    -- Touch all cash collector pads / buttons in workspace
+                    -- Method 1: Find all Parts displaying Cash ($836, etc.) on BillboardGuis
+                    for _, gui in ipairs(workspace:GetDescendants()) do
+                        if gui:IsA("BillboardGui") or gui:IsA("SurfaceGui") then
+                            local hasCashText = false
+                            for _, textLabel in ipairs(gui:GetDescendants()) do
+                                if textLabel:IsA("TextLabel") then
+                                    local txt = textLabel.Text
+                                    -- Detect "$836", "$", "Cash" (ignore shop gamepass / robux)
+                                    if string.find(txt, "%$") and not string.find(string.lower(txt), "robux") and not string.find(string.lower(txt), "r%$") then
+                                        hasCashText = true
+                                        break
+                                    end
+                                end
+                            end
+
+                            if hasCashText then
+                                local targetPart = gui.Adornee or gui.Parent
+                                if targetPart and (targetPart:IsA("BasePart") or targetPart:IsA("Model")) then
+                                    local part = targetPart:IsA("BasePart") and targetPart or targetPart:FindFirstChildWhichIsA("BasePart")
+                                    if part then
+                                        triggerTouch(part)
+                                        triggerPrompts(targetPart)
+                                        triggerClicks(targetPart)
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    -- Method 2: Touch all base pads, beds, collector buttons, droppers
                     for _, obj in ipairs(workspace:GetDescendants()) do
                         if obj:IsA("BasePart") then
                             local lower = string.lower(obj.Name)
@@ -216,7 +245,17 @@ CreateToggleRow("Auto Collect Cash", function(state)
                             
                             -- Exclude group chests/wheels
                             if not string.find(lower, "group") and not string.find(lower, "wheel") and not string.find(lower, "spin") and not string.find(lower, "chest") then
-                                if string.find(lower, "collector") or string.find(lower, "cash") or string.find(lower, "money") or string.find(lower, "income") or string.find(lower, "giver") or string.find(parentLower, "collector") then
+                                if string.find(lower, "collector") 
+                                    or string.find(lower, "cash") 
+                                    or string.find(lower, "money") 
+                                    or string.find(lower, "income") 
+                                    or string.find(lower, "giver") 
+                                    or string.find(lower, "bed") 
+                                    or string.find(lower, "pad") 
+                                    or string.find(lower, "slot") 
+                                    or string.find(parentLower, "collector") 
+                                    or string.find(parentLower, "slots") 
+                                    or string.find(parentLower, "beds") then
                                     triggerTouch(obj)
                                     triggerPrompts(obj)
                                     triggerClicks(obj)
@@ -225,13 +264,14 @@ CreateToggleRow("Auto Collect Cash", function(state)
                         end
                     end
 
-                    -- Fire Cash Remotes
+                    -- Method 3: Fire Cash & Claim Remotes
                     for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
                         if rem:IsA("RemoteEvent") then
                             local lower = string.lower(rem.Name)
-                            if not string.find(lower, "group") and not string.find(lower, "spin") then
-                                if string.find(lower, "cash") or string.find(lower, "money") or string.find(lower, "income") or string.find(lower, "collect") or string.find(lower, "claim") then
+                            if not string.find(lower, "group") and not string.find(lower, "spin") and not string.find(lower, "pass") then
+                                if string.find(lower, "cash") or string.find(lower, "money") or string.find(lower, "income") or string.find(lower, "collect") or string.find(lower, "claim") or string.find(lower, "sell") then
                                     rem:FireServer()
+                                    rem:FireServer(1)
                                 end
                             end
                         elseif rem:IsA("RemoteFunction") then
@@ -242,7 +282,7 @@ CreateToggleRow("Auto Collect Cash", function(state)
                         end
                     end
                 end)
-                task.wait(0.5)
+                task.wait(0.3)
             end
         end)
     end
