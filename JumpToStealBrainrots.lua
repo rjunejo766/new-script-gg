@@ -5,23 +5,23 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
 -- State Variables
 local AutoSteal = false
 local AutoCollectCash = false
-local AutoRebirth = false
-local AutoUpgrade = false
 local SpeedBoostEnabled = false
+local FlyEnabled = false
 local InfJumpEnabled = false
 
 local NormalSpeed = 16
 local BoostSpeed = 50
+local FlySpeed = 60
 
--- Helper: Get Player Character and Parts safely without hanging
+-- Helpers
 local function getChar()
     return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 end
@@ -45,7 +45,7 @@ LocalPlayer.CharacterAdded:Connect(function(char)
 end)
 
 ----------------------------------------------------------------
--- GUI Creation (ULTRA SCRIPT HUB Theme) - Bulletproof Injection
+-- GUI Creation (Pixel-Perfect ULTRA SCRIPT HUB Design)
 ----------------------------------------------------------------
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UltraScriptHub_Brainrots"
@@ -72,7 +72,7 @@ if not parentGui then
     end)
 end
 
--- Clean old instance if exists
+-- Clean previous instance
 pcall(function()
     if parentGui and parentGui:FindFirstChild("UltraScriptHub_Brainrots") then
         parentGui:FindFirstChild("UltraScriptHub_Brainrots"):Destroy()
@@ -81,11 +81,11 @@ end)
 
 ScreenGui.Parent = parentGui or LocalPlayer:FindFirstChildOfClass("PlayerGui")
 
--- Main Outer Frame
+-- Main Outer Frame (Compact exact design)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 330, 0, 290)
-MainFrame.Position = UDim2.new(0.5, -165, 0.35, -145)
+MainFrame.Size = UDim2.new(0, 310, 0, 270)
+MainFrame.Position = UDim2.new(0.5, -155, 0.35, -135)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -93,13 +93,13 @@ MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.CornerRadius = UDim.new(0, 10)
 UICorner.Parent = MainFrame
 
 -- Header Title
 local HeaderTitle = Instance.new("TextLabel")
 HeaderTitle.Size = UDim2.new(1, -40, 0, 35)
-HeaderTitle.Position = UDim2.new(0, 15, 0, 8)
+HeaderTitle.Position = UDim2.new(0, 14, 0, 6)
 HeaderTitle.BackgroundTransparency = 1
 HeaderTitle.Text = "JUMP TO STEAL BRAINROTS"
 HeaderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -111,11 +111,11 @@ HeaderTitle.Parent = MainFrame
 -- Close Button (X)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -35, 0, 8)
+CloseBtn.Position = UDim2.new(1, -34, 0, 6)
 CloseBtn.BackgroundTransparency = 1
 CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-CloseBtn.TextSize = 16
+CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+CloseBtn.TextSize = 15
 CloseBtn.Font = Enum.Font.SourceSansBold
 CloseBtn.Parent = MainFrame
 
@@ -125,8 +125,8 @@ end)
 
 -- Container for Toggles
 local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -30, 0, 185)
-Container.Position = UDim2.new(0, 15, 0, 45)
+Container.Size = UDim2.new(1, -28, 0, 165)
+Container.Position = UDim2.new(0, 14, 0, 42)
 Container.BackgroundTransparency = 1
 Container.Parent = MainFrame
 
@@ -137,26 +137,26 @@ UIListLayout.Parent = Container
 
 -- Footer Branding
 local FooterTitle = Instance.new("TextLabel")
-FooterTitle.Size = UDim2.new(1, 0, 0, 18)
+FooterTitle.Size = UDim2.new(1, 0, 0, 16)
 FooterTitle.Position = UDim2.new(0, 0, 1, -38)
 FooterTitle.BackgroundTransparency = 1
 FooterTitle.Text = "ULTRA SCRIPT HUB"
 FooterTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-FooterTitle.TextSize = 14
+FooterTitle.TextSize = 13
 FooterTitle.Font = Enum.Font.SourceSansBold
 FooterTitle.Parent = MainFrame
 
 local FooterSub = Instance.new("TextLabel")
-FooterSub.Size = UDim2.new(1, 0, 0, 16)
-FooterSub.Position = UDim2.new(0, 0, 1, -20)
+FooterSub.Size = UDim2.new(1, 0, 0, 14)
+FooterSub.Position = UDim2.new(0, 0, 1, -22)
 FooterSub.BackgroundTransparency = 1
 FooterSub.Text = "Made by Junejo"
-FooterSub.TextColor3 = Color3.fromRGB(150, 150, 150)
-FooterSub.TextSize = 12
+FooterSub.TextColor3 = Color3.fromRGB(130, 130, 130)
+FooterSub.TextSize = 11
 FooterSub.Font = Enum.Font.SourceSans
 FooterSub.Parent = MainFrame
 
--- Helper Function for Checkbox Row
+-- Helper Function for Checkbox Row (Exact UI Theme)
 local function CreateToggleRow(name, callback)
     local Row = Instance.new("Frame")
     Row.Size = UDim2.new(1, 0, 0, 26)
@@ -175,9 +175,9 @@ local function CreateToggleRow(name, callback)
 
     local Checkbox = Instance.new("TextButton")
     Checkbox.Size = UDim2.new(0, 20, 0, 20)
-    Checkbox.Position = UDim2.new(1, -23, 0.5, -10)
+    Checkbox.Position = UDim2.new(1, -22, 0.5, -10)
     Checkbox.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
-    Checkbox.BorderColor3 = Color3.fromRGB(50, 55, 70)
+    Checkbox.BorderColor3 = Color3.fromRGB(45, 48, 60)
     Checkbox.Text = ""
     Checkbox.AutoButtonColor = false
     Checkbox.Parent = Row
@@ -206,7 +206,7 @@ local function CreateToggleRow(name, callback)
 end
 
 ----------------------------------------------------------------
--- Helper Functions: Brainrots, Touch & Prompts
+-- Helper Functions: Target Detection & Interactions
 ----------------------------------------------------------------
 
 -- Get all Brainrot NPC Models across workspace
@@ -351,7 +351,7 @@ CreateToggleRow("Auto Steal Brainrots", function(state)
 end)
 
 ----------------------------------------------------------------
--- 2. Auto Collect Cash (100% Guaranteed)
+-- 2. Auto Collect Cash
 ----------------------------------------------------------------
 CreateToggleRow("Auto Collect Cash", function(state)
     AutoCollectCash = state
@@ -362,7 +362,7 @@ CreateToggleRow("Auto Collect Cash", function(state)
                     local root = getRoot()
                     if not root then return end
 
-                    -- Detect and collect all floating Cash ($836, etc.) on BillboardGuis
+                    -- Detect and collect floating Cash ($836, etc.) on BillboardGuis
                     for _, gui in ipairs(workspace:GetDescendants()) do
                         if gui:IsA("BillboardGui") or gui:IsA("SurfaceGui") then
                             local hasCashText = false
@@ -441,105 +441,7 @@ CreateToggleRow("Auto Collect Cash", function(state)
 end)
 
 ----------------------------------------------------------------
--- 3. Auto Rebirth
-----------------------------------------------------------------
-CreateToggleRow("Auto Rebirth", function(state)
-    AutoRebirth = state
-    if AutoRebirth then
-        task.spawn(function()
-            while AutoRebirth do
-                pcall(function()
-                    for _, obj in ipairs(workspace:GetDescendants()) do
-                        if obj:IsA("BasePart") and string.find(string.lower(obj.Name), "rebirth") then
-                            triggerTouch(obj)
-                            triggerPrompts(obj)
-                            triggerClicks(obj)
-                        end
-                    end
-
-                    for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
-                        if rem:IsA("RemoteEvent") then
-                            local lower = string.lower(rem.Name)
-                            if string.find(lower, "rebirth") or string.find(lower, "prestige") then
-                                rem:FireServer()
-                            end
-                        elseif rem:IsA("RemoteFunction") then
-                            local lower = string.lower(rem.Name)
-                            if string.find(lower, "rebirth") or string.find(lower, "prestige") then
-                                pcall(function() rem:InvokeServer() end)
-                            end
-                        end
-                    end
-                end)
-                task.wait(2)
-            end
-        end)
-    end
-end)
-
-----------------------------------------------------------------
--- 4. Auto Upgrade Jump & Speed (100% Functional)
-----------------------------------------------------------------
-CreateToggleRow("Auto Upgrade Jump & Speed", function(state)
-    AutoUpgrade = state
-    if AutoUpgrade then
-        task.spawn(function()
-            while AutoUpgrade do
-                pcall(function()
-                    for _, obj in ipairs(workspace:GetDescendants()) do
-                        if obj:IsA("BasePart") then
-                            local lower = string.lower(obj.Name)
-                            local parentLower = obj.Parent and string.lower(obj.Parent.Name) or ""
-                            
-                            local isUpgrade = string.find(lower, "jump") 
-                                           or string.find(lower, "speed") 
-                                           or string.find(lower, "upgrade") 
-                                           or string.find(lower, "buy") 
-                                           or string.find(lower, "power") 
-                                           or string.find(parentLower, "upgrade") 
-                                           or string.find(parentLower, "buttons")
-
-                            if isUpgrade and not string.find(lower, "gamepass") and not string.find(lower, "robux") then
-                                triggerTouch(obj)
-                                triggerPrompts(obj)
-                                triggerClicks(obj)
-                            end
-                        end
-                    end
-
-                    for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
-                        if rem:IsA("RemoteEvent") then
-                            local lower = string.lower(rem.Name)
-                            if string.find(lower, "upgrade") or string.find(lower, "buy") or string.find(lower, "jump") or string.find(lower, "speed") or string.find(lower, "stat") then
-                                if not string.find(lower, "pass") and not string.find(lower, "robux") then
-                                    rem:FireServer("Jump")
-                                    rem:FireServer("Speed")
-                                    rem:FireServer("JumpPower")
-                                    rem:FireServer("WalkSpeed")
-                                    rem:FireServer(1)
-                                    rem:FireServer()
-                                end
-                            end
-                        elseif rem:IsA("RemoteFunction") then
-                            local lower = string.lower(rem.Name)
-                            if string.find(lower, "upgrade") or string.find(lower, "buy") then
-                                pcall(function() rem:InvokeServer("Jump") end)
-                                pcall(function() rem:InvokeServer("Speed") end)
-                                pcall(function() rem:InvokeServer("JumpPower") end)
-                                pcall(function() rem:InvokeServer("WalkSpeed") end)
-                                pcall(function() rem:InvokeServer(1) end)
-                            end
-                        end
-                    end
-                end)
-                task.wait(0.8)
-            end
-        end)
-    end
-end)
-
-----------------------------------------------------------------
--- 5. WalkSpeed Boost & Infinite Jump
+-- 3. WalkSpeed Boost (50)
 ----------------------------------------------------------------
 CreateToggleRow("WalkSpeed Boost (50)", function(state)
     SpeedBoostEnabled = state
@@ -553,6 +455,76 @@ CreateToggleRow("WalkSpeed Boost (50)", function(state)
     end
 end)
 
+----------------------------------------------------------------
+-- 4. Fly Mode (Smooth Camera Flying)
+----------------------------------------------------------------
+local flyBodyVel, flyBodyGyro
+
+CreateToggleRow("Fly Mode", function(state)
+    FlyEnabled = state
+    local char = LocalPlayer.Character
+    local root = getRoot()
+    local hum = getHum()
+
+    if FlyEnabled and root and hum then
+        -- Create Fly Controllers
+        flyBodyVel = Instance.new("BodyVelocity")
+        flyBodyVel.Name = "UltraFlyVel"
+        flyBodyVel.Velocity = Vector3.new(0, 0, 0)
+        flyBodyVel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        flyBodyVel.Parent = root
+
+        flyBodyGyro = Instance.new("BodyGyro")
+        flyBodyGyro.Name = "UltraFlyGyro"
+        flyBodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        flyBodyGyro.CFrame = root.CFrame
+        flyBodyGyro.Parent = root
+
+        hum.PlatformStand = true
+
+        task.spawn(function()
+            while FlyEnabled and root and flyBodyVel and flyBodyGyro do
+                local moveDir = Vector3.new(0, 0, 0)
+
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                    moveDir = moveDir + Camera.CFrame.LookVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                    moveDir = moveDir - Camera.CFrame.LookVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                    moveDir = moveDir - Camera.CFrame.RightVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                    moveDir = moveDir + Camera.CFrame.RightVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                    moveDir = moveDir + Vector3.new(0, 1, 0)
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+                    moveDir = moveDir - Vector3.new(0, 1, 0)
+                end
+
+                if moveDir.Magnitude > 0 then
+                    flyBodyVel.Velocity = moveDir.Unit * FlySpeed
+                else
+                    flyBodyVel.Velocity = Vector3.new(0, 0, 0)
+                end
+
+                flyBodyGyro.CFrame = Camera.CFrame
+                RunService.RenderStepped:Wait()
+            end
+        end)
+    else
+        if flyBodyVel then flyBodyVel:Destroy() end
+        if flyBodyGyro then flyBodyGyro:Destroy() end
+        if hum then hum.PlatformStand = false end
+    end
+end)
+
+----------------------------------------------------------------
+-- 5. Infinite Jump
+----------------------------------------------------------------
 CreateToggleRow("Infinite Jump", function(state)
     InfJumpEnabled = state
 end)
