@@ -34,11 +34,146 @@ LocalPlayer.CharacterAdded:Connect(function(char)
 end)
 
 ----------------------------------------------------------------
--- Helper Functions: Player Base & Brainrot Detection
+-- GUI Creation (ULTRA SCRIPT HUB Theme)
 ----------------------------------------------------------------
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "UltraScriptHub_Brainrots"
+ScreenGui.ResetOnSpawn = false
+
+local parentGui = LocalPlayer:WaitForChild("PlayerGui")
+if gethui then
+    parentGui = gethui()
+elseif game:GetService("CoreGui") then
+    parentGui = game:GetService("CoreGui")
+end
+ScreenGui.Parent = parentGui
+
+-- Main Outer Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 330, 0, 290)
+MainFrame.Position = UDim2.new(0.5, -165, 0.35, -145)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
+
+-- Header Title
+local HeaderTitle = Instance.new("TextLabel")
+HeaderTitle.Size = UDim2.new(1, -40, 0, 35)
+HeaderTitle.Position = UDim2.new(0, 15, 0, 8)
+HeaderTitle.BackgroundTransparency = 1
+HeaderTitle.Text = "JUMP TO STEAL BRAINROTS"
+HeaderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+HeaderTitle.TextSize = 13
+HeaderTitle.Font = Enum.Font.SourceSansBold
+HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
+HeaderTitle.Parent = MainFrame
+
+-- Close Button (X)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 8)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+CloseBtn.TextSize = 16
+CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.Parent = MainFrame
+
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Container for Toggles
+local Container = Instance.new("Frame")
+Container.Size = UDim2.new(1, -30, 0, 185)
+Container.Position = UDim2.new(0, 15, 0, 45)
+Container.BackgroundTransparency = 1
+Container.Parent = MainFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 6)
+UIListLayout.Parent = Container
+
+-- Footer Branding
+local FooterTitle = Instance.new("TextLabel")
+FooterTitle.Size = UDim2.new(1, 0, 0, 18)
+FooterTitle.Position = UDim2.new(0, 0, 1, -38)
+FooterTitle.BackgroundTransparency = 1
+FooterTitle.Text = "ULTRA SCRIPT HUB"
+FooterTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+FooterTitle.TextSize = 14
+FooterTitle.Font = Enum.Font.SourceSansBold
+FooterTitle.Parent = MainFrame
+
+local FooterSub = Instance.new("TextLabel")
+FooterSub.Size = UDim2.new(1, 0, 0, 16)
+FooterSub.Position = UDim2.new(0, 0, 1, -20)
+FooterSub.BackgroundTransparency = 1
+FooterSub.Text = "Made by Junejo"
+FooterSub.TextColor3 = Color3.fromRGB(150, 150, 150)
+FooterSub.TextSize = 12
+FooterSub.Font = Enum.Font.SourceSans
+FooterSub.Parent = MainFrame
+
+-- Helper Function for Checkbox Row
+local function CreateToggleRow(name, callback)
+    local Row = Instance.new("Frame")
+    Row.Size = UDim2.new(1, 0, 0, 26)
+    Row.BackgroundTransparency = 1
+    Row.Parent = Container
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -35, 1, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = name
+    Label.TextColor3 = Color3.fromRGB(240, 240, 240)
+    Label.TextSize = 13
+    Label.Font = Enum.Font.SourceSansBold
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Row
+
+    local Checkbox = Instance.new("TextButton")
+    Checkbox.Size = UDim2.new(0, 20, 0, 20)
+    Checkbox.Position = UDim2.new(1, -23, 0.5, -10)
+    Checkbox.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
+    Checkbox.BorderColor3 = Color3.fromRGB(50, 55, 70)
+    Checkbox.Text = ""
+    Checkbox.AutoButtonColor = false
+    Checkbox.Parent = Row
+
+    local BoxCorner = Instance.new("UICorner")
+    BoxCorner.CornerRadius = UDim.new(0, 4)
+    BoxCorner.Parent = Checkbox
+
+    local CheckIcon = Instance.new("Frame")
+    CheckIcon.Size = UDim2.new(1, -6, 1, -6)
+    CheckIcon.Position = UDim2.new(0, 3, 0, 3)
+    CheckIcon.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    CheckIcon.Visible = false
+    CheckIcon.Parent = Checkbox
+
+    local CheckIconCorner = Instance.new("UICorner")
+    CheckIconCorner.CornerRadius = UDim.new(0, 2)
+    CheckIconCorner.Parent = CheckIcon
+
+    local toggled = false
+    Checkbox.MouseButton1Click:Connect(function()
+        toggled = not toggled
+        CheckIcon.Visible = toggled
+        callback(toggled)
+    end)
+end
 
 ----------------------------------------------------------------
--- Helper Functions: Brainrots, Base & Button Detection
+-- Helper Functions: Brainrots, Touch & Prompts
 ----------------------------------------------------------------
 
 -- Get all Brainrot NPC Models across workspace
@@ -48,14 +183,12 @@ local function getBrainrotTargets()
     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
     local myPos = root and root.Position or Vector3.new(0, 0, 0)
 
-    -- Scan workspace children & model folders
     for _, obj in ipairs(workspace:GetChildren()) do
         if obj:IsA("Model") and obj ~= char then
             if not Players:GetPlayerFromCharacter(obj) then
                 local hrp = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso") or obj:FindFirstChild("Head") or obj.PrimaryPart
                 if hrp then
                     local name = string.lower(obj.Name)
-                    -- Exclude base plots / buildings
                     if not string.find(name, "plot") and not string.find(name, "tycoon") and not string.find(name, "base") and not string.find(name, "house") then
                         table.insert(targets, {Model = obj, Part = hrp, Position = hrp.Position})
                     end
@@ -78,7 +211,6 @@ local function getBrainrotTargets()
         end
     end
 
-    -- Also check any models with BillboardGuis anywhere in workspace
     if #targets == 0 then
         for _, gui in ipairs(workspace:GetDescendants()) do
             if gui:IsA("BillboardGui") then
@@ -93,7 +225,6 @@ local function getBrainrotTargets()
         end
     end
 
-    -- Sort nearest
     table.sort(targets, function(a, b)
         return (a.Position - myPos).Magnitude < (b.Position - myPos).Magnitude
     end)
@@ -101,7 +232,6 @@ local function getBrainrotTargets()
     return targets
 end
 
--- Helper: Simulate physical touch on any button/pad
 local function triggerTouch(part)
     local char = LocalPlayer.Character
     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
@@ -112,7 +242,6 @@ local function triggerTouch(part)
     end
 end
 
--- Helper: Trigger all proximity prompts inside an object
 local function triggerPrompts(obj)
     for _, p in ipairs(obj:GetDescendants()) do
         if p:IsA("ProximityPrompt") then
@@ -124,7 +253,6 @@ local function triggerPrompts(obj)
     end
 end
 
--- Helper: Trigger all click detectors inside an object
 local function triggerClicks(obj)
     for _, cd in ipairs(obj:GetDescendants()) do
         if cd:IsA("ClickDetector") and fireclickdetector then
@@ -159,16 +287,13 @@ CreateToggleRow("Auto Steal Brainrots", function(state)
                         local target = targets[1]
                         local targetPart = target.Part
 
-                        -- Teleport to Brainrot NPC
                         root.CFrame = targetPart.CFrame + Vector3.new(0, 1.5, 0)
                         task.wait(0.12)
 
-                        -- Interactions
                         triggerPrompts(target.Model)
                         triggerClicks(target.Model)
                         triggerTouch(targetPart)
 
-                        -- Fire all steal remotes
                         for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
                             if rem:IsA("RemoteEvent") then
                                 local lower = string.lower(rem.Name)
@@ -182,7 +307,6 @@ CreateToggleRow("Auto Steal Brainrots", function(state)
 
                         task.wait(0.2)
 
-                        -- Teleport back to Home Base spot to deposit
                         if HomeBaseCFrame and root then
                             root.CFrame = HomeBaseCFrame
                             task.wait(0.25)
@@ -208,14 +332,13 @@ CreateToggleRow("Auto Collect Cash", function(state)
                     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
                     if not root then return end
 
-                    -- Method 1: Find all Parts displaying Cash ($836, etc.) on BillboardGuis
+                    -- Detect and collect all floating Cash ($836, etc.) on BillboardGuis
                     for _, gui in ipairs(workspace:GetDescendants()) do
                         if gui:IsA("BillboardGui") or gui:IsA("SurfaceGui") then
                             local hasCashText = false
                             for _, textLabel in ipairs(gui:GetDescendants()) do
                                 if textLabel:IsA("TextLabel") then
                                     local txt = textLabel.Text
-                                    -- Detect "$836", "$", "Cash" (ignore shop gamepass / robux)
                                     if string.find(txt, "%$") and not string.find(string.lower(txt), "robux") and not string.find(string.lower(txt), "r%$") then
                                         hasCashText = true
                                         break
@@ -237,13 +360,12 @@ CreateToggleRow("Auto Collect Cash", function(state)
                         end
                     end
 
-                    -- Method 2: Touch all base pads, beds, collector buttons, droppers
+                    -- Touch base collector pads, beds, slots
                     for _, obj in ipairs(workspace:GetDescendants()) do
                         if obj:IsA("BasePart") then
                             local lower = string.lower(obj.Name)
                             local parentLower = obj.Parent and string.lower(obj.Parent.Name) or ""
                             
-                            -- Exclude group chests/wheels
                             if not string.find(lower, "group") and not string.find(lower, "wheel") and not string.find(lower, "spin") and not string.find(lower, "chest") then
                                 if string.find(lower, "collector") 
                                     or string.find(lower, "cash") 
@@ -264,7 +386,7 @@ CreateToggleRow("Auto Collect Cash", function(state)
                         end
                     end
 
-                    -- Method 3: Fire Cash & Claim Remotes
+                    -- Fire Remotes
                     for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
                         if rem:IsA("RemoteEvent") then
                             local lower = string.lower(rem.Name)
@@ -297,7 +419,6 @@ CreateToggleRow("Auto Rebirth", function(state)
         task.spawn(function()
             while AutoRebirth do
                 pcall(function()
-                    -- Touch Rebirth Pads
                     for _, obj in ipairs(workspace:GetDescendants()) do
                         if obj:IsA("BasePart") and string.find(string.lower(obj.Name), "rebirth") then
                             triggerTouch(obj)
@@ -306,7 +427,6 @@ CreateToggleRow("Auto Rebirth", function(state)
                         end
                     end
 
-                    -- Fire Rebirth Remotes
                     for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
                         if rem:IsA("RemoteEvent") then
                             local lower = string.lower(rem.Name)
@@ -336,7 +456,6 @@ CreateToggleRow("Auto Upgrade Jump & Speed", function(state)
         task.spawn(function()
             while AutoUpgrade do
                 pcall(function()
-                    -- 1. Scan and touch ALL upgrade buttons, jump buttons, and speed buttons
                     for _, obj in ipairs(workspace:GetDescendants()) do
                         if obj:IsA("BasePart") then
                             local lower = string.lower(obj.Name)
@@ -358,7 +477,6 @@ CreateToggleRow("Auto Upgrade Jump & Speed", function(state)
                         end
                     end
 
-                    -- 2. Fire Upgrade Remotes in ReplicatedStorage
                     for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
                         if rem:IsA("RemoteEvent") then
                             local lower = string.lower(rem.Name)
