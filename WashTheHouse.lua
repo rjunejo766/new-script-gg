@@ -191,9 +191,9 @@ local function getEquippedOrBackpackTool()
     return nil
 end
 
--- Helper: Find Only Dirty Parts (Floor Dirt, Wall Dirt, Stains, Mud)
-local function getOnlyDirtyParts()
-    local dirtyParts = {}
+-- Helper: Find All Wall & Dirt Parts
+local function getAllWallsAndDirt()
+    local list = {}
     local char = LocalPlayer.Character
     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
     local myPos = root and root.Position or Vector3.new(0, 0, 0)
@@ -201,49 +201,40 @@ local function getOnlyDirtyParts()
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") and not obj:IsDescendantOf(char) then
             local name = string.lower(obj.Name)
-            -- ONLY match dirt, stains, mud, messes, dirty tiles, dirty walls
-            -- DO NOT match items, furniture, tools, or sorting objects
-            local isDirt = string.find(name, "dirt") 
-                        or string.find(name, "stain") 
-                        or string.find(name, "mud") 
-                        or string.find(name, "mess") 
-                        or string.find(name, "cleanable") 
-                        or string.find(name, "spot")
-                        or (string.find(name, "wall") and obj:FindFirstChildOfClass("Decal"))
-                        or (string.find(name, "floor") and obj:FindFirstChildOfClass("Decal"))
-                        or obj:GetAttribute("Dirt") ~= nil
-                        or obj:GetAttribute("Cleaned") ~= nil
-                        or obj:FindFirstChild("Dirt") ~= nil
-                        or obj:FindFirstChild("Health") ~= nil
-
-            if isDirt then
-                table.insert(dirtyParts, obj)
+            if string.find(name, "wall") 
+                or string.find(name, "dirt") 
+                or string.find(name, "stain") 
+                or string.find(name, "floor") 
+                or string.find(name, "mud") 
+                or string.find(name, "clean") 
+                or obj:FindFirstChildOfClass("Decal") 
+                or obj:FindFirstChildOfClass("Texture") then
+                table.insert(list, obj)
             end
         end
     end
 
-    -- Sort nearest first
-    table.sort(dirtyParts, function(a, b)
+    table.sort(list, function(a, b)
         return (a.Position - myPos).Magnitude < (b.Position - myPos).Magnitude
     end)
 
-    return dirtyParts
+    return list
 end
 
--- 1. Auto Clean House (Pure Floor & Wall Dirt Cleaner)
+-- 1. Auto Clean House (Full Wall & Room High-Speed Sweeper)
 CreateToggleRow("Auto Clean House", function(state)
     AutoClean = state
     if AutoClean then
-        -- Thread 1: Auto-Equip Gun & Continuous Shooting towards Floor/Dirt
+        -- Thread 1: Fast Screen Grid Sweep (Sweeps Water Gun across ENTIRE wall/screen)
         task.spawn(function()
+            local cam = workspace.CurrentCamera
             while AutoClean do
                 pcall(function()
                     local char = LocalPlayer.Character
-                    local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
                     local hum = char and char:FindFirstChildOfClass("Humanoid")
                     local tool = getEquippedOrBackpackTool()
 
-                    -- Equip Water Gun / Cleaner Tool
+                    -- Equip Water Gun / Cleaner
                     if tool and hum then
                         if tool.Parent ~= char then
                             hum:EquipTool(tool)
@@ -251,113 +242,89 @@ CreateToggleRow("Auto Clean House", function(state)
                         tool:Activate()
                     end
 
-                    -- Find nearest dirt to aim at
-                    local dirty = getOnlyDirtyParts()
-                    local targetPos = nil
-                    if #dirty > 0 then
-                        targetPos = dirty[1].Position
-                    elseif root then
-                        -- Default aim down at floor in front of player
-                        targetPos = root.Position + root.CFrame.LookVector * 5 - Vector3.new(0, 3, 0)
-                    end
-
-                    -- Aim character / Camera towards dirt floor
-                    if targetPos and root then
-                        pcall(function()
-                            root.CFrame = CFrame.new(root.Position, Vector3.new(targetPos.X, root.Position.Y, targetPos.Z))
-                        end)
-                    end
-
-                    -- Simulate Mouse Click (Water Gun Shooting)
-                    local cam = workspace.CurrentCamera
-                    local screenPos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y * 0.65)
-                    
-                    if targetPos and cam then
-                        local screen, onScreen = cam:WorldToViewportPoint(targetPos)
-                        if onScreen then
-                            screenPos = Vector2.new(screen.X, screen.Y)
-                        end
-                    end
-
+                    -- Sweep across the entire screen (10x10 matrix to wash the whole wall)
+                    local vpSize = cam and cam.ViewportSize or Vector2.new(1920, 1080)
                     if VirtualUser then
                         VirtualUser:CaptureController()
-                        VirtualUser:Button1Down(screenPos)
-                        task.wait(0.04)
-                        VirtualUser:Button1Up(screenPos)
                     end
 
-                    if VirtualInputManager then
-                        VirtualInputManager:SendMouseButtonEvent(screenPos.X, screenPos.Y, 0, true, game, 1)
-                        task.wait(0.04)
-                        VirtualInputManager:SendMouseButtonEvent(screenPos.X, screenPos.Y, 0, false, game, 1)
+                    for yRatio = 0.20, 0.85, 0.12 do
+                        if not AutoClean then break end
+                        for xRatio = 0.15, 0.85, 0.10 do
+                            if not AutoClean then break end
+                            local pos = Vector2.new(vpSize.X * xRatio, vpSize.Y * yRatio)
+                            
+                            if VirtualUser then
+                                VirtualUser:Button1Down(pos)
+                                VirtualUser:Button1Up(pos)
+                            end
+
+                            if VirtualInputManager then
+                                VirtualInputManager:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 1)
+                                VirtualInputManager:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 1)
+                            end
+                            task.wait(0.01)
+                        end
                     end
                 end)
-                task.wait(0.08)
+                task.wait(0.05)
             end
         end)
 
-        -- Thread 2: Fire Tool & Game Remotes directly with Dirt Targets
+        -- Thread 2: Remote Flooding across all Wall & Dirt coordinates
         task.spawn(function()
             while AutoClean do
                 pcall(function()
                     local char = LocalPlayer.Character
                     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
                     local tool = getEquippedOrBackpackTool()
-                    local dirtyParts = getOnlyDirtyParts()
+                    local walls = getAllWallsAndDirt()
 
-                    -- Fire Remotes inside the Player's Tool with Dirt Part references
-                    if tool then
-                        for _, child in ipairs(tool:GetDescendants()) do
-                            if child:IsA("RemoteEvent") then
-                                for i = 1, math.min(10, #dirtyParts) do
-                                    local target = dirtyParts[i]
-                                    child:FireServer(target, target.Position)
-                                    child:FireServer(target.Position, target)
-                                    child:FireServer(target)
-                                end
-                                child:FireServer()
-                            elseif child:IsA("RemoteFunction") then
-                                pcall(function() child:InvokeServer() end)
-                            end
-                        end
-                    end
+                    -- Generate surface grid points for nearby walls
+                    for i = 1, math.min(10, #walls) do
+                        if not AutoClean then break end
+                        local wall = walls[i]
+                        local cf = wall.CFrame
+                        local sz = wall.Size
 
-                    -- Scan and Fire Cleaning Remotes in ReplicatedStorage
-                    local cleanKeywords = {"clean", "wash", "shoot", "spray", "water", "hit", "damage", "cleanhouse", "cleanwall"}
-                    for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
-                        if remote:IsA("RemoteEvent") then
-                            local lower = string.lower(remote.Name)
-                            for _, kw in ipairs(cleanKeywords) do
-                                if string.find(lower, kw) then
-                                    for i = 1, math.min(5, #dirtyParts) do
-                                        local target = dirtyParts[i]
-                                        remote:FireServer(target, target.Position)
-                                        remote:FireServer(target.Position, target)
+                        -- Sweep 3D points across the wall face
+                        for sx = -0.4, 0.4, 0.2 do
+                            for sy = -0.4, 0.4, 0.2 do
+                                local hitPoint = (cf * CFrame.new(sz.X * sx, sz.Y * sy, 0)).Position
+
+                                -- Fire Tool Remotes with this point
+                                if tool then
+                                    for _, child in ipairs(tool:GetDescendants()) do
+                                        if child:IsA("RemoteEvent") then
+                                            child:FireServer(hitPoint, wall)
+                                            child:FireServer(wall, hitPoint)
+                                        end
                                     end
-                                    remote:FireServer()
-                                    break
+                                end
+
+                                -- Fire ReplicatedStorage Cleaning Remotes
+                                for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
+                                    if remote:IsA("RemoteEvent") then
+                                        local lower = string.lower(remote.Name)
+                                        if string.find(lower, "clean") or string.find(lower, "wash") or string.find(lower, "shoot") or string.find(lower, "spray") or string.find(lower, "hit") then
+                                            remote:FireServer(wall, hitPoint)
+                                            remote:FireServer(hitPoint, wall)
+                                        end
+                                    end
                                 end
                             end
                         end
-                    end
 
-                    -- Direct Part Touch / Interaction simulation on dirt parts only
-                    for i = 1, math.min(15, #dirtyParts) do
-                        local part = dirtyParts[i]
+                        -- Touch Interest
                         if firetouchinterest and root then
                             pcall(function()
-                                firetouchinterest(root, part, 0)
-                                firetouchinterest(root, part, 1)
-                            end)
-                        end
-                        if fireclickdetector and part:FindFirstChildOfClass("ClickDetector") then
-                            pcall(function()
-                                fireclickdetector(part:FindFirstChildOfClass("ClickDetector"))
+                                firetouchinterest(root, wall, 0)
+                                firetouchinterest(root, wall, 1)
                             end)
                         end
                     end
                 end)
-                task.wait(0.15)
+                task.wait(0.1)
             end
         end)
     end
