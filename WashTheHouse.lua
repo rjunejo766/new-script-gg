@@ -176,24 +176,43 @@ end
 local VirtualUser = game:GetService("VirtualUser")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
--- Helper: Get Player Tool
-local function getEquippedOrBackpackTool()
+-- Helper: Find Water Gun / Washer Tool (Strict Filter)
+local function getWasherGunTool()
     local char = LocalPlayer.Character
-    if char then
-        local tool = char:FindFirstChildOfClass("Tool")
-        if tool then return tool end
-    end
     local bp = LocalPlayer:FindFirstChild("Backpack")
-    if bp then
-        local tool = bp:FindFirstChildOfClass("Tool")
-        if tool then return tool end
+
+    -- Check equipped tools
+    if char then
+        for _, t in ipairs(char:GetChildren()) do
+            if t:IsA("Tool") then
+                local name = string.lower(t.Name)
+                -- Avoid furniture, items, boxes, seats
+                if not string.find(name, "item") and not string.find(name, "box") and not string.find(name, "seat") and not string.find(name, "chair") then
+                    return t
+                end
+            end
+        end
     end
-    return nil
+
+    -- Check Backpack
+    if bp then
+        for _, t in ipairs(bp:GetChildren()) do
+            if t:IsA("Tool") then
+                local name = string.lower(t.Name)
+                if not string.find(name, "item") and not string.find(name, "box") and not string.find(name, "seat") and not string.find(name, "chair") then
+                    return t
+                end
+            end
+        end
+    end
+
+    -- Fallback to any tool if not holding an item
+    return char and char:FindFirstChildOfClass("Tool") or bp and bp:FindFirstChildOfClass("Tool")
 end
 
--- Helper: Find All Wall & Dirt Parts
-local function getAllWallsAndDirt()
-    local list = {}
+-- Helper: Get Only Wall Parts
+local function getNearbyWalls()
+    local walls = {}
     local char = LocalPlayer.Character
     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
     local myPos = root and root.Position or Vector3.new(0, 0, 0)
@@ -201,128 +220,65 @@ local function getAllWallsAndDirt()
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") and not obj:IsDescendantOf(char) then
             local name = string.lower(obj.Name)
-            if string.find(name, "wall") 
-                or string.find(name, "dirt") 
-                or string.find(name, "stain") 
-                or string.find(name, "floor") 
-                or string.find(name, "mud") 
-                or string.find(name, "clean") 
-                or string.find(name, "glass") 
-                or string.find(name, "window") 
-                or string.find(name, "tile")
-                or obj:FindFirstChildOfClass("Decal") 
-                or obj:FindFirstChildOfClass("Texture") then
-                table.insert(list, obj)
+            if string.find(name, "wall") or (string.find(name, "dirt") and not string.find(name, "item")) then
+                table.insert(walls, obj)
             end
         end
     end
 
-    table.sort(list, function(a, b)
+    table.sort(walls, function(a, b)
         return (a.Position - myPos).Magnitude < (b.Position - myPos).Magnitude
     end)
 
-    return list
+    return walls
 end
 
--- 1. Auto Clean House (Pure Direct Wall & Dirt Cleaner)
+-- 1. Auto Clean House (Pure Water Gun Wall Sprayer)
 CreateToggleRow("Auto Clean House", function(state)
     AutoClean = state
     if AutoClean then
-        -- Thread 1: Auto-Equip Gun & Rapid Tool Activation (No screen clicking, No avatar popups)
         task.spawn(function()
             while AutoClean do
                 pcall(function()
                     local char = LocalPlayer.Character
                     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
                     local hum = char and char:FindFirstChildOfClass("Humanoid")
-                    local tool = getEquippedOrBackpackTool()
+                    local tool = getWasherGunTool()
 
-                    -- Equip Cleaner / Water Gun Tool
+                    -- Equip Water Gun / Washer
                     if tool and hum then
                         if tool.Parent ~= char then
+                            hum:UnequipTools()
+                            task.wait(0.02)
                             hum:EquipTool(tool)
                         end
-                        -- Rapid direct Tool Activation
+                        -- Rapid Tool Activation (Fires water stream)
                         tool:Activate()
                     end
 
-                    -- Aim Character directly towards nearest dirty wall
-                    local targets = getAllWallsAndDirt()
-                    if #targets > 0 and root then
-                        local targetWall = targets[1]
-                        root.CFrame = CFrame.lookAt(root.Position, Vector3.new(targetWall.Position.X, root.Position.Y, targetWall.Position.Z))
+                    -- Aim at nearest wall in front of player
+                    local walls = getNearbyWalls()
+                    local targetWall = walls[1]
+                    if targetWall and root then
+                        pcall(function()
+                            root.CFrame = CFrame.lookAt(root.Position, Vector3.new(targetWall.Position.X, root.Position.Y, targetWall.Position.Z))
+                        end)
                     end
-                end)
-                task.wait(0.05)
-            end
-        end)
 
-        -- Thread 2: Direct Remote Flooding for 100% Wall Clean
-        task.spawn(function()
-            while AutoClean do
-                pcall(function()
-                    local char = LocalPlayer.Character
-                    local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
-                    local tool = getEquippedOrBackpackTool()
-                    local walls = getAllWallsAndDirt()
-
-                    -- Fire Remotes on all nearby walls and dirty surfaces
-                    for i = 1, math.min(15, #walls) do
-                        if not AutoClean then break end
-                        local wall = walls[i]
-                        local cf = wall.CFrame
-                        local sz = wall.Size
-
-                        -- Calculate grid points across the wall to clean the whole surface
-                        for _, offset in ipairs({
-                            Vector3.new(0, 0, 0),
-                            Vector3.new(sz.X * 0.3, sz.Y * 0.3, 0),
-                            Vector3.new(-sz.X * 0.3, sz.Y * 0.3, 0),
-                            Vector3.new(sz.X * 0.3, -sz.Y * 0.3, 0),
-                            Vector3.new(-sz.X * 0.3, -sz.Y * 0.3, 0),
-                            Vector3.new(0, sz.Y * 0.4, 0),
-                            Vector3.new(0, -sz.Y * 0.4, 0)
-                        }) do
-                            local hitPos = (cf * CFrame.new(offset)).Position
-
-                            -- 1. Tool Internal Remotes
-                            if tool then
-                                for _, rem in ipairs(tool:GetDescendants()) do
-                                    if rem:IsA("RemoteEvent") then
-                                        rem:FireServer(hitPos, wall)
-                                        rem:FireServer(wall, hitPos)
-                                        rem:FireServer(hitPos)
-                                        rem:FireServer(wall)
-                                    elseif rem:IsA("RemoteFunction") then
-                                        pcall(function() rem:InvokeServer(hitPos, wall) end)
-                                    end
-                                end
+                    -- Fire Tool's internal remotes directly with target coordinates
+                    if tool and targetWall then
+                        for _, rem in ipairs(tool:GetDescendants()) do
+                            if rem:IsA("RemoteEvent") then
+                                rem:FireServer(targetWall.Position, targetWall)
+                                rem:FireServer(targetWall, targetWall.Position)
+                                rem:FireServer(targetWall)
+                            elseif rem:IsA("RemoteFunction") then
+                                pcall(function() rem:InvokeServer(targetWall.Position, targetWall) end)
                             end
-
-                            -- 2. Game ReplicatedStorage Remotes
-                            for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
-                                if rem:IsA("RemoteEvent") then
-                                    local lower = string.lower(rem.Name)
-                                    if string.find(lower, "clean") or string.find(lower, "wash") or string.find(lower, "shoot") or string.find(lower, "spray") or string.find(lower, "hit") or string.find(lower, "damage") then
-                                        rem:FireServer(wall, hitPos)
-                                        rem:FireServer(hitPos, wall)
-                                        rem:FireServer(wall)
-                                        rem:FireServer(hitPos)
-                                    end
-                                end
-                            end
-                        end
-
-                        -- 3. Touch Interest on wall
-                        if firetouchinterest and root then
-                            pcall(function()
-                                firetouchinterest(root, wall, 0)
-                                firetouchinterest(root, wall, 1)
-                            end)
                         end
                     end
                 end)
-                task.wait(0.08)
+                task.wait(0.04)
             end
         end)
     end
