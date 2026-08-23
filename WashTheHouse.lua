@@ -12,7 +12,7 @@ local Humanoid = Character:WaitForChild("Humanoid")
 local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 -- State Variables
-local AutoClean = false
+local AutoCleanDirt = false
 local SpeedBoostEnabled = false
 local InfJumpEnabled = false
 
@@ -210,9 +210,9 @@ local function getWasherGunTool()
     return char and char:FindFirstChildOfClass("Tool") or bp and bp:FindFirstChildOfClass("Tool")
 end
 
--- Helper: Get Only Wall Parts
-local function getNearbyWalls()
-    local walls = {}
+-- Helper: Get Only Wall & Dirt Parts
+local function getNearbyWallsAndDirt()
+    local targets = {}
     local char = LocalPlayer.Character
     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
     local myPos = root and root.Position or Vector3.new(0, 0, 0)
@@ -220,25 +220,32 @@ local function getNearbyWalls()
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") and not obj:IsDescendantOf(char) then
             local name = string.lower(obj.Name)
-            if string.find(name, "wall") or (string.find(name, "dirt") and not string.find(name, "item")) then
-                table.insert(walls, obj)
+            if string.find(name, "wall") 
+                or string.find(name, "dirt") 
+                or string.find(name, "mud") 
+                or string.find(name, "stain") 
+                or string.find(name, "floor") 
+                or string.find(name, "spot") then
+                if not string.find(name, "item") and not string.find(name, "seat") and not string.find(name, "chair") then
+                    table.insert(targets, obj)
+                end
             end
         end
     end
 
-    table.sort(walls, function(a, b)
+    table.sort(targets, function(a, b)
         return (a.Position - myPos).Magnitude < (b.Position - myPos).Magnitude
     end)
 
-    return walls
+    return targets
 end
 
--- 1. Auto Clean House (Pure Water Gun Wall Sprayer)
-CreateToggleRow("Auto Clean House", function(state)
-    AutoClean = state
-    if AutoClean then
+-- 1. Auto Clean Dirt (Pure Water Gun Dirt & Wall Sprayer)
+CreateToggleRow("Auto Clean Dirt", function(state)
+    AutoCleanDirt = state
+    if AutoCleanDirt then
         task.spawn(function()
-            while AutoClean do
+            while AutoCleanDirt do
                 pcall(function()
                     local char = LocalPlayer.Character
                     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
@@ -256,24 +263,24 @@ CreateToggleRow("Auto Clean House", function(state)
                         tool:Activate()
                     end
 
-                    -- Aim at nearest wall in front of player
-                    local walls = getNearbyWalls()
-                    local targetWall = walls[1]
-                    if targetWall and root then
+                    -- Aim at nearest wall / dirt in front of player
+                    local targets = getNearbyWallsAndDirt()
+                    local targetDirt = targets[1]
+                    if targetDirt and root then
                         pcall(function()
-                            root.CFrame = CFrame.lookAt(root.Position, Vector3.new(targetWall.Position.X, root.Position.Y, targetWall.Position.Z))
+                            root.CFrame = CFrame.lookAt(root.Position, Vector3.new(targetDirt.Position.X, root.Position.Y, targetDirt.Position.Z))
                         end)
                     end
 
                     -- Fire Tool's internal remotes directly with target coordinates
-                    if tool and targetWall then
+                    if tool and targetDirt then
                         for _, rem in ipairs(tool:GetDescendants()) do
                             if rem:IsA("RemoteEvent") then
-                                rem:FireServer(targetWall.Position, targetWall)
-                                rem:FireServer(targetWall, targetWall.Position)
-                                rem:FireServer(targetWall)
+                                rem:FireServer(targetDirt.Position, targetDirt)
+                                rem:FireServer(targetDirt, targetDirt.Position)
+                                rem:FireServer(targetDirt)
                             elseif rem:IsA("RemoteFunction") then
-                                pcall(function() rem:InvokeServer(targetWall.Position, targetWall) end)
+                                pcall(function() rem:InvokeServer(targetDirt.Position, targetDirt) end)
                             end
                         end
                     end

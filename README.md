@@ -12,7 +12,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 ```
 
 ### ✨ Features
-- 🧼 **Auto Clean House**: Multi-Engine Wall, Dirt, & Object Auto-Clean (Bypasses Prompts, ClickDetectors, & Remotes)
+- 🧼 **Auto Clean Dirt**: Auto-equips water gun and washes walls, mud, floor, and dirt
 - 🏃 **WalkSpeed Boost (50)**: Move faster around the house
 - 🦘 **Infinite Jump**: Jump continuously in the air
 - 🎨 **Dark Theme GUI**: Clean, draggable interface with custom UI elements
