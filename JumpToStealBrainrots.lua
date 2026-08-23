@@ -329,9 +329,18 @@ end
 ----------------------------------------------------------------
 -- 1. Auto Steal Brainrots
 ----------------------------------------------------------------
+local SavedBaseCFrame = nil
+
 CreateToggleRow("Auto Steal Brainrots", function(state)
     AutoSteal = state
     if AutoSteal then
+        -- Save player's current base spot when turning on
+        local char = LocalPlayer.Character
+        local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+        if root then
+            SavedBaseCFrame = root.CFrame
+        end
+
         task.spawn(function()
             while AutoSteal do
                 pcall(function()
@@ -339,18 +348,19 @@ CreateToggleRow("Auto Steal Brainrots", function(state)
                     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
                     if not root then return end
 
-                    local brainrots = getAllBrainrots()
-                    local depositPos = getBaseDepositPoint()
+                    -- Refresh base spot if available
+                    local depositPos = getBaseDepositPoint() or (SavedBaseCFrame and SavedBaseCFrame.Position)
 
+                    local brainrots = getAllBrainrots()
                     if #brainrots > 0 then
                         local target = brainrots[1]
                         local targetPart = target.Part
 
-                        -- Step 1: Teleport to Brainrot / Item
-                        root.CFrame = targetPart.CFrame + Vector3.new(0, 2, 0)
-                        task.wait(0.1)
+                        -- Step 1: Teleport to Brainrot / NPC
+                        root.CFrame = targetPart.CFrame + Vector3.new(0, 1.5, 0)
+                        task.wait(0.12)
 
-                        -- Step 2: Grab / Interact
+                        -- Step 2: Grab / Steal Interactions
                         -- Trigger Proximity Prompts
                         for _, prompt in ipairs(target.Instance:GetDescendants()) do
                             if prompt:IsA("ProximityPrompt") then
@@ -361,40 +371,51 @@ CreateToggleRow("Auto Steal Brainrots", function(state)
                             end
                         end
 
-                        -- Trigger Touch Interest / Collision
+                        -- Trigger ClickDetectors
+                        for _, cd in ipairs(target.Instance:GetDescendants()) do
+                            if cd:IsA("ClickDetector") and fireclickdetector then
+                                fireclickdetector(cd)
+                            end
+                        end
+
+                        -- Touch Interest
                         if firetouchinterest then
                             firetouchinterest(root, targetPart, 0)
                             firetouchinterest(root, targetPart, 1)
                         end
 
-                        -- Fire Steal / Grab Remotes
+                        -- Fire Steal Remotes
                         for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
                             if rem:IsA("RemoteEvent") then
                                 local lower = string.lower(rem.Name)
-                                if string.find(lower, "steal") or string.find(lower, "grab") or string.find(lower, "pickup") or string.find(lower, "take") or string.find(lower, "collect") then
+                                if string.find(lower, "steal") or string.find(lower, "grab") or string.find(lower, "take") or string.find(lower, "pickup") or string.find(lower, "claim") then
                                     rem:FireServer(target.Instance)
                                     rem:FireServer(targetPart)
+                                    rem:FireServer()
                                 end
                             end
                         end
 
-                        task.wait(0.15)
+                        task.wait(0.2)
 
-                        -- Step 3: Teleport back to My Base to deposit
+                        -- Step 3: Teleport back to Base Deposit Spot
                         if depositPos and root then
                             root.CFrame = CFrame.new(depositPos)
-                            task.wait(0.2)
+                            task.wait(0.25)
+                        elseif SavedBaseCFrame and root then
+                            root.CFrame = SavedBaseCFrame
+                            task.wait(0.25)
                         end
                     end
                 end)
-                task.wait(0.3)
+                task.wait(0.25)
             end
         end)
     end
 end)
 
 ----------------------------------------------------------------
--- 2. Auto Collect Cash
+-- 2. Auto Collect Cash (Filters out Group Rewards)
 ----------------------------------------------------------------
 CreateToggleRow("Auto Collect Cash", function(state)
     AutoCollectCash = state
@@ -406,15 +427,19 @@ CreateToggleRow("Auto Collect Cash", function(state)
                     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
                     local myBase = getMyBase()
 
-                    -- Method 1: Collect from Base Cash Pad / Collector
-                    if myBase and root then
-                        for _, obj in ipairs(myBase:GetDescendants()) do
+                    -- Method 1: Collect from Base Cash Pad / Collector (Exclude group chests / wheel)
+                    local baseToCheck = myBase or workspace
+                    if root then
+                        for _, obj in ipairs(baseToCheck:GetDescendants()) do
                             if obj:IsA("BasePart") then
                                 local lower = string.lower(obj.Name)
-                                if string.find(lower, "collector") or string.find(lower, "cash") or string.find(lower, "money") or string.find(lower, "giver") or string.find(lower, "claim") then
-                                    if firetouchinterest then
-                                        firetouchinterest(root, obj, 0)
-                                        firetouchinterest(root, obj, 1)
+                                -- STRICT: Only match collectors, exclude group rewards/chests/spins
+                                if not string.find(lower, "group") and not string.find(lower, "wheel") and not string.find(lower, "spin") and not string.find(lower, "chest") and not string.find(lower, "daily") then
+                                    if string.find(lower, "collector") or string.find(lower, "cash") or string.find(lower, "money") or string.find(lower, "income") or string.find(lower, "giver") then
+                                        if firetouchinterest then
+                                            firetouchinterest(root, obj, 0)
+                                            firetouchinterest(root, obj, 1)
+                                        end
                                     end
                                 end
                             end
@@ -425,9 +450,11 @@ CreateToggleRow("Auto Collect Cash", function(state)
                     for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
                         if rem:IsA("RemoteEvent") then
                             local lower = string.lower(rem.Name)
-                            if string.find(lower, "collectcash") or string.find(lower, "claimcash") or string.find(lower, "collectmoney") or string.find(lower, "getcash") or string.find(lower, "collectincome") then
-                                rem:FireServer()
-                                if myBase then rem:FireServer(myBase) end
+                            if not string.find(lower, "group") and not string.find(lower, "spin") then
+                                if string.find(lower, "collectcash") or string.find(lower, "claimcash") or string.find(lower, "collectmoney") or string.find(lower, "getcash") or string.find(lower, "collectincome") or string.find(lower, "collect") then
+                                    rem:FireServer()
+                                    if myBase then rem:FireServer(myBase) end
+                                end
                             end
                         elseif rem:IsA("RemoteFunction") then
                             local lower = string.lower(rem.Name)
@@ -520,11 +547,12 @@ CreateToggleRow("Auto Upgrade Jump & Speed", function(state)
                     end
 
                     -- Method 2: Touch Upgrade Pads in Base
-                    if myBase and root then
-                        for _, obj in ipairs(myBase:GetDescendants()) do
+                    local baseToCheck = myBase or workspace
+                    if root then
+                        for _, obj in ipairs(baseToCheck:GetDescendants()) do
                             if obj:IsA("BasePart") then
                                 local lower = string.lower(obj.Name)
-                                if string.find(lower, "upgrade") or string.find(lower, "button") or string.find(lower, "buy") then
+                                if string.find(lower, "upgrade") or string.find(lower, "buy") then
                                     if firetouchinterest then
                                         firetouchinterest(root, obj, 0)
                                         firetouchinterest(root, obj, 1)
