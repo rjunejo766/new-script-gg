@@ -209,27 +209,26 @@ end
 -- Helper Functions: Target Detection & Interactions
 ----------------------------------------------------------------
 
--- Get all Brainrot NPC Models across entire workspace
+-- Get all Brainrot NPC Models on the field / platforms
 local function getBrainrotTargets()
     local targets = {}
     local char = LocalPlayer.Character
     local root = getRoot()
-    local myPos = root and root.Position or Vector3.new(0, 0, 0)
+    local myPos = HomeBaseCFrame and HomeBaseCFrame.Position or (root and root.Position) or Vector3.new(0, 0, 0)
 
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("Model") and obj ~= char and not Players:GetPlayerFromCharacter(obj) then
             local hrp = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso") or obj:FindFirstChild("Head") or obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
             if hrp then
-                local name = string.lower(obj.Name)
-                local parentName = obj.Parent and string.lower(obj.Parent.Name) or ""
-                
-                -- Filter out plot / base / tycoon models
-                if not string.find(name, "plot") and not string.find(name, "tycoon") and not string.find(name, "base") and not string.find(name, "house") and not string.find(name, "door") and not string.find(name, "wall") then
+                local dist = (hrp.Position - myPos).Magnitude
+                -- Target only Brainrots on the field / platforms (outside base)
+                if dist > 15 then
+                    local name = string.lower(obj.Name)
                     local hasBillboard = obj:FindFirstChildWhichIsA("BillboardGui", true) ~= nil
                     local hasPrompt = obj:FindFirstChildWhichIsA("ProximityPrompt", true) ~= nil
                     local hasHum = obj:FindFirstChildOfClass("Humanoid") ~= nil
 
-                    if hasBillboard or hasPrompt or hasHum or string.find(name, "brainrot") or string.find(parentName, "brainrot") or string.find(parentName, "spawn") or string.find(parentName, "mob") then
+                    if hasBillboard or hasPrompt or hasHum or string.find(name, "brainrot") or string.find(name, "npc") or string.find(name, "mob") then
                         table.insert(targets, {Model = obj, Part = hrp, Position = hrp.Position})
                     end
                 end
@@ -272,9 +271,7 @@ local function triggerClicks(obj)
     end
 end
 
-----------------------------------------------------------------
 -- Helper: Find Player's Base Bed Slots
-----------------------------------------------------------------
 local function getBaseBedSlots()
     local slots = {}
     local myPos = HomeBaseCFrame and HomeBaseCFrame.Position or Vector3.new(0, 0, 0)
@@ -294,7 +291,7 @@ local function getBaseBedSlots()
 end
 
 ----------------------------------------------------------------
--- 1. Auto Steal Brainrots (Full Interaction & Bed Deposit)
+-- 1. Auto Steal Brainrots (Go -> Pick Up -> Deposit in Base)
 ----------------------------------------------------------------
 CreateToggleRow("Auto Steal Brainrots", function(state)
     AutoSteal = state
@@ -312,7 +309,7 @@ CreateToggleRow("Auto Steal Brainrots", function(state)
                     local hum = getHum()
                     if not root or not char then return end
 
-                    -- Equip any grab / tool if available
+                    -- Auto-equip tool/grabber if available in backpack
                     local bp = LocalPlayer:FindFirstChild("Backpack")
                     if bp and hum then
                         local tool = bp:FindFirstChildOfClass("Tool")
@@ -320,7 +317,6 @@ CreateToggleRow("Auto Steal Brainrots", function(state)
                             hum:EquipTool(tool)
                         end
                     end
-
                     local equippedTool = char:FindFirstChildOfClass("Tool")
 
                     local targets = getBrainrotTargets()
@@ -328,29 +324,30 @@ CreateToggleRow("Auto Steal Brainrots", function(state)
                         local target = targets[1]
                         local targetPart = target.Part
 
-                        -- Step 1: Teleport directly onto Brainrot
-                        root.CFrame = targetPart.CFrame + Vector3.new(0, 1, 0)
-                        task.wait(0.12)
+                        -- Step 1: Fly/Teleport directly onto Brainrot
+                        char:PivotTo(targetPart.CFrame + Vector3.new(0, 1.5, 0))
+                        root.Velocity = Vector3.new(0, 0, 0)
+                        task.wait(0.15)
 
-                        -- Step 2: Activate tool
+                        -- Step 2: Grab / Tool attack
                         if equippedTool then
                             equippedTool:Activate()
                         end
 
-                        -- Step 3: Multi-part Touch & Interaction
+                        -- Step 3: Trigger Prompts, Clicks, and Touch
+                        triggerPrompts(target.Model)
+                        triggerClicks(target.Model)
                         for _, part in ipairs(target.Model:GetDescendants()) do
                             if part:IsA("BasePart") then
                                 triggerTouch(part)
                             end
                         end
-                        triggerPrompts(target.Model)
-                        triggerClicks(target.Model)
 
-                        -- Step 4: Fire Steal & Attack Remotes
+                        -- Step 4: Fire Steal Remotes
                         for _, rem in ipairs(ReplicatedStorage:GetDescendants()) do
                             if rem:IsA("RemoteEvent") then
                                 local lower = string.lower(rem.Name)
-                                if string.find(lower, "steal") or string.find(lower, "grab") or string.find(lower, "take") or string.find(lower, "pickup") or string.find(lower, "claim") or string.find(lower, "hit") or string.find(lower, "attack") then
+                                if string.find(lower, "steal") or string.find(lower, "grab") or string.find(lower, "take") or string.find(lower, "pickup") or string.find(lower, "claim") then
                                     rem:FireServer(target.Model)
                                     rem:FireServer(targetPart)
                                     rem:FireServer()
@@ -358,21 +355,26 @@ CreateToggleRow("Auto Steal Brainrots", function(state)
                             end
                         end
 
-                        task.wait(0.25)
+                        task.wait(0.3)
 
-                        -- Step 5: Teleport back to Base & Step on Bed Slots
-                        local curRoot = getRoot()
-                        if HomeBaseCFrame and curRoot then
-                            curRoot.CFrame = HomeBaseCFrame
-                            task.wait(0.15)
+                        -- Step 5: Return to Base and Drop/Deposit on Bed Slots
+                        if HomeBaseCFrame then
+                            char:PivotTo(HomeBaseCFrame)
+                            root.Velocity = Vector3.new(0, 0, 0)
+                            task.wait(0.2)
 
-                            -- Step through bed slots in base to deposit
+                            -- Step on bed slots
                             local slots = getBaseBedSlots()
                             for _, slotPart in ipairs(slots) do
                                 if not AutoSteal then break end
+                                char:PivotTo(slotPart.CFrame + Vector3.new(0, 2, 0))
                                 triggerTouch(slotPart)
                                 triggerPrompts(slotPart)
+                                task.wait(0.08)
                             end
+
+                            -- Back to base center
+                            char:PivotTo(HomeBaseCFrame)
                         end
                     end
                 end)
