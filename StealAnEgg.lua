@@ -6,25 +6,18 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
 
 -- State Variables
 local AutoGrabEggs = false
 local AutoTrainSpeed = false
 local AutoCollectCash = false
 local SpeedBoostEnabled = false
-local FlyEnabled = false
 local InfJumpEnabled = false
 
 local NormalSpeed = 16
 local BoostSpeed = 60
-local FlySpeed = 70
-
--- Saved Base Position
-local MyBaseCFrame = nil
 
 -- Helper Functions
 local function getChar()
@@ -41,27 +34,11 @@ local function getHum()
     return char and char:FindFirstChildOfClass("Humanoid")
 end
 
--- Save spawn/base position at start
-task.spawn(function()
-    task.wait(1)
-    local root = getRoot()
-    if root then
-        MyBaseCFrame = root.CFrame
-    end
-end)
-
 -- Respawn Handler
 LocalPlayer.CharacterAdded:Connect(function(char)
     local hum = char:WaitForChild("Humanoid", 5)
     if hum and SpeedBoostEnabled then
         hum.WalkSpeed = BoostSpeed
-    end
-    task.wait(1)
-    if not MyBaseCFrame then
-        local root = getRoot()
-        if root then
-            MyBaseCFrame = root.CFrame
-        end
     end
 end)
 
@@ -102,11 +79,11 @@ end)
 
 ScreenGui.Parent = parentGui or LocalPlayer:FindFirstChildOfClass("PlayerGui")
 
--- Main Outer Frame
+-- Main Outer Frame (Compact exact design)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 360)
-MainFrame.Position = UDim2.new(0.5, -160, 0.3, -180)
+MainFrame.Size = UDim2.new(0, 320, 0, 290)
+MainFrame.Position = UDim2.new(0.5, -160, 0.35, -145)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -146,14 +123,14 @@ end)
 
 -- Container for Toggles
 local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -32, 0, 220)
-Container.Position = UDim2.new(0, 16, 0, 50)
+Container.Size = UDim2.new(1, -32, 0, 170)
+Container.Position = UDim2.new(0, 16, 0, 52)
 Container.BackgroundTransparency = 1
 Container.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, 6)
+UIListLayout.Padding = UDim.new(0, 7)
 UIListLayout.Parent = Container
 
 -- Footer Branding
@@ -235,44 +212,6 @@ local function CreateToggleRow(name, callback)
     return Row
 end
 
--- Helper Function for Action Button
-local function CreateActionButton(name, btnText, callback)
-    local Row = Instance.new("Frame")
-    Row.Size = UDim2.new(1, 0, 0, 26)
-    Row.BackgroundTransparency = 1
-    Row.Parent = Container
-
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, -95, 1, 0)
-    Label.BackgroundTransparency = 1
-    Label.Text = name
-    Label.TextColor3 = Color3.fromRGB(220, 220, 225)
-    Label.TextSize = 13
-    Label.Font = Enum.Font.SourceSansBold
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Row
-
-    local Button = Instance.new("TextButton")
-    Button.Size = UDim2.new(0, 90, 0, 23)
-    Button.Position = UDim2.new(1, -90, 0.5, -11)
-    Button.BackgroundColor3 = Color3.fromRGB(0, 140, 230)
-    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Button.Text = btnText
-    Button.TextSize = 12
-    Button.Font = Enum.Font.SourceSansBold
-    Button.Parent = Row
-
-    local BtnCorner = Instance.new("UICorner")
-    BtnCorner.CornerRadius = UDim.new(0, 4)
-    BtnCorner.Parent = Button
-
-    Button.MouseButton1Click:Connect(function()
-        pcall(callback)
-    end)
-
-    return Row
-end
-
 ----------------------------------------------------------------
 -- 1. Auto Grab Eggs (Instant Prompts + Touch Steal)
 ----------------------------------------------------------------
@@ -302,11 +241,10 @@ local function scanAndGrabEggs()
             local actionText = (prompt.ActionText or ""):lower()
 
             if parentName:find("egg") or objectText:find("egg") or actionText:find("steal") or actionText:find("grab") or actionText:find("take") or actionText:find("pick") then
-                -- Check distance
                 local promptPart = prompt.Parent
                 if promptPart:IsA("BasePart") then
                     local dist = (promptPart.Position - root.Position).Magnitude
-                    if dist <= prompt.MaxActivationDistance + 25 then
+                    if dist <= prompt.MaxActivationDistance + 35 then
                         firePrompt(prompt)
                     end
                 else
@@ -320,7 +258,7 @@ local function scanAndGrabEggs()
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") and obj.Name:lower():find("egg") and not obj:IsDescendantOf(LocalPlayer.Character) then
             local dist = (obj.Position - root.Position).Magnitude
-            if dist <= 20 and firetouchinterest then
+            if dist <= 25 and firetouchinterest then
                 pcall(function()
                     firetouchinterest(root, obj, 0)
                     task.wait(0.02)
@@ -337,7 +275,7 @@ CreateToggleRow("Auto Grab Eggs", function(enabled)
         task.spawn(function()
             while AutoGrabEggs do
                 pcall(scanAndGrabEggs)
-                task.wait(0.2)
+                task.wait(0.15)
             end
         end)
     end
@@ -367,7 +305,7 @@ local function runAutoTrain()
         end
     end
 
-    -- Also check for training Remotes in ReplicatedStorage
+    -- Check for training Remotes in ReplicatedStorage
     for _, r in ipairs(ReplicatedStorage:GetDescendants()) do
         if r:IsA("RemoteEvent") or r:IsA("RemoteFunction") then
             local rName = r.Name:lower()
@@ -388,7 +326,7 @@ CreateToggleRow("Auto Train Speed", function(enabled)
         task.spawn(function()
             while AutoTrainSpeed do
                 pcall(runAutoTrain)
-                task.wait(0.3)
+                task.wait(0.25)
             end
         end)
     end
@@ -408,7 +346,7 @@ local function runAutoCollectCash()
             local name = obj.Name:lower()
             if name:find("coin") or name:find("cash") or name:find("money") or name:find("reward") or name:find("income") or name:find("pad") then
                 local dist = (obj.Position - root.Position).Magnitude
-                if dist <= 45 and firetouchinterest then
+                if dist <= 50 and firetouchinterest then
                     pcall(function()
                         firetouchinterest(root, obj, 0)
                         task.wait(0.02)
@@ -444,7 +382,7 @@ CreateToggleRow("Auto Collect Cash", function(enabled)
         task.spawn(function()
             while AutoCollectCash do
                 pcall(runAutoCollectCash)
-                task.wait(0.5)
+                task.wait(0.4)
             end
         end)
     end
@@ -475,89 +413,7 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------------
--- 5. Fly Mode (WASD + Space controls)
-----------------------------------------------------------------
-local BodyGyro = nil
-local BodyVelocity = nil
-
-local function startFlying()
-    local char = LocalPlayer.Character
-    local root = getRoot()
-    local hum = getHum()
-    if not root or not hum then return end
-
-    hum.PlatformStand = true
-
-    BodyGyro = Instance.new("BodyGyro")
-    BodyGyro.P = 9e4
-    BodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-    BodyGyro.CFrame = root.CFrame
-    BodyGyro.Parent = root
-
-    BodyVelocity = Instance.new("BodyVelocity")
-    BodyVelocity.Velocity = Vector3.new(0, 0, 0)
-    BodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-    BodyVelocity.Parent = root
-
-    task.spawn(function()
-        while FlyEnabled and root and BodyVelocity and BodyGyro do
-            local moveDir = Vector3.new(0, 0, 0)
-
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                moveDir = moveDir + Camera.CFrame.LookVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                moveDir = moveDir - Camera.CFrame.LookVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                moveDir = moveDir - Camera.CFrame.RightVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                moveDir = moveDir + Camera.CFrame.RightVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                moveDir = moveDir + Vector3.new(0, 1, 0)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-                moveDir = moveDir - Vector3.new(0, 1, 0)
-            end
-
-            if moveDir.Magnitude > 0 then
-                BodyVelocity.Velocity = moveDir.Unit * FlySpeed
-            else
-                BodyVelocity.Velocity = Vector3.new(0, 0, 0)
-            end
-
-            BodyGyro.CFrame = Camera.CFrame
-            RunService.RenderStepped:Wait()
-        end
-
-        if BodyGyro then BodyGyro:Destroy() end
-        if BodyVelocity then BodyVelocity:Destroy() end
-        local h = getHum()
-        if h then h.PlatformStand = false end
-    end)
-end
-
-CreateToggleRow("Fly Mode (Fly Over Guardians)", function(enabled)
-    FlyEnabled = enabled
-    if enabled then
-        startFlying()
-    else
-        local root = getRoot()
-        if root then
-            local bg = root:FindFirstChildOfClass("BodyGyro")
-            local bv = root:FindFirstChildOfClass("BodyVelocity")
-            if bg then bg:Destroy() end
-            if bv then bv:Destroy() end
-        end
-        local hum = getHum()
-        if hum then hum.PlatformStand = false end
-    end
-end)
-
-----------------------------------------------------------------
--- 6. Infinite Jump
+-- 5. Infinite Jump
 ----------------------------------------------------------------
 CreateToggleRow("Infinite Jump", function(enabled)
     InfJumpEnabled = enabled
@@ -569,25 +425,5 @@ UserInputService.JumpRequest:Connect(function()
         if hum then
             hum:ChangeState(Enum.HumanoidStateType.Jumping)
         end
-    end
-end)
-
-----------------------------------------------------------------
--- 7. Teleport to Base (Safe Return with Egg)
-----------------------------------------------------------------
-CreateActionButton("Set / Teleport Base", "Teleport Base", function()
-    local root = getRoot()
-    if not root then return end
-    if MyBaseCFrame then
-        root.CFrame = MyBaseCFrame + Vector3.new(0, 3, 0)
-    else
-        MyBaseCFrame = root.CFrame
-    end
-end)
-
-CreateActionButton("Save Current as Base", "Save Base", function()
-    local root = getRoot()
-    if root then
-        MyBaseCFrame = root.CFrame
     end
 end)
