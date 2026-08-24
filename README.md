@@ -46,6 +46,18 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 3. 🦘 **Infinite Jump**: Unlimited air jumping.
 4. 🔮 **Egg Prediction**: Full ESP chams and real-time distance visualizer for all eggs on the map.
 
+---
 
+## 🎮 4. Shatter Lucky Blocks And Defeat Boss
 
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/ShatterLuckyBlocksAndDefeatBoss.lua?t=" .. tostring(os.time())))()
+```
+
+### ✨ Features (Exact 4 Features)
+1. 💥 **Auto Hit / Shatter**: Auto equips weapons, triggers clicks, prompts & hits lucky blocks & bosses.
+2. 💰 **Collect Cash / Drops**: Fast touch simulation & auto collect all floating coins, cash and drops.
+3. 🔄 **Auto Rebirth**: Automatically performs rebirth via remotes and rebirth pads.
+4. 🔓 **Unlock Next Zone**: Automatically unlocks and purchases upcoming areas/zones.
 
