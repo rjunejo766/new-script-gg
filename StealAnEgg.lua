@@ -1,24 +1,22 @@
 --==============================================================--
 --  ULTRA SCRIPT HUB - Made by Junejo
 --  Game: Steal an Egg (Roblox)
---  Version: 4.0 (Anti-Cheat Proof Edition)
+--  Version: 5.0 (Auto Steal & Base Return + Infinite Jump Edition)
 --==============================================================--
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local PathfindingService = game:GetService("PathfindingService")
 local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 
---==============================================================--
---  Feature States (Exact 4 Features)
---==============================================================--
+-- Feature States (Exact 4 Features)
 local AutoStealEgg = false
 local SpeedBoostEnabled = false
-local InstantStealEgg = false
+local InfJumpEnabled = false
 local EggPrediction = false
 
 local NormalSpeed = 16
@@ -40,6 +38,18 @@ local function getHum()
     return char:FindFirstChildOfClass("Humanoid")
 end
 
+-- Check if player is currently carrying an egg
+local function isHoldingEgg()
+    local char = LocalPlayer.Character
+    if not char then return false end
+    for _, child in ipairs(char:GetChildren()) do
+        if child:IsA("Tool") or child.Name:lower():find("egg") then
+            return true
+        end
+    end
+    return false
+end
+
 -- Save Base CFrame on Spawn
 task.spawn(function()
     local root = getRoot()
@@ -52,7 +62,62 @@ LocalPlayer.CharacterAdded:Connect(function()
     if root and not SavedBaseCFrame then
         SavedBaseCFrame = root.CFrame
     end
+    local hum = getHum()
+    if hum and SpeedBoostEnabled then
+        hum.WalkSpeed = BoostSpeed
+    end
 end)
+
+-- Universal Proximity Prompt Trigger (0-sec fast execution)
+local function triggerPrompt(prompt)
+    if not prompt or not prompt.Parent then return end
+    pcall(function()
+        prompt.HoldDuration = 0
+        if fireproximityprompt then
+            fireproximityprompt(prompt, 0)
+        elseif prompt.InputHoldBegin and prompt.InputHoldEnd then
+            prompt:InputHoldBegin()
+            task.wait(0.02)
+            prompt:InputHoldEnd()
+        end
+    end)
+end
+
+-- Universal Touch Simulation
+local function safeTouch(part1, part2)
+    if not part1 or not part2 then return end
+    pcall(function()
+        if firetouchinterest then
+            firetouchinterest(part1, part2, 0)
+            task.wait(0.01)
+            firetouchinterest(part1, part2, 1)
+        end
+    end)
+end
+
+-- Find User's Incubator / Base CFrame
+local function getIncubatorCFrame()
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") or obj:IsA("Folder") then
+            local owner = obj:FindFirstChild("Owner") or obj:FindFirstChild("Player") or obj:FindFirstChild("UserId")
+            if owner and (tostring(owner.Value) == LocalPlayer.Name or tostring(owner.Value) == tostring(LocalPlayer.UserId)) then
+                local inc = obj:FindFirstChild("Incubator", true) or obj:FindFirstChild("Fuse", true) or obj:FindFirstChild("Base", true)
+                if inc and inc:IsA("BasePart") then return inc.CFrame end
+            end
+        end
+    end
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local name = obj.Name:lower()
+            if name:find("incubator") or name:find("fuse") or name:find("egg machine") then
+                if SavedBaseCFrame and (obj.Position - SavedBaseCFrame.Position).Magnitude <= 100 then
+                    return obj.CFrame
+                end
+            end
+        end
+    end
+    return SavedBaseCFrame or (getRoot() and getRoot().CFrame)
+end
 
 --==============================================================--
 --  GUI CREATION (Pixel-Perfect ULTRA SCRIPT HUB Design)
@@ -198,41 +263,70 @@ local function CreateToggleRow(name, callback)
 end
 
 --==============================================================--
---  1. AUTO STEAL EGG (Natural Path & Safe Auto Return)
+--  1. AUTO STEAL EGG (Auto Grab & Return to Base Loop)
 --==============================================================--
-local function getIncubatorCFrame()
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") or obj:IsA("Folder") then
-            local owner = obj:FindFirstChild("Owner") or obj:FindFirstChild("Player") or obj:FindFirstChild("UserId")
-            if owner and (tostring(owner.Value) == LocalPlayer.Name or tostring(owner.Value) == tostring(LocalPlayer.UserId)) then
-                local inc = obj:FindFirstChild("Incubator", true) or obj:FindFirstChild("Fuse", true) or obj:FindFirstChild("Base", true)
-                if inc and inc:IsA("BasePart") then return inc.CFrame end
-            end
-        end
+local isStealingCycle = false
+
+local function returnAndDepositAtBase(baseCFrame)
+    local root = getRoot()
+    local hum = getHum()
+    if not root or not hum or not baseCFrame then return end
+
+    -- Move towards base / incubator
+    hum:MoveTo(baseCFrame.Position)
+    local timeout = tick() + 8
+    while AutoStealEgg and tick() < timeout and (root.Position - baseCFrame.Position).Magnitude > 10 do
+        task.wait(0.1)
     end
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            local name = obj.Name:lower()
-            if name:find("incubator") or name:find("fuse") or name:find("egg machine") then
-                if SavedBaseCFrame and (obj.Position - SavedBaseCFrame.Position).Magnitude <= 100 then
-                    return obj.CFrame
+
+    -- Trigger incubator / fuse prompts
+    for _, p in ipairs(Workspace:GetDescendants()) do
+        if p:IsA("ProximityPrompt") and p.Enabled then
+            local pName = (p.Parent and p.Parent.Name or ""):lower()
+            local act = (p.ActionText or ""):lower()
+            if pName:find("incubator") or pName:find("fuse") or act:find("fuse") or act:find("place") or act:find("hatch") or act:find("deposit") then
+                if (p.Parent.Position - root.Position).Magnitude <= 25 then
+                    triggerPrompt(p)
                 end
             end
         end
     end
-    return SavedBaseCFrame or (getRoot() and getRoot().CFrame)
+
+    -- Touch incubator parts
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local name = obj.Name:lower()
+            if name:find("incubator") or name:find("fuse") or name:find("deposit") then
+                if (obj.Position - root.Position).Magnitude <= 20 then
+                    safeTouch(root, obj)
+                end
+            end
+        end
+    end
 end
 
-local isAutoStealing = false
 local function runAutoStealCycle()
-    if isAutoStealing then return end
-    isAutoStealing = true
+    if isStealingCycle then return end
+    isStealingCycle = true
 
     local root = getRoot()
     local hum = getHum()
-    if not root or not hum or hum.Health <= 0 then isAutoStealing = false return end
+    if not root or not hum or hum.Health <= 0 then
+        isStealingCycle = false
+        return
+    end
 
     local baseCFrame = getIncubatorCFrame()
+
+    -- Check if we are already holding an egg
+    if isHoldingEgg() then
+        returnAndDepositAtBase(baseCFrame)
+        task.wait(0.3)
+        isStealingCycle = false
+        return
+    end
+
+    -- Find target egg
     local targetEgg = nil
     local targetPrompt = nil
     local closestDist = math.huge
@@ -244,6 +338,7 @@ local function runAutoStealCycle()
             local pName = (parent and parent.Name or ""):lower()
             local act = (prompt.ActionText or ""):lower()
             local objT = (prompt.ObjectText or ""):lower()
+
             if pName:find("egg") or act:find("steal") or act:find("grab") or act:find("take") or objT:find("egg") then
                 local part = parent:IsA("BasePart") and parent or (parent and parent:FindFirstChildWhichIsA("BasePart"))
                 if part and baseCFrame and (part.Position - baseCFrame.Position).Magnitude > 25 then
@@ -259,59 +354,27 @@ local function runAutoStealCycle()
     end
 
     if targetEgg then
-        -- Safe Walk to Egg using MoveTo
+        -- Move to Egg
         hum:MoveTo(targetEgg.Position)
-        local arrived = false
-        local timeout = tick() + 6
-        while not arrived and tick() < timeout and AutoStealEgg do
-            if (root.Position - targetEgg.Position).Magnitude <= 10 then
-                arrived = true
-            end
+        local timeout = tick() + 8
+        while AutoStealEgg and tick() < timeout and (root.Position - targetEgg.Position).Magnitude > 8 do
             task.wait(0.1)
         end
 
-        -- Trigger Prompt
+        -- Trigger Grab
         if targetPrompt then
-            pcall(function()
-                if fireproximityprompt then
-                    fireproximityprompt(targetPrompt, 0)
-                else
-                    targetPrompt:InputHoldBegin()
-                    task.wait(0.05)
-                    targetPrompt:InputHoldEnd()
-                end
-            end)
+            triggerPrompt(targetPrompt)
         end
+        safeTouch(root, targetEgg)
 
-        task.wait(0.4)
+        task.wait(0.3)
 
-        -- Walk back to base / incubator
-        if baseCFrame then
-            hum:MoveTo(baseCFrame.Position)
-            local backTimeout = tick() + 6
-            while (root.Position - baseCFrame.Position).Magnitude > 12 and tick() < backTimeout and AutoStealEgg do
-                task.wait(0.1)
-            end
-
-            -- Deposit into incubator
-            for _, p in ipairs(Workspace:GetDescendants()) do
-                if p:IsA("ProximityPrompt") and p.Enabled then
-                    local pName = (p.Parent and p.Parent.Name or ""):lower()
-                    local act = (p.ActionText or ""):lower()
-                    if pName:find("incubator") or pName:find("fuse") or act:find("fuse") or act:find("place") or act:find("hatch") then
-                        if (p.Parent.Position - root.Position).Magnitude <= 20 then
-                            pcall(function()
-                                if fireproximityprompt then fireproximityprompt(p, 0) end
-                            end)
-                        end
-                    end
-                end
-            end
-        end
+        -- Return to Base & Deposit
+        returnAndDepositAtBase(baseCFrame)
     end
 
     task.wait(0.3)
-    isAutoStealing = false
+    isStealingCycle = false
 end
 
 CreateToggleRow("Auto Steal Egg", function(enabled)
@@ -322,7 +385,7 @@ CreateToggleRow("Auto Steal Egg", function(enabled)
         task.spawn(function()
             while AutoStealEgg do
                 pcall(runAutoStealCycle)
-                task.wait(0.2)
+                task.wait(0.15)
             end
         end)
     end
@@ -339,7 +402,6 @@ CreateToggleRow("WalkSpeed Boost (60)", function(enabled)
     end
 end)
 
--- Continuous Speed Maintenance
 task.spawn(function()
     while true do
         task.wait(0.3)
@@ -353,39 +415,18 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  3. INSTANT STEAL EGG (0.00s Instant Hold Time Prompt Bypass)
+--  3. INFINITE JUMP
 --==============================================================--
-CreateToggleRow("Instant Steal Egg", function(enabled)
-    InstantStealEgg = enabled
-    if enabled then
-        task.spawn(function()
-            while InstantStealEgg do
-                local root = getRoot()
-                if root then
-                    for _, prompt in ipairs(Workspace:GetDescendants()) do
-                        if not InstantStealEgg then break end
-                        if prompt:IsA("ProximityPrompt") and prompt.Enabled then
-                            local parent = prompt.Parent
-                            local pName = (parent and parent.Name or ""):lower()
-                            local act = (prompt.ActionText or ""):lower()
-                            local objT = (prompt.ObjectText or ""):lower()
-                            if pName:find("egg") or act:find("steal") or act:find("grab") or objT:find("egg") then
-                                prompt.HoldDuration = 0
-                                local part = parent:IsA("BasePart") and parent or (parent and parent:FindFirstChildWhichIsA("BasePart"))
-                                if part and (part.Position - root.Position).Magnitude <= (prompt.MaxActivationDistance + 10) then
-                                    pcall(function()
-                                        if fireproximityprompt then
-                                            fireproximityprompt(prompt, 0)
-                                        end
-                                    end)
-                                end
-                            end
-                        end
-                    end
-                end
-                task.wait(0.1)
-            end
-        end)
+CreateToggleRow("Infinite Jump", function(enabled)
+    InfJumpEnabled = enabled
+end)
+
+UserInputService.JumpRequest:Connect(function()
+    if InfJumpEnabled then
+        local hum = getHum()
+        if hum then
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
     end
 end)
 
@@ -413,7 +454,6 @@ local function updateEggPrediction()
             if (name:find("egg") or name:find("nest") or name:find("eggspawn")) and not name:find("incubator") and not name:find("fuse") then
                 local part = obj:IsA("BasePart") and obj or (obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")))
                 if part and not part:IsDescendantOf(LocalPlayer.Character) then
-                    -- 1. Highlight / Chams
                     local hl = Instance.new("Highlight")
                     hl.Name = "EggESP_HL"
                     hl.FillColor = Color3.fromRGB(0, 255, 170)
@@ -423,7 +463,6 @@ local function updateEggPrediction()
                     hl.Adornee = obj
                     hl.Parent = obj
 
-                    -- 2. Billboard Text (Name & Distance)
                     local bb = Instance.new("BillboardGui")
                     bb.Name = "EggESP_BB"
                     bb.Adornee = part

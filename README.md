@@ -41,10 +41,11 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 ```
 
 ### ✨ Features (Exact 4 Features)
-1. 🥚 **Auto Steal Egg**: Safe navigation to eggs, instant interaction, and auto return to base/incubator.
+1. 🥚 **Auto Steal Egg**: Auto steals eggs, detects held egg in hand, and returns to deposit at base/incubator.
 2. 🏃 **WalkSpeed Boost (60)**: High movement speed multiplier for fast navigation.
-3. ⚡ **Instant Steal Egg**: 0.00s proximity prompt hold-time bypass for instant egg stealing.
+3. 🦘 **Infinite Jump**: Unlimited air jumping.
 4. 🔮 **Egg Prediction**: Full ESP chams and real-time distance visualizer for all eggs on the map.
+
 
 
 
