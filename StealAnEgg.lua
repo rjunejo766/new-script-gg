@@ -9,7 +9,7 @@ local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 
--- State Variables
+-- State Variables (Exact 5 Features)
 local AutoGrabEggs = false
 local AutoTrainSpeed = false
 local AutoCollectCash = false
@@ -34,7 +34,23 @@ local function getHum()
     return char and char:FindFirstChildOfClass("Humanoid")
 end
 
--- Respawn Handler
+-- Universal Proximity Prompt Trigger
+local function triggerPrompt(prompt)
+    if not prompt or not prompt.Parent then return end
+    pcall(function()
+        prompt.HoldDuration = 0
+        prompt.RequiresLineOfSight = false
+        if fireproximityprompt then
+            fireproximityprompt(prompt, 0)
+        else
+            prompt:InputHoldBegin()
+            task.wait(0.02)
+            prompt:InputHoldEnd()
+        end
+    end)
+end
+
+-- Respawn & Character Management
 LocalPlayer.CharacterAdded:Connect(function(char)
     local hum = char:WaitForChild("Humanoid", 5)
     if hum and SpeedBoostEnabled then
@@ -79,11 +95,11 @@ end)
 
 ScreenGui.Parent = parentGui or LocalPlayer:FindFirstChildOfClass("PlayerGui")
 
--- Main Outer Frame (Compact exact design)
+-- Main Outer Frame (Compact exact design - No overlap)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 290)
-MainFrame.Position = UDim2.new(0.5, -160, 0.35, -145)
+MainFrame.Size = UDim2.new(0, 320, 0, 285)
+MainFrame.Position = UDim2.new(0.5, -160, 0.35, -142)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -94,7 +110,7 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 10)
 UICorner.Parent = MainFrame
 
--- Header Title
+-- Header Title (Large & Prominent)
 local HeaderTitle = Instance.new("TextLabel")
 HeaderTitle.Size = UDim2.new(1, -50, 0, 35)
 HeaderTitle.Position = UDim2.new(0, 16, 0, 10)
@@ -121,9 +137,9 @@ CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- Container for Toggles
+-- Container for 5 Toggles
 local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -32, 0, 170)
+Container.Size = UDim2.new(1, -32, 0, 165)
 Container.Position = UDim2.new(0, 16, 0, 52)
 Container.BackgroundTransparency = 1
 Container.Parent = MainFrame
@@ -213,56 +229,57 @@ local function CreateToggleRow(name, callback)
 end
 
 ----------------------------------------------------------------
--- 1. Auto Grab Eggs (Instant Prompts + Touch Steal)
+-- 1. Auto Grab Eggs
 ----------------------------------------------------------------
-local function firePrompt(prompt)
-    if not prompt or not prompt.Parent then return end
-    pcall(function()
-        if fireproximityprompt then
-            fireproximityprompt(prompt, 0)
-        else
-            prompt.HoldDuration = 0
-            prompt:InputHoldBegin()
-            task.wait(0.05)
-            prompt:InputHoldEnd()
-        end
-    end)
-end
-
 local function scanAndGrabEggs()
     local root = getRoot()
     if not root then return end
 
-    -- 1. Look for all ProximityPrompts related to eggs or steals
+    -- 1. Scan ProximityPrompts across workspace
     for _, prompt in ipairs(workspace:GetDescendants()) do
+        if not AutoGrabEggs then break end
         if prompt:IsA("ProximityPrompt") and prompt.Enabled then
             local parentName = (prompt.Parent and prompt.Parent.Name or ""):lower()
             local objectText = (prompt.ObjectText or ""):lower()
             local actionText = (prompt.ActionText or ""):lower()
 
-            if parentName:find("egg") or objectText:find("egg") or actionText:find("steal") or actionText:find("grab") or actionText:find("take") or actionText:find("pick") then
+            if parentName:find("egg") or objectText:find("egg") or actionText:find("steal") or actionText:find("grab") or actionText:find("take") or actionText:find("pick") or actionText:find("e") then
                 local promptPart = prompt.Parent
-                if promptPart:IsA("BasePart") then
+                if promptPart and promptPart:IsA("BasePart") then
                     local dist = (promptPart.Position - root.Position).Magnitude
-                    if dist <= prompt.MaxActivationDistance + 35 then
-                        firePrompt(prompt)
+                    if dist <= prompt.MaxActivationDistance + 50 then
+                        triggerPrompt(prompt)
                     end
                 else
-                    firePrompt(prompt)
+                    triggerPrompt(prompt)
                 end
             end
         end
     end
 
-    -- 2. Look for touchable Egg parts
+    -- 2. Touch Egg spawns / models directly
     for _, obj in ipairs(workspace:GetDescendants()) do
+        if not AutoGrabEggs then break end
         if obj:IsA("BasePart") and obj.Name:lower():find("egg") and not obj:IsDescendantOf(LocalPlayer.Character) then
             local dist = (obj.Position - root.Position).Magnitude
-            if dist <= 25 and firetouchinterest then
+            if dist <= 35 and firetouchinterest then
                 pcall(function()
                     firetouchinterest(root, obj, 0)
-                    task.wait(0.02)
+                    task.wait(0.01)
                     firetouchinterest(root, obj, 1)
+                end)
+            end
+        end
+    end
+
+    -- 3. Remotes in ReplicatedStorage
+    for _, r in ipairs(ReplicatedStorage:GetDescendants()) do
+        if not AutoGrabEggs then break end
+        if r:IsA("RemoteEvent") then
+            local rName = r.Name:lower()
+            if rName:find("egg") or rName:find("steal") or rName:find("pickup") or rName:find("grab") then
+                pcall(function()
+                    r:FireServer()
                 end)
             end
         end
@@ -275,41 +292,48 @@ CreateToggleRow("Auto Grab Eggs", function(enabled)
         task.spawn(function()
             while AutoGrabEggs do
                 pcall(scanAndGrabEggs)
-                task.wait(0.15)
+                task.wait(0.1)
             end
         end)
     end
 end)
 
 ----------------------------------------------------------------
--- 2. Auto Train Speed (Treadmills / Training Pads)
+-- 2. Auto Train Speed (Treadmills / Gym Pads)
 ----------------------------------------------------------------
 local function runAutoTrain()
     local root = getRoot()
     if not root then return end
 
-    -- Look for treadmills / training pads
+    -- 1. Touch treadmills & speed pads
     for _, obj in ipairs(workspace:GetDescendants()) do
         if not AutoTrainSpeed then break end
         if obj:IsA("BasePart") then
             local name = obj.Name:lower()
-            if name:find("treadmill") or name:find("train") or name:find("speedpad") or name:find("speed_pad") then
+            if name:find("treadmill") or name:find("train") or name:find("speedpad") or name:find("speed_pad") or name:find("gym") or name:find("belt") or name:find("run") then
                 pcall(function()
                     if firetouchinterest then
                         firetouchinterest(root, obj, 0)
-                        task.wait(0.05)
+                        task.wait(0.02)
                         firetouchinterest(root, obj, 1)
                     end
                 end)
             end
+        elseif obj:IsA("ProximityPrompt") and obj.Enabled then
+            local pName = (obj.Parent and obj.Parent.Name or ""):lower()
+            local actText = (obj.ActionText or ""):lower()
+            if pName:find("treadmill") or pName:find("train") or actText:find("train") or actText:find("run") then
+                triggerPrompt(obj)
+            end
         end
     end
 
-    -- Check for training Remotes in ReplicatedStorage
+    -- 2. Remotes in ReplicatedStorage for speed training
     for _, r in ipairs(ReplicatedStorage:GetDescendants()) do
+        if not AutoTrainSpeed then break end
         if r:IsA("RemoteEvent") or r:IsA("RemoteFunction") then
             local rName = r.Name:lower()
-            if rName:find("train") or rName:find("treadmill") or rName:find("addspeed") or rName:find("speedup") then
+            if rName:find("train") or rName:find("treadmill") or rName:find("addspeed") or rName:find("speedup") or rName:find("clickspeed") then
                 pcall(function()
                     if r:IsA("RemoteEvent") then
                         r:FireServer()
@@ -326,7 +350,7 @@ CreateToggleRow("Auto Train Speed", function(enabled)
         task.spawn(function()
             while AutoTrainSpeed do
                 pcall(runAutoTrain)
-                task.wait(0.25)
+                task.wait(0.2)
             end
         end)
     end
@@ -344,12 +368,12 @@ local function runAutoCollectCash()
         if not AutoCollectCash then break end
         if obj:IsA("BasePart") then
             local name = obj.Name:lower()
-            if name:find("coin") or name:find("cash") or name:find("money") or name:find("reward") or name:find("income") or name:find("pad") then
+            if name:find("coin") or name:find("cash") or name:find("money") or name:find("reward") or name:find("income") or name:find("pad") or name:find("claim") then
                 local dist = (obj.Position - root.Position).Magnitude
-                if dist <= 50 and firetouchinterest then
+                if dist <= 55 and firetouchinterest then
                     pcall(function()
                         firetouchinterest(root, obj, 0)
-                        task.wait(0.02)
+                        task.wait(0.01)
                         firetouchinterest(root, obj, 1)
                     end)
                 end
@@ -358,16 +382,17 @@ local function runAutoCollectCash()
             local pName = (obj.Parent and obj.Parent.Name or ""):lower()
             local actText = (obj.ActionText or ""):lower()
             if pName:find("cash") or pName:find("coin") or pName:find("collect") or actText:find("collect") or actText:find("claim") then
-                firePrompt(obj)
+                triggerPrompt(obj)
             end
         end
     end
 
-    -- 2. Remotes for claiming
+    -- 2. Remotes in ReplicatedStorage for claiming
     for _, r in ipairs(ReplicatedStorage:GetDescendants()) do
+        if not AutoCollectCash then break end
         if r:IsA("RemoteEvent") then
             local rName = r.Name:lower()
-            if rName:find("collect") or rName:find("claimcash") or rName:find("claimincome") or rName:find("claimreward") then
+            if rName:find("collect") or rName:find("claimcash") or rName:find("claimincome") or rName:find("claimreward") or rName:find("claim") then
                 pcall(function()
                     r:FireServer()
                 end)
@@ -382,7 +407,7 @@ CreateToggleRow("Auto Collect Cash", function(enabled)
         task.spawn(function()
             while AutoCollectCash do
                 pcall(runAutoCollectCash)
-                task.wait(0.4)
+                task.wait(0.3)
             end
         end)
     end
@@ -402,7 +427,7 @@ end)
 -- Continuous Speed Enforcement
 task.spawn(function()
     while true do
-        task.wait(0.5)
+        task.wait(0.4)
         if SpeedBoostEnabled then
             local hum = getHum()
             if hum and hum.WalkSpeed ~= BoostSpeed then
