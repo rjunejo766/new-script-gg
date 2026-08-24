@@ -40,9 +40,9 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/StealAnEgg.lua?t=" .. tostring(os.time())))()
 ```
 
-### ✨ Features (Exact 5 Features)
+### ✨ Features (Exact 4 Features)
 1. 🥚 **Auto Grab Eggs**: Fast egg proximity prompt trigger & touch pickup across biomes.
 2. ⚡ **Auto Train Speed**: Automatically trains on base treadmills / training pads.
-3. 💰 **Auto Collect Cash**: Collects pet garden income, coins, and rewards.
-4. 🏃 **WalkSpeed Boost (60)**: Outrun all biome guardians with high speed.
-5. 🦘 **Infinite Jump**: Unlimited air jumping.
+3. 💰 **Auto Collect Cash**: Collects coins, cash drops, base pads, and bank rewards.
+4. 🔄 **Auto Rebirth**: Automatically triggers rebirth remotes, rebirth pads, and portals.
+
