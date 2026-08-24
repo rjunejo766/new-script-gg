@@ -42,8 +42,9 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 
 ### ✨ Features (Exact 4 Features)
 1. 🥚 **Auto Steal Egg**: Safe navigation to eggs, instant interaction, and auto return to base/incubator.
-2. 🛡️ **God Mode**: Complete invincibility, damage block, and ForceField protection.
+2. 🏃 **WalkSpeed Boost (60)**: High movement speed multiplier for fast navigation.
 3. ⚡ **Instant Steal Egg**: 0.00s proximity prompt hold-time bypass for instant egg stealing.
 4. 🔮 **Egg Prediction**: Full ESP chams and real-time distance visualizer for all eggs on the map.
+
 
 

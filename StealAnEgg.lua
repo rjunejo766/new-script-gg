@@ -17,9 +17,12 @@ local LocalPlayer = Players.LocalPlayer
 --  Feature States (Exact 4 Features)
 --==============================================================--
 local AutoStealEgg = false
-local GodMode = false
+local SpeedBoostEnabled = false
 local InstantStealEgg = false
 local EggPrediction = false
+
+local NormalSpeed = 16
+local BoostSpeed = 60
 
 -- Base / Incubator Location
 local SavedBaseCFrame = nil
@@ -326,42 +329,25 @@ CreateToggleRow("Auto Steal Egg", function(enabled)
 end)
 
 --==============================================================--
---  2. GOD MODE (Invincibility & Damage Prevention)
+--  2. WALKSPEED BOOST (60)
 --==============================================================--
-local godConnection = nil
-CreateToggleRow("God Mode", function(enabled)
-    GodMode = enabled
-    if enabled then
-        local hum = getHum()
-        local char = LocalPlayer.Character
-        if hum and char then
-            pcall(function()
-                hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-                if not char:FindFirstChildOfClass("ForceField") then
-                    local ff = Instance.new("ForceField")
-                    ff.Visible = false
-                    ff.Parent = char
-                end
-            end)
-        end
+CreateToggleRow("WalkSpeed Boost (60)", function(enabled)
+    SpeedBoostEnabled = enabled
+    local hum = getHum()
+    if hum then
+        hum.WalkSpeed = enabled and BoostSpeed or NormalSpeed
+    end
+end)
 
-        godConnection = RunService.Stepped:Connect(function()
-            if GodMode then
-                local h = getHum()
-                if h then
-                    h.Health = h.MaxHealth
-                end
+-- Continuous Speed Maintenance
+task.spawn(function()
+    while true do
+        task.wait(0.3)
+        if SpeedBoostEnabled then
+            local hum = getHum()
+            if hum and hum.WalkSpeed ~= BoostSpeed then
+                hum.WalkSpeed = BoostSpeed
             end
-        end)
-    else
-        if godConnection then
-            godConnection:Disconnect()
-            godConnection = nil
-        end
-        local char = LocalPlayer.Character
-        if char then
-            local ff = char:FindFirstChildOfClass("ForceField")
-            if ff then ff:Destroy() end
         end
     end
 end)
