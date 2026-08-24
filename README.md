@@ -30,3 +30,21 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 - 🧼 **Auto Clean Dirt**: 1-Click instant complete house dirt, mud, and wall cleaner.
 - 🏃 **WalkSpeed Boost (50)**: Speed multiplier.
 - 🦘 **Infinite Jump**: Air jump capability.
+
+---
+
+## 🎮 3. Steal an Egg
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/StealAnEgg.lua?t=" .. tostring(os.time())))()
+```
+
+### ✨ Features
+- 🥚 **Auto Grab Eggs**: Fast egg proximity prompt trigger & touch pickup across biomes.
+- ⚡ **Auto Train Speed**: Automatically trains on base treadmills / training pads.
+- 💰 **Auto Collect Cash**: Collects pet garden income, coins, and rewards.
+- 🏃 **WalkSpeed Boost (60)**: Outrun all biome guardians with ease.
+- 🕊️ **Fly Mode**: WASD + Space controls to fly directly over guardians and biomes.
+- 🦘 **Infinite Jump**: Unlimited air jumping.
+- 🏠 **Teleport Base / Save Base**: Instant safe return button to base pen with egg.
