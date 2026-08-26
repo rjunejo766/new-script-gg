@@ -2,7 +2,7 @@
 --  ULTRA SCRIPT HUB - Made by Junejo
 --  Game: Fish For Junk
 --  Game Link: https://www.roblox.com/games/132010220154773/Fish-For-Junk
---  Version: 2.0 (Guaranteed Auto Upgrade, 100% Cast & Sell All)
+--  Version: 3.0 (Omni-Upgrade, 100% Cast & Instant Sell)
 --==============================================================--
 
 local Players = game:GetService("Players")
@@ -455,7 +455,7 @@ task.spawn(function()
                     end
                 end
             end)
-            task.wait(0.06)
+            task.wait(0.05)
         else
             task.wait(0.3)
         end
@@ -463,7 +463,7 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  2. GUARANTEED AUTO UPGRADE (Shop GUI, Upgrade Pads & Remotes)
+--  2. SUPERCHARGED AUTO UPGRADE (Upgrades EVERYTHING Continuously)
 --==============================================================--
 task.spawn(function()
     while true do
@@ -472,25 +472,29 @@ task.spawn(function()
                 local root = getRoot()
                 if not root then return end
 
-                -- A. Click Upgrade & Buy Buttons across PlayerGui
+                -- A. Click EVERY Upgrade, Buy & Stat Button in PlayerGui
                 local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
                 if playerGui then
                     for _, btn in ipairs(playerGui:GetDescendants()) do
                         if btn:IsA("GuiButton") and btn.Visible then
                             local name = btn.Name:lower()
                             local text = (btn:IsA("TextButton") and btn.Text:lower()) or ""
+                            local parentName = btn.Parent and btn.Parent.Name:lower() or ""
+
+                            -- Target all upgrade / purchase buttons
                             if (name:find("upgrade") or text:find("upgrade") or name:find("buy") or text:find("buy") or 
                                 name:find("rod") or text:find("rod") or name:find("luck") or text:find("luck") or 
                                 name:find("speed") or text:find("speed") or name:find("capacity") or text:find("capacity") or
-                                name:find("level") or text:find("level") or name:find("stat") or text:find("stat")) and not name:find("robux") then
+                                name:find("level") or text:find("level") or name:find("stat") or text:find("stat") or
+                                parentName:find("upgrade") or parentName:find("shop") or parentName:find("rods") or
+                                string.match(text, "%d+") or text:find("%$") or text:find("max")) and not name:find("robux") and not text:find("robux") then
                                 clickGuiButton(btn)
                             end
                         end
                     end
                 end
 
-                -- B. Find all Upgrade Pads & Rod Merchants in Workspace
-                local upgradeParts = {}
+                -- B. Find & Trigger All Upgrade Pads, Stands & Merchants in Workspace
                 for _, obj in ipairs(Workspace:GetDescendants()) do
                     if not AutoUpgradeEnabled then break end
 
@@ -504,26 +508,26 @@ task.spawn(function()
                                    textLower:find("%$") or string.match(txt.Text, "%d+") then
                                     local part = obj.Adornee or obj.Parent
                                     if part and part:IsA("BasePart") then
-                                        table.insert(upgradeParts, part)
+                                        safeTouch(part)
                                     elseif part and part:IsA("Model") and part.PrimaryPart then
-                                        table.insert(upgradeParts, part.PrimaryPart)
+                                        safeTouch(part.PrimaryPart)
                                     end
                                 end
                             end
                         end
-                    -- Check BasePart names & parent names
+                    -- Check BasePart names
                     elseif obj:IsA("BasePart") then
                         local n = obj.Name:lower()
                         local p = obj.Parent and obj.Parent.Name:lower() or ""
                         if n:find("upgrade") or n:find("buy") or n:find("rod") or n:find("pad") or 
                            n:find("luck") or n:find("speed") or n:find("merchant") or 
                            p:find("upgrade") or p:find("shop") or p:find("merchant") or p:find("rods") or p:find("luck") then
-                            table.insert(upgradeParts, obj)
+                            safeTouch(obj)
                         end
                     -- Check Prompts & ClickDetectors
                     elseif obj:IsA("ProximityPrompt") then
                         local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
-                        if act:find("upgrade") or act:find("buy") or act:find("purchase") or act:find("rod") or act:find("luck") then
+                        if act:find("upgrade") or act:find("buy") or act:find("purchase") or act:find("rod") or act:find("luck") or act:find("shop") then
                             triggerPrompt(obj)
                         end
                     elseif obj:IsA("ClickDetector") then
@@ -531,32 +535,7 @@ task.spawn(function()
                     end
                 end
 
-                -- Sort by distance
-                local currentPos = root.Position
-                table.sort(upgradeParts, function(a, b)
-                    return (a.Position - currentPos).Magnitude < (b.Position - currentPos).Magnitude
-                end)
-
-                -- C. Step directly onto each upgrade pad and trigger prompts
-                for _, pad in ipairs(upgradeParts) do
-                    if not AutoUpgradeEnabled then break end
-                    if pad and pad.Parent and pad:IsA("BasePart") then
-                        safeTouch(pad)
-
-                        -- Step onto the pad
-                        root.CFrame = CFrame.new(pad.Position + Vector3.new(0, 2.2, 0))
-
-                        local prompt = pad:FindFirstChildWhichIsA("ProximityPrompt", true)
-                        if prompt then triggerPrompt(prompt) end
-
-                        local click = pad:FindFirstChildWhichIsA("ClickDetector", true)
-                        if click then safeClick(click) end
-
-                        task.wait(0.08)
-                    end
-                end
-
-                -- D. Fire All Upgrade Remotes
+                -- C. Fire ALL Upgrade Remotes in ReplicatedStorage with all parameter combinations
                 local upgradeRemotes = findRemotes({
                     "upgrade", "upgrades", "buy", "purchase", "buyrod", "purchaserod", 
                     "upgradeluck", "upgraderod", "buyupgrade", "luck", "speed", 
@@ -567,24 +546,33 @@ task.spawn(function()
                         if remote:IsA("RemoteEvent") then
                             remote:FireServer()
                             remote:FireServer(1)
+                            remote:FireServer(2)
+                            remote:FireServer(3)
+                            remote:FireServer(4)
+                            remote:FireServer(5)
                             remote:FireServer(true)
                             remote:FireServer("Rod")
                             remote:FireServer("Luck")
                             remote:FireServer("Speed")
                             remote:FireServer("Capacity")
                             remote:FireServer("Upgrade")
+                            remote:FireServer("All")
                             remote:FireServer(1, true)
                         elseif remote:IsA("RemoteFunction") then
                             remote:InvokeServer()
                             remote:InvokeServer(1)
+                            remote:InvokeServer(2)
                             remote:InvokeServer(true)
                             remote:InvokeServer("Rod")
                             remote:InvokeServer("Luck")
+                            remote:InvokeServer("Speed")
+                            remote:InvokeServer("Capacity")
+                            remote:InvokeServer("Upgrade")
                         end
                     end)
                 end
             end)
-            task.wait(0.2)
+            task.wait(0.08)
         else
             task.wait(0.4)
         end
@@ -667,19 +655,19 @@ task.spawn(function()
                     end)
                 end
             end)
-            task.wait(0.3)
+            task.wait(0.2)
         else
-            task.wait(0.5)
+            task.wait(0.4)
         end
     end
 end)
 
-print("[ULTRA SCRIPT HUB] Fish For Junk v2.0 Loaded Successfully!")
+print("[ULTRA SCRIPT HUB] Fish For Junk v3.0 Loaded Successfully!")
 
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "ULTRA SCRIPT HUB",
-        Text = "Fish For Junk v2.0 Ready!",
+        Text = "Fish For Junk v3.0 Ready!",
         Duration = 5
     })
 end)
