@@ -60,4 +60,18 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 2. 💰 **Collect Cash / Drops**: Fast touch simulation & auto collect all floating coins, cash and drops.
 3. 🔄 **Auto Rebirth**: Automatically performs rebirth via remotes and rebirth pads.
 4. 🔓 **Unlock Next Zone**: Automatically unlocks and purchases upcoming areas/zones.
+---
 
+## 🎮 5. +1 Superhero Evolution
+- **Game Link**: [https://www.roblox.com/games/89264863637747/1-Super-Hero-Evolution](https://www.roblox.com/games/89264863637747/1-Super-Hero-Evolution)
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/SuperheroEvolution.lua?t=" .. tostring(os.time())))()
+```
+
+### ✨ Features (Exact 4 Features)
+1. ⚡ **Auto Train (Power)**: Auto equips items, fires training remotes, prompts & clicks for maximum power.
+2. 🏁 **Auto Win (Finish Track)**: Auto detects end pads, track finish lines, and claims stage wins.
+3. 🔄 **Auto Rebirth**: Automatically performs evolution/rebirth safely.
+4. 🥚 **Auto Buy Best Egg**: Auto detects the best available eggs and hatches them continuously.
