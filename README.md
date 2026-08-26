@@ -120,3 +120,19 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 ### ✨ Features (Exact 2 Features)
 1. 🏅 **Medal Farm**: Automatically sweeps, collects, and claims all medals, ice drops, and reward tokens map-wide.
 2. 🚀 **Auto Stage**: Automatically completes stages, unlocks doors/portals, and advances to the next stage seamlessly.
+
+---
+
+## 🎮 9. Fish For Junk
+- **Game Link**: [https://www.roblox.com/games/132010220154773/Fish-For-Junk](https://www.roblox.com/games/132010220154773/Fish-For-Junk)
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/FishForJunk.lua?t=" .. tostring(os.time())))()
+```
+
+### ✨ Features (Exact 3 Features)
+1. 🎣 **Cast 100%**: Automatically equips fishing rods, performs 100% perfect power casts, and auto-reels hooked junk.
+2. ⚡ **Auto Upgrade**: Automatically purchases rod upgrades, luck multipliers, speed, and capacity upgrades.
+3. 💰 **Sell All**: Automatically sells all collected junk and cashes out inventory.
+
