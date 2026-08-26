@@ -107,4 +107,16 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 2. 🔄 **Auto Rebirth**: Automatically performs rebirths via remotes, GUI buttons, and rebirth pads.
 3. 🔘 **Auto Button**: Automatically discovers, steps on, and buys all tycoon build buttons & upgrade pads.
 
+---
 
+## 🎮 8. Melt The Ice
+- **Game Link**: [https://www.roblox.com/games/124317063595994/Melt-The-Ice](https://www.roblox.com/games/124317063595994/Melt-The-Ice)
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/MeltTheIce.lua?t=" .. tostring(os.time())))()
+```
+
+### ✨ Features (Exact 2 Features)
+1. 🏅 **Medal Farm**: Automatically sweeps, collects, and claims all medals, ice drops, and reward tokens map-wide.
+2. 🚀 **Auto Stage**: Automatically completes stages, unlocks doors/portals, and advances to the next stage seamlessly.

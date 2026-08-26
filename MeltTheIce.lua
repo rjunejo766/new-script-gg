@@ -1,7 +1,8 @@
 --==============================================================--
 --  ULTRA SCRIPT HUB - Made by Junejo
---  Game: Save Your Cat
---  Version: 4.0 (Super Instant Farm, Full Auto-Tycoon & Auto-Rebirth)
+--  Game: Melt The Ice
+--  Game Link: https://www.roblox.com/games/124317063595994/Melt-The-Ice
+--  Version: 3.0 (Exact 2 Features: Medal Farm & Auto Stage)
 --==============================================================--
 
 local Players = game:GetService("Players")
@@ -20,10 +21,9 @@ pcall(function() VirtualUser = game:GetService("VirtualUser") end)
 local VirtualInputManager = nil
 pcall(function() VirtualInputManager = game:GetService("VirtualInputManager") end)
 
--- Feature Toggle States
-local InfSeedEnabled = false
-local AutoRebirthEnabled = false
-local AutoButtonEnabled = false
+-- Feature Toggle States (Exact 2 Features)
+local MedalFarmEnabled = false
+local AutoStageEnabled = false
 
 -- Anti-AFK Setup
 LocalPlayer.Idled:Connect(function()
@@ -35,7 +35,7 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
--- Helper Functions
+-- Character Helper Functions
 local function getChar()
     return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 end
@@ -107,18 +107,6 @@ local function safeClick(detector)
     end)
 end
 
--- Universal GUI Button Click
-local function clickGuiButton(btn)
-    if not btn or not btn:IsA("GuiButton") then return end
-    pcall(function()
-        if getconnections then
-            for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do conn:Fire() end
-            for _, conn in ipairs(getconnections(btn.Activated)) do conn:Fire() end
-            for _, conn in ipairs(getconnections(btn.MouseButton1Down)) do conn:Fire() end
-        end
-    end)
-end
-
 -- Dynamic Remote Search
 local function findRemotes(keywords)
     local found = {}
@@ -143,12 +131,11 @@ local function findRemotes(keywords)
     return found
 end
 
--- Fast Auto Weapon Fire
-local function fastAttack()
+-- Auto Equip & Attack Helper (for breaking obstacles/ice)
+local function autoMeltAttack()
     local char = LocalPlayer.Character
     if not char then return end
 
-    -- Equip weapon
     local tool = char:FindFirstChildOfClass("Tool")
     if not tool then
         local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
@@ -184,19 +171,19 @@ end
 --  GUI CREATION (Pixel-Perfect ULTRA SCRIPT HUB Design)
 --==============================================================--
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UltraScriptHub_SaveYourCat"
+ScreenGui.Name = "UltraScriptHub_MeltTheIce"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 999999
 
 -- Clean previous instances
 pcall(function()
-    if CoreGui and CoreGui:FindFirstChild("UltraScriptHub_SaveYourCat") then
-        CoreGui:FindFirstChild("UltraScriptHub_SaveYourCat"):Destroy()
+    if CoreGui and CoreGui:FindFirstChild("UltraScriptHub_MeltTheIce") then
+        CoreGui:FindFirstChild("UltraScriptHub_MeltTheIce"):Destroy()
     end
     local lpGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
-    if lpGui and lpGui:FindFirstChild("UltraScriptHub_SaveYourCat") then
-        lpGui:FindFirstChild("UltraScriptHub_SaveYourCat"):Destroy()
+    if lpGui and lpGui:FindFirstChild("UltraScriptHub_MeltTheIce") then
+        lpGui:FindFirstChild("UltraScriptHub_MeltTheIce"):Destroy()
     end
 end)
 
@@ -224,8 +211,8 @@ end
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 245)
-MainFrame.Position = UDim2.new(0.5, -160, 0.35, -122)
+MainFrame.Size = UDim2.new(0, 320, 0, 215)
+MainFrame.Position = UDim2.new(0.5, -160, 0.35, -107)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -242,7 +229,7 @@ local HeaderTitle = Instance.new("TextLabel")
 HeaderTitle.Size = UDim2.new(1, -50, 0, 35)
 HeaderTitle.Position = UDim2.new(0, 16, 0, 10)
 HeaderTitle.BackgroundTransparency = 1
-HeaderTitle.Text = "SAVE YOUR CAT"
+HeaderTitle.Text = "MELT THE ICE"
 HeaderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 HeaderTitle.TextSize = 14
 HeaderTitle.Font = Enum.Font.SourceSansBold
@@ -263,7 +250,7 @@ CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 -- Content Container
 local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -32, 0, 125)
+Container.Size = UDim2.new(1, -32, 0, 95)
 Container.Position = UDim2.new(0, 16, 0, 50)
 Container.BackgroundTransparency = 1
 Container.Parent = MainFrame
@@ -365,79 +352,73 @@ local function CreateToggleRow(name, callback)
 end
 
 --==============================================================--
---  ADD 3 REQUESTED FEATURES TO GUI
+--  ADD EXACT 2 REQUESTED FEATURES TO GUI
 --==============================================================--
-CreateToggleRow("Inf Seed", function(state)
-    InfSeedEnabled = state
+CreateToggleRow("Medal Farm", function(state)
+    MedalFarmEnabled = state
 end)
 
-CreateToggleRow("Auto Rebirth", function(state)
-    AutoRebirthEnabled = state
-end)
-
-CreateToggleRow("Auto Button", function(state)
-    AutoButtonEnabled = state
+CreateToggleRow("Auto Stage", function(state)
+    AutoStageEnabled = state
 end)
 
 --==============================================================--
---  1. SUPER INSTANT INF SEED (Track Farm, Attack & Spawner Sweep)
+--  1. SUPERCHARGED MEDAL FARM (Collects Medals, Drops & Fires Remotes)
 --==============================================================--
 task.spawn(function()
     while true do
-        if InfSeedEnabled then
+        if MedalFarmEnabled then
             pcall(function()
                 local root = getRoot()
 
-                -- A. Fast Attack Spammer
-                fastAttack()
+                -- A. Fast auto attack for breaking ice/spawning medals
+                autoMeltAttack()
 
-                -- B. High-Speed Track / Seed Pickups Sweep
+                -- B. Sweep and Collect All Medals, Ice Medals, Drops & Coins in Workspace
                 if root then
                     for _, obj in ipairs(Workspace:GetDescendants()) do
-                        if not InfSeedEnabled then break end
-                        
-                        -- Check for seed parts & track arrows
+                        if not MedalFarmEnabled then break end
                         if obj:IsA("BasePart") then
                             local n = obj.Name:lower()
                             local p = obj.Parent and obj.Parent.Name:lower() or ""
-                            if n:find("seed") or n:find("drop") or n:find("collect") or n:find("arrow") or 
-                               n:find("gem") or n:find("coin") or n:find("orb") or n:find("point") or
-                               p:find("seed") or p:find("autorun") or p:find("track") or p:find("drop") then
+                            if n:find("medal") or n:find("drop") or n:find("water") or n:find("coin") or 
+                               n:find("cash") or n:find("reward") or n:find("collect") or n:find("token") or
+                               p:find("medal") or p:find("drops") or p:find("rewards") or p:find("coins") then
                                 safeTouch(obj)
                             end
-                        -- Check for BillboardGuis showing "+4 Seeds"
                         elseif obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
                             local adornee = obj.Adornee or obj.Parent
                             if adornee and adornee:IsA("BasePart") then
                                 for _, txt in ipairs(obj:GetDescendants()) do
-                                    if txt:IsA("TextLabel") and txt.Text:lower():find("seed") then
+                                    if txt:IsA("TextLabel") and txt.Text:lower():find("medal") then
                                         safeTouch(adornee)
                                     end
                                 end
                             end
-                        -- Check for Prompts
                         elseif obj:IsA("ProximityPrompt") then
                             local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
-                            if act:find("seed") or act:find("harvest") or act:find("collect") or act:find("claim") or act:find("run") then
+                            if act:find("medal") or act:find("collect") or act:find("claim") or act:find("reward") then
                                 triggerPrompt(obj)
                             end
+                        elseif obj:IsA("ClickDetector") then
+                            safeClick(obj)
                         end
                     end
                 end
 
-                -- C. Fire All Seed, Dash & Attack Remotes in game
-                local seedRemotes = findRemotes({
-                    "seed", "seeds", "attack", "fire", "shoot", "hit", "dash", "run",
-                    "giveseed", "addseed", "cat", "claim", "damage", "autorun", "farm", "drop"
+                -- C. Fire All Medal, Reward & Claim Remotes
+                local medalRemotes = findRemotes({
+                    "medal", "medals", "givemedal", "addmedal", "claimmedal", "collectmedal",
+                    "drop", "reward", "water", "collect", "claim", "farm", "melt"
                 })
-                for _, remote in ipairs(seedRemotes) do
+                for _, remote in ipairs(medalRemotes) do
                     pcall(function()
                         if remote:IsA("RemoteEvent") then
                             remote:FireServer()
                             remote:FireServer(1)
                             remote:FireServer(999999)
                             remote:FireServer(true)
-                            remote:FireServer("Seed")
+                            remote:FireServer("Medal")
                         elseif remote:IsA("RemoteFunction") then
                             remote:InvokeServer()
                             remote:InvokeServer(1)
@@ -447,7 +428,7 @@ task.spawn(function()
                     end)
                 end
             end)
-            task.wait(0.04)
+            task.wait(0.05)
         else
             task.wait(0.3)
         end
@@ -455,26 +436,89 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  2. INSTANT AUTO REBIRTH (Remotes + GUI Prompts + Pads)
+--  2. SUPERCHARGED AUTO STAGE (Completes Stages & Advances Door/Gate)
 --==============================================================--
 task.spawn(function()
     while true do
-        if AutoRebirthEnabled then
+        if AutoStageEnabled then
             pcall(function()
                 local root = getRoot()
+                if not root then return end
 
-                -- A. Fire all Rebirth Remotes
-                local rebirthRemotes = findRemotes({
-                    "rebirth", "rebirths", "buyrebirth", "dorebirth", "requestrebirth", 
-                    "catrebirth", "prestige", "evolve", "rankup", "upgradecat", "reset"
+                local savedPos = root.CFrame
+
+                -- A. Discover Stage Doors, Gates, Finish Lines & Next Stage Pads
+                local stageParts = {}
+                for _, obj in ipairs(Workspace:GetDescendants()) do
+                    if not AutoStageEnabled then break end
+
+                    -- Check BillboardGui / SurfaceGui (e.g. "Stage 1", "Stage 2", "Next Stage", "Door")
+                    if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
+                        for _, txt in ipairs(obj:GetDescendants()) do
+                            if txt:IsA("TextLabel") and txt.Text ~= "" then
+                                local textLower = txt.Text:lower()
+                                if textLower:find("stage") or textLower:find("door") or textLower:find("gate") or 
+                                   textLower:find("next") or textLower:find("portal") or textLower:find("finish") then
+                                    local part = obj.Adornee or obj.Parent
+                                    if part and part:IsA("BasePart") then
+                                        table.insert(stageParts, part)
+                                    elseif part and part:IsA("Model") and part.PrimaryPart then
+                                        table.insert(stageParts, part.PrimaryPart)
+                                    end
+                                end
+                            end
+                        end
+                    -- Check BasePart names
+                    elseif obj:IsA("BasePart") then
+                        local n = obj.Name:lower()
+                        local p = obj.Parent and obj.Parent.Name:lower() or ""
+                        if n:find("stage") or n:find("door") or n:find("gate") or n:find("nextstage") or 
+                           n:find("portal") or n:find("finish") or n:find("checkpoint") or 
+                           p:find("stage") or p:find("doors") or p:find("gates") or p:find("levels") then
+                            table.insert(stageParts, obj)
+                        end
+                    -- Check Prompts
+                    elseif obj:IsA("ProximityPrompt") then
+                        local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
+                        if act:find("stage") or act:find("door") or act:find("enter") or act:find("next") or act:find("pass") then
+                            triggerPrompt(obj)
+                        end
+                    end
+                end
+
+                -- Sort by distance
+                local currentPos = root.Position
+                table.sort(stageParts, function(a, b)
+                    return (a.Position - currentPos).Magnitude < (b.Position - currentPos).Magnitude
+                end)
+
+                -- B. Step on each Stage Pad / Door / Portal
+                for _, sPart in ipairs(stageParts) do
+                    if not AutoStageEnabled then break end
+                    if sPart and sPart.Parent and sPart:IsA("BasePart") then
+                        safeTouch(sPart)
+                        root.CFrame = CFrame.new(sPart.Position + Vector3.new(0, 2.2, 0))
+
+                        local prompt = sPart:FindFirstChildWhichIsA("ProximityPrompt", true)
+                        if prompt then triggerPrompt(prompt) end
+
+                        local click = sPart:FindFirstChildWhichIsA("ClickDetector", true)
+                        if click then safeClick(click) end
+
+                        task.wait(0.09)
+                    end
+                end
+
+                -- C. Fire Stage Progression Remotes
+                local stageRemotes = findRemotes({
+                    "stage", "nextstage", "advance", "claimstage", "completestage", "enterstage", "door", "passstage"
                 })
-                for _, remote in ipairs(rebirthRemotes) do
+                for _, remote in ipairs(stageRemotes) do
                     pcall(function()
                         if remote:IsA("RemoteEvent") then
                             remote:FireServer()
                             remote:FireServer(1)
                             remote:FireServer(true)
-                            remote:FireServer("Rebirth")
                         elseif remote:IsA("RemoteFunction") then
                             remote:InvokeServer()
                             remote:InvokeServer(1)
@@ -483,159 +527,24 @@ task.spawn(function()
                     end)
                 end
 
-                -- B. Click Rebirth Buttons in PlayerGui
-                local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
-                if playerGui then
-                    for _, obj in ipairs(playerGui:GetDescendants()) do
-                        if obj:IsA("GuiButton") and obj.Visible then
-                            local name = obj.Name:lower()
-                            local text = (obj:IsA("TextButton") and obj.Text:lower()) or ""
-                            if (name:find("rebirth") or text:find("rebirth") or name:find("prestige") or text:find("prestige") or text:find("evolve")) and not name:find("robux") then
-                                clickGuiButton(obj)
-                            end
-                        end
-                    end
-                end
-
-                -- C. Touch Rebirth Pads & Prompts in Workspace
-                if root then
-                    for _, obj in ipairs(Workspace:GetDescendants()) do
-                        if obj:IsA("ProximityPrompt") then
-                            local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
-                            if act:find("rebirth") or act:find("prestige") then
-                                triggerPrompt(obj)
-                            end
-                        elseif obj:IsA("BasePart") then
-                            local n = obj.Name:lower()
-                            if n:find("rebirth") or n:find("prestige") then
-                                safeTouch(obj)
-                            end
-                        end
-                    end
+                -- Return to original position
+                if AutoStageEnabled and savedPos and root then
+                    root.CFrame = savedPos
                 end
             end)
             task.wait(0.3)
         else
-            task.wait(0.4)
+            task.wait(0.5)
         end
     end
 end)
 
---==============================================================--
---  3. FULL AUTO-BUTTON & BASE TYCOON BUILDER
---==============================================================--
-task.spawn(function()
-    while true do
-        if AutoButtonEnabled then
-            pcall(function()
-                local root = getRoot()
-                if not root then return end
-
-                local savedPos = root.CFrame
-
-                -- A. Discover all Tycoon / Cleanup / Purchase Pads
-                local buttonParts = {}
-                for _, obj in ipairs(Workspace:GetDescendants()) do
-                    if not AutoButtonEnabled then break end
-
-                    -- Check BillboardGui text (e.g. "Cleanup 7", "10")
-                    if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
-                        for _, txt in ipairs(obj:GetDescendants()) do
-                            if txt:IsA("TextLabel") and txt.Text ~= "" then
-                                local textLower = txt.Text:lower()
-                                if textLower:find("cleanup") or textLower:find("buy") or textLower:find("unlock") or 
-                                   textLower:find("cost") or textLower:find("%$") or string.match(txt.Text, "%d+") then
-                                    local part = obj.Adornee or obj.Parent
-                                    if part and part:IsA("BasePart") then
-                                        table.insert(buttonParts, part)
-                                    elseif part and part:IsA("Model") and part.PrimaryPart then
-                                        table.insert(buttonParts, part.PrimaryPart)
-                                    end
-                                end
-                            end
-                        end
-                    -- Check BasePart names & parent names
-                    elseif obj:IsA("BasePart") then
-                        local n = obj.Name:lower()
-                        local p = obj.Parent and obj.Parent.Name:lower() or ""
-                        if n:find("button") or n:find("pad") or n:find("buy") or n:find("upgrade") or 
-                           n:find("unlock") or n:find("cleanup") or n:find("build") or 
-                           p:find("button") or p:find("tycoon") or p:find("base") or p:find("pad") or p:find("plot") then
-                            table.insert(buttonParts, obj)
-                        end
-                    -- Check Prompts & Click Detectors
-                    elseif obj:IsA("ProximityPrompt") then
-                        local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
-                        if act:find("buy") or act:find("build") or act:find("upgrade") or act:find("unlock") or act:find("button") or act:find("cleanup") then
-                            triggerPrompt(obj)
-                        end
-                    elseif obj:IsA("ClickDetector") then
-                        safeClick(obj)
-                    end
-                end
-
-                -- Sort by distance
-                local currentPos = root.Position
-                table.sort(buttonParts, function(a, b)
-                    return (a.Position - currentPos).Magnitude < (b.Position - currentPos).Magnitude
-                end)
-
-                -- B. Step on each Button Pad directly & trigger all purchases
-                for _, btn in ipairs(buttonParts) do
-                    if not AutoButtonEnabled then break end
-                    if btn and btn.Parent and btn:IsA("BasePart") then
-                        -- Touch & Step
-                        safeTouch(btn)
-
-                        -- Step character onto the pad
-                        root.CFrame = CFrame.new(btn.Position + Vector3.new(0, 2.2, 0))
-                        
-                        -- Prompt and click
-                        local prompt = btn:FindFirstChildWhichIsA("ProximityPrompt", true)
-                        if prompt then triggerPrompt(prompt) end
-                        local click = btn:FindFirstChildWhichIsA("ClickDetector", true)
-                        if click then safeClick(click) end
-
-                        task.wait(0.09)
-                    end
-                end
-
-                -- C. Fire Button / Purchase Remotes
-                local buttonRemotes = findRemotes({
-                    "buybutton", "purchasebutton", "buy", "purchase", "build", 
-                    "upgrade", "unlock", "place", "stepbutton", "touchbutton", "claimbutton", "cleanup"
-                })
-                for _, remote in ipairs(buttonRemotes) do
-                    pcall(function()
-                        if remote:IsA("RemoteEvent") then
-                            remote:FireServer()
-                            remote:FireServer(1)
-                            remote:FireServer(true)
-                        elseif remote:IsA("RemoteFunction") then
-                            remote:InvokeServer()
-                            remote:InvokeServer(1)
-                        end
-                    end)
-                end
-
-                -- Return to original position
-                if AutoButtonEnabled and savedPos and root then
-                    root.CFrame = savedPos
-                end
-            end)
-            task.wait(0.2)
-        else
-            task.wait(0.4)
-        end
-    end
-end)
-
-print("[ULTRA SCRIPT HUB] Save Your Cat v4.0 Loaded Successfully!")
+print("[ULTRA SCRIPT HUB] Melt The Ice Loaded Successfully!")
 
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "ULTRA SCRIPT HUB",
-        Text = "Save Your Cat v4.0 Ready!",
+        Text = "Melt The Ice Ready (Medal Farm + Auto Stage)!",
         Duration = 5
     })
 end)
