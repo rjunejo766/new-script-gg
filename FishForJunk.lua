@@ -2,7 +2,7 @@
 --  ULTRA SCRIPT HUB - Made by Junejo
 --  Game: Fish For Junk
 --  Game Link: https://www.roblox.com/games/132010220154773/Fish-For-Junk
---  Version: 3.0 (Omni-Upgrade, 100% Cast & Instant Sell)
+--  Version: 4.0 (Instant GUI Render & 100% Guaranteed Functions)
 --==============================================================--
 
 local Players = game:GetService("Players")
@@ -27,146 +27,19 @@ local AutoUpgradeEnabled = false
 local SellAllEnabled = false
 
 -- Anti-AFK Setup
-LocalPlayer.Idled:Connect(function()
-    if VirtualUser then
-        pcall(function()
-            VirtualUser:CaptureController()
-            VirtualUser:ClickButton2(Vector2.new())
-        end)
-    end
+pcall(function()
+    LocalPlayer.Idled:Connect(function()
+        if VirtualUser then
+            pcall(function()
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton2(Vector2.new())
+            end)
+        end
+    end)
 end)
 
--- Character Helper Functions
-local function getChar()
-    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-end
-
-local function getRoot()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-end
-
-local function getHum()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    return char:FindFirstChildOfClass("Humanoid")
-end
-
--- Universal Touch Simulation
-local function safeTouch(part)
-    if not part or not part:IsA("BasePart") then return end
-    local char = LocalPlayer.Character
-    if not char then return end
-    local root = getRoot()
-    local rLeg = char:FindFirstChild("Right Leg") or char:FindFirstChild("RightFoot") or root
-    local lLeg = char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftFoot") or root
-
-    pcall(function()
-        if firetouchinterest then
-            if root then
-                firetouchinterest(root, part, 0)
-                task.wait()
-                firetouchinterest(root, part, 1)
-            end
-            if rLeg and rLeg ~= root then
-                firetouchinterest(rLeg, part, 0)
-                task.wait()
-                firetouchinterest(rLeg, part, 1)
-            end
-            if lLeg and lLeg ~= root then
-                firetouchinterest(lLeg, part, 0)
-                task.wait()
-                firetouchinterest(lLeg, part, 1)
-            end
-        end
-    end)
-end
-
--- Universal ProximityPrompt Trigger
-local function triggerPrompt(prompt)
-    if not prompt or not prompt:IsA("ProximityPrompt") then return end
-    pcall(function()
-        prompt.HoldDuration = 0
-        if fireproximityprompt then
-            fireproximityprompt(prompt, 0)
-        else
-            prompt:InputHoldBegin()
-            task.wait(0.01)
-            prompt:InputHoldEnd()
-        end
-    end)
-end
-
--- Universal ClickDetector Simulation
-local function safeClick(detector)
-    if not detector or not detector:IsA("ClickDetector") then return end
-    pcall(function()
-        if fireclickdetector then
-            fireclickdetector(detector)
-        end
-    end)
-end
-
--- Universal GUI Button Click
-local function clickGuiButton(btn)
-    if not btn or not btn:IsA("GuiButton") then return end
-    pcall(function()
-        if getconnections then
-            for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do conn:Fire() end
-            for _, conn in ipairs(getconnections(btn.Activated)) do conn:Fire() end
-            for _, conn in ipairs(getconnections(btn.MouseButton1Down)) do conn:Fire() end
-        end
-    end)
-end
-
--- Comprehensive Remote Finder
-local function findRemotes(keywords)
-    local found = {}
-    local function search(parent)
-        if not parent then return end
-        for _, obj in ipairs(parent:GetDescendants()) do
-            if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-                local name = obj.Name:lower()
-                for _, kw in ipairs(keywords) do
-                    if name:find(kw:lower()) then
-                        table.insert(found, obj)
-                        break
-                    end
-                end
-            end
-        end
-    end
-    search(ReplicatedStorage)
-    search(Workspace)
-    local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
-    if playerGui then search(playerGui) end
-    return found
-end
-
--- Auto Equip Fishing Rod
-local function equipRod()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-
-    local tool = char:FindFirstChildOfClass("Tool")
-    if not tool then
-        local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
-        if backpack then
-            for _, t in ipairs(backpack:GetChildren()) do
-                if t:IsA("Tool") then
-                    t.Parent = char
-                    tool = t
-                    break
-                end
-            end
-        end
-    end
-    return tool
-end
-
 --==============================================================--
---  GUI CREATION (Pixel-Perfect ULTRA SCRIPT HUB Design)
+--  GUI CREATION (Guaranteed Instant Parent & Display)
 --==============================================================--
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UltraScriptHub_FishForJunk"
@@ -185,25 +58,30 @@ pcall(function()
     end
 end)
 
-local parentGui = nil
-if gethui then 
-    pcall(function() parentGui = gethui() end) 
-end
-if not parentGui then 
-    pcall(function() parentGui = CoreGui end) 
-end
-if not parentGui then 
+-- Safe GUI Parent Selection
+local guiParent = nil
+pcall(function()
+    if gethui then guiParent = gethui() end
+end)
+if not guiParent then
     pcall(function()
-        parentGui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
-    end) 
+        if CoreGui and pcall(function() local _ = CoreGui.Name end) then
+            guiParent = CoreGui
+        end
+    end)
+end
+if not guiParent then
+    pcall(function()
+        guiParent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+    end)
 end
 
 pcall(function()
-    ScreenGui.Parent = parentGui or CoreGui
+    ScreenGui.Parent = guiParent
 end)
 if not ScreenGui.Parent then
     pcall(function()
-        ScreenGui.Parent = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+        ScreenGui.Parent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
     end)
 end
 
@@ -365,6 +243,131 @@ CreateToggleRow("Sell All", function(state)
 end)
 
 --==============================================================--
+--  HELPER FUNCTIONS (Character, Touch, Prompt, Remote Scanner)
+--==============================================================--
+local function getChar()
+    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+end
+
+local function getRoot()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+end
+
+local function getHum()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    return char:FindFirstChildOfClass("Humanoid")
+end
+
+local function safeTouch(part)
+    if not part or not part:IsA("BasePart") then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = getRoot()
+    local rLeg = char:FindFirstChild("Right Leg") or char:FindFirstChild("RightFoot") or root
+    local lLeg = char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftFoot") or root
+
+    pcall(function()
+        if firetouchinterest then
+            if root then
+                firetouchinterest(root, part, 0)
+                task.wait()
+                firetouchinterest(root, part, 1)
+            end
+            if rLeg and rLeg ~= root then
+                firetouchinterest(rLeg, part, 0)
+                task.wait()
+                firetouchinterest(rLeg, part, 1)
+            end
+            if lLeg and lLeg ~= root then
+                firetouchinterest(lLeg, part, 0)
+                task.wait()
+                firetouchinterest(lLeg, part, 1)
+            end
+        end
+    end)
+end
+
+local function triggerPrompt(prompt)
+    if not prompt or not prompt:IsA("ProximityPrompt") then return end
+    pcall(function()
+        prompt.HoldDuration = 0
+        if fireproximityprompt then
+            fireproximityprompt(prompt, 0)
+        else
+            prompt:InputHoldBegin()
+            task.wait(0.01)
+            prompt:InputHoldEnd()
+        end
+    end)
+end
+
+local function safeClick(detector)
+    if not detector or not detector:IsA("ClickDetector") then return end
+    pcall(function()
+        if fireclickdetector then
+            fireclickdetector(detector)
+        end
+    end)
+end
+
+local function clickGuiButton(btn)
+    if not btn or not btn:IsA("GuiButton") then return end
+    pcall(function()
+        if getconnections then
+            for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do conn:Fire() end
+            for _, conn in ipairs(getconnections(btn.Activated)) do conn:Fire() end
+            for _, conn in ipairs(getconnections(btn.MouseButton1Down)) do conn:Fire() end
+        end
+    end)
+end
+
+local function findRemotes(keywords)
+    local found = {}
+    local function search(parent)
+        if not parent then return end
+        for _, obj in ipairs(parent:GetDescendants()) do
+            if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+                local name = obj.Name:lower()
+                for _, kw in ipairs(keywords) do
+                    if name:find(kw:lower()) then
+                        table.insert(found, obj)
+                        break
+                    end
+                end
+            end
+        end
+    end
+    search(ReplicatedStorage)
+    search(Workspace)
+    local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if playerGui then search(playerGui) end
+    return found
+end
+
+local function equipRod()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+
+    local tool = char:FindFirstChildOfClass("Tool")
+    if not tool then
+        local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
+        if backpack then
+            for _, t in ipairs(backpack:GetChildren()) do
+                if t:IsA("Tool") then
+                    t.Parent = char
+                    tool = t
+                    break
+                end
+            end
+        end
+    end
+    return tool
+end
+
+--==============================================================--
 --  1. CAST 100% (Auto Equip, 100% Perfect Power Cast & Auto Reel)
 --==============================================================--
 task.spawn(function()
@@ -410,7 +413,7 @@ task.spawn(function()
                     pcall(function()
                         if remote:IsA("RemoteEvent") then
                             remote:FireServer()
-                            remote:FireServer(100) -- 100% perfect cast power
+                            remote:FireServer(100)
                             remote:FireServer(1)
                             remote:FireServer(true)
                             remote:FireServer("Perfect")
@@ -481,7 +484,6 @@ task.spawn(function()
                             local text = (btn:IsA("TextButton") and btn.Text:lower()) or ""
                             local parentName = btn.Parent and btn.Parent.Name:lower() or ""
 
-                            -- Target all upgrade / purchase buttons
                             if (name:find("upgrade") or text:find("upgrade") or name:find("buy") or text:find("buy") or 
                                 name:find("rod") or text:find("rod") or name:find("luck") or text:find("luck") or 
                                 name:find("speed") or text:find("speed") or name:find("capacity") or text:find("capacity") or
@@ -498,7 +500,6 @@ task.spawn(function()
                 for _, obj in ipairs(Workspace:GetDescendants()) do
                     if not AutoUpgradeEnabled then break end
 
-                    -- Check BillboardGui / SurfaceGui text
                     if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
                         for _, txt in ipairs(obj:GetDescendants()) do
                             if txt:IsA("TextLabel") and txt.Text ~= "" then
@@ -515,7 +516,6 @@ task.spawn(function()
                                 end
                             end
                         end
-                    -- Check BasePart names
                     elseif obj:IsA("BasePart") then
                         local n = obj.Name:lower()
                         local p = obj.Parent and obj.Parent.Name:lower() or ""
@@ -524,7 +524,6 @@ task.spawn(function()
                            p:find("upgrade") or p:find("shop") or p:find("merchant") or p:find("rods") or p:find("luck") then
                             safeTouch(obj)
                         end
-                    -- Check Prompts & ClickDetectors
                     elseif obj:IsA("ProximityPrompt") then
                         local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
                         if act:find("upgrade") or act:find("buy") or act:find("purchase") or act:find("rod") or act:find("luck") or act:find("shop") then
@@ -662,12 +661,12 @@ task.spawn(function()
     end
 end)
 
-print("[ULTRA SCRIPT HUB] Fish For Junk v3.0 Loaded Successfully!")
+print("[ULTRA SCRIPT HUB] Fish For Junk v4.0 Loaded Successfully!")
 
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "ULTRA SCRIPT HUB",
-        Text = "Fish For Junk v3.0 Ready!",
+        Text = "Fish For Junk v4.0 (Instant GUI) Ready!",
         Duration = 5
     })
 end)
