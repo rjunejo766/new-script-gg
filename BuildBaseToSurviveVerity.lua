@@ -158,15 +158,23 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 999999
 
+-- Clean previous instances
+pcall(function()
+    if CoreGui and CoreGui:FindFirstChild("UltraScriptHub_BuildBaseVerity") then
+        CoreGui:FindFirstChild("UltraScriptHub_BuildBaseVerity"):Destroy()
+    end
+    local lpGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if lpGui and lpGui:FindFirstChild("UltraScriptHub_BuildBaseVerity") then
+        lpGui:FindFirstChild("UltraScriptHub_BuildBaseVerity"):Destroy()
+    end
+end)
+
 local parentGui = nil
 if gethui then 
     pcall(function() parentGui = gethui() end) 
 end
 if not parentGui then 
     pcall(function()
-        if syn and syn.protect_gui then
-            syn.protect_gui(ScreenGui)
-        end
         parentGui = CoreGui
     end) 
 end
@@ -177,24 +185,11 @@ if not parentGui then
 end
 
 pcall(function()
-    if parentGui and parentGui:FindFirstChild("UltraScriptHub_BuildBaseVerity") then
-        parentGui:FindFirstChild("UltraScriptHub_BuildBaseVerity"):Destroy()
-    end
-    if CoreGui and CoreGui:FindFirstChild("UltraScriptHub_BuildBaseVerity") then
-        CoreGui:FindFirstChild("UltraScriptHub_BuildBaseVerity"):Destroy()
-    end
-    local lpGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
-    if lpGui and lpGui:FindFirstChild("UltraScriptHub_BuildBaseVerity") then
-        lpGui:FindFirstChild("UltraScriptHub_BuildBaseVerity"):Destroy()
-    end
-end)
-
-pcall(function()
-    ScreenGui.Parent = parentGui
+    ScreenGui.Parent = parentGui or CoreGui
 end)
 if not ScreenGui.Parent then
     pcall(function()
-        ScreenGui.Parent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or CoreGui
+        ScreenGui.Parent = LocalPlayer:FindFirstChildOfClass("PlayerGui")
     end)
 end
 
@@ -206,6 +201,7 @@ MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
+MainFrame.Visible = true
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
