@@ -147,17 +147,28 @@ if not parentGui then
         parentGui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
     end) 
 end
-if not parentGui then
-    parentGui = CoreGui
-end
 
 pcall(function()
     if parentGui and parentGui:FindFirstChild("UltraScriptHub_SuperheroEvolution") then
         parentGui:FindFirstChild("UltraScriptHub_SuperheroEvolution"):Destroy()
     end
+    if CoreGui and CoreGui:FindFirstChild("UltraScriptHub_SuperheroEvolution") then
+        CoreGui:FindFirstChild("UltraScriptHub_SuperheroEvolution"):Destroy()
+    end
+    local lpGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if lpGui and lpGui:FindFirstChild("UltraScriptHub_SuperheroEvolution") then
+        lpGui:FindFirstChild("UltraScriptHub_SuperheroEvolution"):Destroy()
+    end
 end)
 
-ScreenGui.Parent = parentGui
+pcall(function()
+    ScreenGui.Parent = parentGui
+end)
+if not ScreenGui.Parent then
+    pcall(function()
+        ScreenGui.Parent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or CoreGui
+    end)
+end
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
@@ -394,12 +405,9 @@ local function clickGuiButton(btn)
             firesignal(btn.MouseButton1Down)
             firesignal(btn.MouseButton1Up)
             firesignal(btn.Activated)
-        else
-            if btn.MouseButton1Click then
-                -- Fallback trigger
-                for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do
-                    conn:Fire()
-                end
+        elseif getconnections and btn.MouseButton1Click then
+            for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do
+                conn:Fire()
             end
         end
     end)
