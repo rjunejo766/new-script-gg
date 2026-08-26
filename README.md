@@ -75,3 +75,20 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 2. 🏁 **Auto Win (Finish Track)**: Auto detects end pads, track finish lines, and claims stage wins.
 3. 🔄 **Auto Rebirth**: Automatically performs evolution/rebirth safely.
 4. 🥚 **Auto Buy Best Egg**: Auto detects the best available eggs and hatches them continuously.
+
+---
+
+## 🎮 6. Build Base to Survive VERITY
+- **Game Link**: [https://www.roblox.com/games/116070952245255/Build-Base-to-Survive-VERITY](https://www.roblox.com/games/116070952245255/Build-Base-to-Survive-VERITY)
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/BuildBaseToSurviveVerity.lua?t=" .. tostring(os.time())))()
+```
+
+### ✨ Features (Exact 4 Features)
+1. ♾️ **Inf Ammo**: Unlimited gun ammo bypass and automatic magazine refill.
+2. 🎯 **Shoot Aura**: Automatically locks on and shoots all monsters, zombies, and enemies within range.
+3. 🏃 **WalkSpeed (50)**: High movement speed boost.
+4. 🦿 **Hip Height Boost**: Elevates character above ground so ground monsters cannot hit you.
+
