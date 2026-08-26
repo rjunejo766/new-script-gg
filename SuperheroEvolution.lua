@@ -414,7 +414,7 @@ local function clickGuiButton(btn)
 end
 
 --==============================================================--
---  2. INFINITE STAGE AUTO WIN (Clear All Stages & Kill Enemies)
+--  2. SEQUENTIAL ALL-STAGE AUTO WIN (Clears Stage 1 to Max Stage)
 --==============================================================--
 task.spawn(function()
     while true do
@@ -424,13 +424,12 @@ task.spawn(function()
                 local hum = getHum()
                 if not root or not hum then return end
 
-                -- 1. Scan & fire all Win, Stage, Race, and Damage Remotes
-                local winKeywords = {
+                -- 1. Scan and fire all server win remotes
+                local winRemotes = findRemotes({
                     "win", "wins", "finish", "finishline", "claimwin", "givereward", 
                     "endrace", "addwin", "reachfinish", "claim", "reward", "stage", 
                     "checkpoint", "race", "goal", "nextstage", "nextzone", "complete", "gate", "door"
-                }
-                local winRemotes = findRemotes(winKeywords)
+                })
                 for _, remote in ipairs(winRemotes) do
                     pcall(function()
                         if remote:IsA("RemoteEvent") then
@@ -445,26 +444,39 @@ task.spawn(function()
                     end)
                 end
 
-                -- 2. Find all stages, gates, doors, enemies, and win trophies in Workspace
-                local stageObjects = {}
+                -- 2. Discover all Stage models, folders, doors, trophies across the whole map
+                local stageList = {}
+                
+                -- Method A: Look for numbered Stage models/folders in Workspace
+                for _, obj in ipairs(Workspace:GetDescendants()) do
+                    if obj:IsA("Model") or obj:IsA("Folder") then
+                        local n = obj.Name:lower()
+                        if n:find("stage") or n:find("zone") or n:find("level") or n:find("world") then
+                            local num = tonumber(obj.Name:match("%d+")) or 0
+                            table.insert(stageList, {
+                                Object = obj,
+                                StageNumber = num,
+                                Position = (obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart"))) and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")).Position or Vector3.zero
+                            })
+                        end
+                    end
+                end
+
+                -- Method B: Collect all Stage Trophies, Doors, Walls, and Finish Pads
+                local allStageParts = {}
                 for _, obj in ipairs(Workspace:GetDescendants()) do
                     if obj:IsA("BasePart") then
                         local n = obj.Name:lower()
                         local p = obj.Parent and obj.Parent.Name:lower() or ""
-                        if n:find("win") or n:find("finish") or n:find("goal") or n:find("endpad") or 
-                           n:find("stage") or n:find("checkpoint") or n:find("reward") or n:find("trophy") or
-                           n:find("gate") or n:find("wall") or n:find("zone") or n:find("door") or n:find("enemy") or
-                           p:find("win") or p:find("finish") or p:find("track") or p:find("race") or p:find("stages") or p:find("doors") or p:find("enemies") then
-                            table.insert(stageObjects, obj)
-                        end
-                    elseif obj:IsA("Model") and obj ~= LocalPlayer.Character then
-                        local n = obj.Name:lower()
-                        local p = obj.Parent and obj.Parent.Name:lower() or ""
-                        if n:find("enemy") or n:find("monster") or n:find("boss") or n:find("stage") or p:find("enemies") or p:find("stages") then
-                            local part = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Head") or obj:FindFirstChildWhichIsA("BasePart")
-                            if part then
-                                table.insert(stageObjects, part)
-                            end
+                        if n:find("trophy") or n:find("win") or n:find("finish") or n:find("goal") or 
+                           n:find("stage") or n:find("door") or n:find("gate") or n:find("wall") or 
+                           p:find("stage") or p:find("trophy") or p:find("doors") or p:find("track") then
+                            local num = tonumber(obj.Name:match("%d+")) or tonumber(p:match("%d+")) or 0
+                            table.insert(allStageParts, {
+                                Part = obj,
+                                StageNumber = num,
+                                Position = obj.Position
+                            })
                         end
                     elseif obj:IsA("ProximityPrompt") then
                         local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
@@ -474,48 +486,64 @@ task.spawn(function()
                     end
                 end
 
-                -- 3. Sort stage objects from closest to farthest across the entire track
-                table.sort(stageObjects, function(a, b)
-                    return (a.Position - root.Position).Magnitude < (b.Position - root.Position).Magnitude
-                end)
-
-                -- 4. Advance through all stages, kill stage enemies, break doors, and claim trophies
-                local tool = equipTool()
-                for _, targetPart in ipairs(stageObjects) do
-                    if not AutoWinEnabled then break end
-                    
-                    -- Move to stage object
-                    pcall(function()
-                        if root.AssemblyLinearVelocity then
-                            root.AssemblyLinearVelocity = Vector3.zero
-                        else
-                            root.Velocity = Vector3.zero
+                -- Sort all stage parts sequentially from Stage 1 -> Stage 2 -> Stage 3 -> ... -> Max
+                if #allStageParts > 0 then
+                    -- First sort by stage number if available, then by distance from spawn
+                    table.sort(allStageParts, function(a, b)
+                        if a.StageNumber ~= b.StageNumber and a.StageNumber > 0 and b.StageNumber > 0 then
+                            return a.StageNumber < b.StageNumber
                         end
-                        root.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
+                        -- Along the track axis
+                        return a.Position.Z < b.Position.Z or a.Position.X < b.Position.X
                     end)
-                    
-                    safeTouch(root, targetPart)
-                    
-                    -- Attack enemies and doors
-                    if tool then
-                        tool:Activate()
-                    end
 
-                    -- Fire damage remotes at stage enemies
-                    local hitRemotes = findRemotes({"damage", "attack", "hit", "strike", "gaindamage", "punch", "slash"})
-                    for _, hr in ipairs(hitRemotes) do
-                        pcall(function()
-                            if hr:IsA("RemoteEvent") then
-                                hr:FireServer(targetPart)
-                                hr:FireServer(targetPart.Position)
-                                hr:FireServer()
-                            elseif hr:IsA("RemoteFunction") then
-                                hr:InvokeServer(targetPart)
+                    local tool = equipTool()
+
+                    for _, item in ipairs(allStageParts) do
+                        if not AutoWinEnabled then break end
+                        local targetPart = item.Part
+                        if targetPart and targetPart.Parent then
+                            -- Teleport directly in front of stage door / trophy
+                            pcall(function()
+                                if root.AssemblyLinearVelocity then
+                                    root.AssemblyLinearVelocity = Vector3.zero
+                                else
+                                    root.Velocity = Vector3.zero
+                                end
+                                root.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
+                            end)
+
+                            -- Touch trophy pad & gate
+                            safeTouch(root, targetPart)
+
+                            -- Attack doors, barriers, and enemies in this stage
+                            if tool then
+                                tool:Activate()
                             end
-                        end)
+
+                            -- Fire damage & attack remotes
+                            local hitRemotes = findRemotes({"damage", "attack", "hit", "strike", "punch", "door", "slash", "gaindamage"})
+                            for _, hr in ipairs(hitRemotes) do
+                                pcall(function()
+                                    if hr:IsA("RemoteEvent") then
+                                        hr:FireServer(targetPart)
+                                        hr:FireServer(targetPart.Position)
+                                        hr:FireServer()
+                                    elseif hr:IsA("RemoteFunction") then
+                                        hr:InvokeServer(targetPart)
+                                    end
+                                end)
+                            end
+
+                            -- Check for proximity prompt on door / trophy
+                            local prompt = targetPart:FindFirstChildWhichIsA("ProximityPrompt", true)
+                            if prompt then
+                                triggerPrompt(prompt)
+                            end
+
+                            task.wait(0.12)
+                        end
                     end
-                    
-                    task.wait(0.08)
                 end
             end)
             task.wait(0.1)
@@ -595,7 +623,7 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  4. BULLETPROOF AUTO BUY BEST EGG (Multi-Tier & Hatch Support)
+--  4. OVERHAULED AUTO BUY BEST EGG (Smart Multi-Egg Hatch)
 --==============================================================--
 task.spawn(function()
     while true do
@@ -607,7 +635,7 @@ task.spawn(function()
                 local eggKeywords = {
                     "hatch", "openegg", "buyegg", "purchaseegg", "hatchpet", "draweqq", 
                     "egg", "eggs", "capsule", "opencapsule", "buycapsule", "pet", "pethatch",
-                    "drawpet", "buypet", "hatchsingle", "open", "buy_egg", "open_egg"
+                    "drawpet", "buypet", "hatchsingle", "open", "buy_egg", "open_egg", "hatchegg"
                 }
                 local hatchRemotes = findRemotes(eggKeywords)
 
@@ -627,15 +655,20 @@ task.spawn(function()
                 scanForEggs(Workspace)
                 scanForEggs(ReplicatedStorage)
 
-                -- 3. Fire hatch remotes with detected egg names and common defaults
+                -- 3. Collect all Egg names
                 local eggNamesToTry = {}
                 for _, eggObj in ipairs(discoveredEggs) do
                     table.insert(eggNamesToTry, eggObj.Name)
                 end
-                for _, commonName in ipairs({"Starter Egg", "Basic Egg", "Common Egg", "Egg1", "Starter", "Egg", "Spider Egg", "Iron Egg", "Hero Egg", "1", 1}) do
+                for _, commonName in ipairs({
+                    "Starter Egg", "Basic Egg", "Common Egg", "Egg1", "Starter", "Egg", 
+                    "Spider Egg", "Iron Egg", "Hero Egg", "Rare Egg", "Epic Egg", "Legendary Egg",
+                    "1", 1, "2", 2, "3", 3, "4", 4
+                }) do
                     table.insert(eggNamesToTry, commonName)
                 end
 
+                -- 4. Fire hatch remotes with all signatures
                 for _, remote in ipairs(hatchRemotes) do
                     for _, eggName in ipairs(eggNamesToTry) do
                         if not AutoBuyBestEggEnabled then break end
@@ -646,6 +679,7 @@ task.spawn(function()
                                 remote:FireServer(eggName, 1, false)
                                 remote:FireServer(eggName, {})
                                 remote:FireServer(eggName)
+                                remote:FireServer(1, eggName)
                             elseif remote:IsA("RemoteFunction") then
                                 remote:InvokeServer(eggName, 1)
                                 remote:InvokeServer(eggName, "Single")
@@ -656,11 +690,12 @@ task.spawn(function()
                         if remote:IsA("RemoteEvent") then
                             remote:FireServer("Single", 1)
                             remote:FireServer(1)
+                            remote:FireServer("Egg", 1)
                         end
                     end)
                 end
 
-                -- 4. Trigger egg ProximityPrompts or Touch nearest Egg Stand
+                -- 5. Trigger nearest Egg Stand ProximityPrompt and Touch
                 if root then
                     for _, eggObj in ipairs(discoveredEggs) do
                         if eggObj:IsA("BasePart") then
@@ -679,14 +714,14 @@ task.spawn(function()
                     end
                 end
 
-                -- 5. Click any Hatch / Buy Button in PlayerGui
+                -- 6. Click any Hatch / Buy Button in PlayerGui
                 local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
                 if playerGui then
                     for _, obj in ipairs(playerGui:GetDescendants()) do
                         if obj:IsA("GuiButton") and obj.Visible then
                             local name = obj.Name:lower()
                             local text = (obj:IsA("TextButton") and obj.Text:lower()) or ""
-                            if (name:find("hatch") or name:find("buy1") or text:find("hatch") or text:find("open 1") or text:find("buy")) and not name:find("robux") then
+                            if (name:find("hatch") or name:find("buy1") or name:find("open") or text:find("hatch") or text:find("open 1") or text:find("buy") or text:find("open")) and not name:find("robux") then
                                 clickGuiButton(obj)
                             end
                         end
