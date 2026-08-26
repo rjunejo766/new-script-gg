@@ -428,7 +428,7 @@ task.spawn(function()
                 local winRemotes = findRemotes({
                     "win", "wins", "finish", "finishline", "claimwin", "givereward", 
                     "endrace", "addwin", "reachfinish", "claim", "reward", "stage", 
-                    "checkpoint", "race", "goal", "nextstage", "nextzone", "complete", "gate", "door"
+                    "checkpoint", "race", "goal", "nextstage", "nextzone", "complete"
                 })
                 for _, remote in ipairs(winRemotes) do
                     pcall(function()
@@ -444,7 +444,7 @@ task.spawn(function()
                     end)
                 end
 
-                -- 2. Find all Enemies / Monsters inside Stages ("Kill all enemies to continue")
+                -- 2. Find all Enemies / Monsters inside Stages
                 local stageEnemies = {}
                 for _, obj in ipairs(Workspace:GetDescendants()) do
                     if obj:IsA("Model") and obj ~= LocalPlayer.Character then
@@ -453,33 +453,42 @@ task.spawn(function()
                         if enemyRoot and ((enemyHum and enemyHum.Health > 0) or not enemyHum) then
                             local n = obj.Name:lower()
                             local p = obj.Parent and obj.Parent.Name:lower() or ""
-                            if not Players:GetPlayerFromCharacter(obj) then
-                                table.insert(stageEnemies, enemyRoot)
+                            -- Exclude players and spawn dummies/weapons
+                            if not Players:GetPlayerFromCharacter(obj) and not p:find("weapon") and not n:find("weapon") and not n:find("iron") and not n:find("spider") and not n:find("batman") then
+                                if n:find("enemy") or n:find("mob") or n:find("monster") or n:find("boss") or p:find("stage") or p:find("track") or p:find("enemies") then
+                                    table.insert(stageEnemies, enemyRoot)
+                                end
                             end
                         end
                     end
                 end
 
-                -- 3. Find all Stage Trophies, Win Pads, and Stage Doors
+                -- 3. Find only Track Stages, Trophies, Finish Lines, and Stage Doors (IGNORE weapon shop pads)
                 local stageTargets = {}
                 for _, obj in ipairs(Workspace:GetDescendants()) do
                     if obj:IsA("BasePart") then
                         local n = obj.Name:lower()
                         local p = obj.Parent and obj.Parent.Name:lower() or ""
-                        if n:find("trophy") or n:find("win") or n:find("finish") or n:find("goal") or 
-                           n:find("stage") or n:find("door") or n:find("gate") or n:find("pad") or
-                           p:find("stage") or p:find("trophy") or p:find("doors") or p:find("track") then
-                            table.insert(stageTargets, obj)
+                        -- Ignore shop/weapon/spawn pads
+                        local isShop = n:find("weapon") or n:find("buy") or n:find("shop") or p:find("weapon") or p:find("shop") or p:find("stand")
+                        if not isShop then
+                            if (n:find("trophy") or n:find("win") or n:find("finish") or n:find("stage") or n:find("checkpoint") or n:find("goal")) or
+                               (p:find("stage") or p:find("trophy") or p:find("track") or p:find("race")) then
+                                table.insert(stageTargets, obj)
+                            end
                         end
                     elseif obj:IsA("ProximityPrompt") then
                         local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
-                        if act:find("win") or act:find("claim") or act:find("finish") or act:find("reward") or act:find("door") or act:find("open") then
-                            triggerPrompt(obj)
+                        local p = obj.Parent and obj.Parent.Name:lower() or ""
+                        if not p:find("weapon") and not act:find("buy weapon") then
+                            if act:find("win") or act:find("claim") or act:find("finish") or act:find("reward") or act:find("door") then
+                                triggerPrompt(obj)
+                            end
                         end
                     end
                 end
 
-                -- Sort stage parts from closest to furthest
+                -- Sort stage parts from closest to furthest along the track
                 local spawnPos = root.Position
                 table.sort(stageTargets, function(a, b)
                     return (a.Position - spawnPos).Magnitude < (b.Position - spawnPos).Magnitude
@@ -497,7 +506,7 @@ task.spawn(function()
                             else
                                 root.Velocity = Vector3.zero
                             end
-                            root.CFrame = enemyPart.CFrame + Vector3.new(0, 2, 0)
+                            root.CFrame = enemyPart.CFrame + Vector3.new(0, 0.5, 0)
                         end)
 
                         safeTouch(root, enemyPart)
@@ -519,7 +528,7 @@ task.spawn(function()
                     end
                 end
 
-                -- 5. Touch and clear all stage trophy pads and doors
+                -- 5. Touch and clear all stage trophy pads and doors smoothly
                 for _, pad in ipairs(stageTargets) do
                     if not AutoWinEnabled then break end
                     if pad and pad.Parent then
@@ -529,7 +538,7 @@ task.spawn(function()
                             else
                                 root.Velocity = Vector3.zero
                             end
-                            root.CFrame = pad.CFrame + Vector3.new(0, 3, 0)
+                            root.CFrame = pad.CFrame + Vector3.new(0, 1.2, 0)
                         end)
 
                         safeTouch(root, pad)
@@ -539,7 +548,7 @@ task.spawn(function()
                         if prompt then
                             triggerPrompt(prompt)
                         end
-                        task.wait(0.08)
+                        task.wait(0.1)
                     end
                 end
             end)
