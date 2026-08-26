@@ -94,51 +94,42 @@ local function findRemotes(keywords)
     return found
 end
 
--- Find Nearest Enemy / Monster / Zombie
+-- Find Nearest Enemy / Monster / Zombie (Deep workspace scan)
 local function getNearestEnemy(maxDistance)
     local root = getRoot()
     if not root then return nil, math.huge end
     
     local closestEnemy = nil
-    local shortestDist = maxDistance or 150
+    local shortestDist = maxDistance or 250
 
     local function checkModel(model)
         if not model or not model:IsA("Model") then return end
         if model == LocalPlayer.Character then return end
         
-        -- Check if it is another real player
-        local isPlayer = false
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p.Character == model then
-                isPlayer = true
-                break
-            end
-        end
-        if isPlayer then return end
+        -- Check if it's a real player
+        if Players:GetPlayerFromCharacter(model) then return end
 
         local hum = model:FindFirstChildOfClass("Humanoid")
-        local enemyRoot = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Head") or model:FindFirstChild("Torso") or model:FindFirstChildWhichIsA("BasePart")
+        local enemyRoot = model:FindFirstChild("Head") or model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Torso") or model:FindFirstChildWhichIsA("BasePart")
         
         if enemyRoot and ((hum and hum.Health > 0) or not hum) then
-            local dist = (enemyRoot.Position - root.Position).Magnitude
-            if dist < shortestDist then
-                shortestDist = dist
-                closestEnemy = enemyRoot
+            local n = model.Name:lower()
+            local p = model.Parent and model.Parent.Name:lower() or ""
+            -- Make sure it's not base building blocks or player structures
+            if not n:find("base") and not n:find("block") and not n:find("wall") and not n:find("door") and not n:find("plot") then
+                local dist = (enemyRoot.Position - root.Position).Magnitude
+                if dist < shortestDist then
+                    shortestDist = dist
+                    closestEnemy = enemyRoot
+                end
             end
         end
     end
 
-    -- Check Workspace root & common monster folders
-    for _, obj in ipairs(Workspace:GetChildren()) do
+    -- Deep scan all Workspace descendants
+    for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("Model") then
             checkModel(obj)
-        elseif obj:IsA("Folder") then
-            local n = obj.Name:lower()
-            if n:find("monster") or n:find("zombie") or n:find("enemy") or n:find("npc") or n:find("mob") or n:find("creature") or n:find("boss") then
-                for _, sub in ipairs(obj:GetChildren()) do
-                    checkModel(sub)
-                end
-            end
         end
     end
 
@@ -389,7 +380,7 @@ RunService.Stepped:Connect(function()
 end)
 
 --==============================================================--
---  1. INF AMMO LOOP (Bypass Ammo Deduction & Maximize Clip)
+--  1. SUPERCHARGED INF AMMO LOOP (Locks Ammo, Mag & Module Settings)
 --==============================================================--
 task.spawn(function()
     while true do
@@ -397,25 +388,41 @@ task.spawn(function()
             pcall(function()
                 local char = LocalPlayer.Character
                 local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
+                local pGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
                 
                 local function refillTool(tool)
                     if not tool or not tool:IsA("Tool") then return end
                     
-                    -- Check all attributes and Value objects in tool
+                    -- 1. Check all Value objects in tool
                     for _, child in ipairs(tool:GetDescendants()) do
                         if child:IsA("IntValue") or child:IsA("NumberValue") then
                             local n = child.Name:lower()
-                            if n:find("ammo") or n:find("clip") or n:find("bullet") or n:find("mag") or n:find("count") then
+                            if n:find("ammo") or n:find("clip") or n:find("bullet") or n:find("mag") or n:find("count") or n:find("stored") or n:find("reserve") then
                                 child.Value = 999999
+                            end
+                        elseif child:IsA("ModuleScript") then
+                            -- Attempt to modify GunSetting module tables
+                            local n = child.Name:lower()
+                            if n:find("setting") or n:find("config") or n:find("gun") then
+                                pcall(function()
+                                    local mod = require(child)
+                                    if type(mod) == "table" then
+                                        if mod.Ammo then mod.Ammo = 999999 end
+                                        if mod.MaxAmmo then mod.MaxAmmo = 999999 end
+                                        if mod.ClipSize then mod.ClipSize = 999999 end
+                                        if mod.StoredAmmo then mod.StoredAmmo = 999999 end
+                                        if mod.Auto ~= nil then mod.Auto = true end
+                                    end
+                                end)
                             end
                         end
                     end
                     
-                    -- Set Attributes
+                    -- 2. Set Attributes on tool
                     pcall(function()
                         for attrName, _ in pairs(tool:GetAttributes()) do
                             local n = attrName:lower()
-                            if n:find("ammo") or n:find("clip") or n:find("bullet") or n:find("mag") then
+                            if n:find("ammo") or n:find("clip") or n:find("bullet") or n:find("mag") or n:find("count") then
                                 tool:SetAttribute(attrName, 999999)
                             end
                         end
@@ -432,8 +439,29 @@ task.spawn(function()
                         if item:IsA("Tool") then refillTool(item) end
                     end
                 end
+                if pGui then
+                    for _, child in ipairs(pGui:GetDescendants()) do
+                        if child:IsA("IntValue") or child:IsA("NumberValue") then
+                            local n = child.Name:lower()
+                            if n:find("ammo") or n:find("clip") or n:find("bullet") or n:find("mag") then
+                                child.Value = 999999
+                            end
+                        end
+                    end
+                end
+
+                -- 3. Fire reload / refill remotes
+                local reloadRemotes = findRemotes({"reload", "refill", "takeammo", "giveammo", "addammo"})
+                for _, remote in ipairs(reloadRemotes) do
+                    pcall(function()
+                        if remote:IsA("RemoteEvent") then
+                            remote:FireServer()
+                            remote:FireServer(999999)
+                        end
+                    end)
+                end
             end)
-            task.wait(0.2)
+            task.wait(0.15)
         else
             task.wait(0.5)
         end
@@ -441,29 +469,35 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  2. SHOOT AURA LOOP (Auto Aim & Shoot Nearest Monsters)
+--  2. SUPERCHARGED SHOOT AURA (Instant Auto-Aim, Shoot & Remotes)
 --==============================================================--
 task.spawn(function()
     while true do
         if ShootAuraEnabled then
             pcall(function()
-                local enemyPart, dist = getNearestEnemy(200)
-                if enemyPart then
-                    -- 1. Equip gun / weapon
+                local enemyPart, dist = getNearestEnemy(300)
+                if enemyPart and enemyPart.Parent then
+                    -- 1. Auto equip gun / weapon
                     local tool = equipGun()
                     
-                    -- 2. Aim and Fire tool
+                    -- 2. Aim camera directly at enemy Head / Root
+                    pcall(function()
+                        Camera.CFrame = CFrame.new(Camera.CFrame.Position, enemyPart.Position)
+                    end)
+
+                    -- 3. Fire tool
                     if tool then
                         tool:Activate()
                     end
 
-                    -- 3. Fire shoot/attack Remotes
+                    -- 4. Fire shoot / damage remotes
                     local shootRemotes = findRemotes({"shoot", "fire", "attack", "hit", "damage", "gun", "bullet", "raycast", "weapon"})
                     for _, remote in ipairs(shootRemotes) do
                         pcall(function()
                             if remote:IsA("RemoteEvent") then
                                 remote:FireServer(enemyPart, enemyPart.Position)
                                 remote:FireServer(enemyPart.Position, enemyPart)
+                                remote:FireServer(enemyPart.Position)
                                 remote:FireServer(enemyPart)
                             elseif remote:IsA("RemoteFunction") then
                                 remote:InvokeServer(enemyPart, enemyPart.Position)
@@ -471,13 +505,16 @@ task.spawn(function()
                         end)
                     end
 
-                    -- 4. VirtualUser fallback click towards enemy
+                    -- 5. Virtual clicks
                     if VirtualUser then
-                        VirtualUser:Button1Down(Vector2.new(0, 0), CFrame.new(Camera.CFrame.Position, enemyPart.Position))
+                        VirtualUser:Button1Down(Vector2.new(0, 0), Camera.CFrame)
+                    end
+                    if mouse1click then
+                        pcall(mouse1click)
                     end
                 end
             end)
-            task.wait(0.08)
+            task.wait(0.06)
         else
             task.wait(0.5)
         end
