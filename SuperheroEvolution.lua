@@ -414,7 +414,7 @@ local function clickGuiButton(btn)
 end
 
 --==============================================================--
---  2. REAL-MOVEMENT AUTO WIN (Finish Track / Speed Run / Teleport)
+--  2. INFINITE STAGE AUTO WIN (Clear All Stages & Kill Enemies)
 --==============================================================--
 task.spawn(function()
     while true do
@@ -424,11 +424,11 @@ task.spawn(function()
                 local hum = getHum()
                 if not root or not hum then return end
 
-                -- 1. Scan & fire all Win, Finish, Race, Stage Remotes
+                -- 1. Scan & fire all Win, Stage, Race, and Damage Remotes
                 local winKeywords = {
                     "win", "wins", "finish", "finishline", "claimwin", "givereward", 
                     "endrace", "addwin", "reachfinish", "claim", "reward", "stage", 
-                    "checkpoint", "race", "goal", "nextstage", "nextzone", "complete", "gate"
+                    "checkpoint", "race", "goal", "nextstage", "nextzone", "complete", "gate", "door"
                 }
                 local winRemotes = findRemotes(winKeywords)
                 for _, remote in ipairs(winRemotes) do
@@ -445,81 +445,77 @@ task.spawn(function()
                     end)
                 end
 
-                -- 2. Find all Finish Pads, Gates, Checkpoints, and Stage Parts in Workspace
-                local candidateParts = {}
+                -- 2. Find all stages, gates, doors, enemies, and win trophies in Workspace
+                local stageObjects = {}
                 for _, obj in ipairs(Workspace:GetDescendants()) do
                     if obj:IsA("BasePart") then
                         local n = obj.Name:lower()
                         local p = obj.Parent and obj.Parent.Name:lower() or ""
                         if n:find("win") or n:find("finish") or n:find("goal") or n:find("endpad") or 
                            n:find("stage") or n:find("checkpoint") or n:find("reward") or n:find("trophy") or
-                           n:find("gate") or n:find("wall") or n:find("zone") or n:find("door") or
-                           p:find("win") or p:find("finish") or p:find("track") or p:find("race") or p:find("stages") then
-                            table.insert(candidateParts, obj)
+                           n:find("gate") or n:find("wall") or n:find("zone") or n:find("door") or n:find("enemy") or
+                           p:find("win") or p:find("finish") or p:find("track") or p:find("race") or p:find("stages") or p:find("doors") or p:find("enemies") then
+                            table.insert(stageObjects, obj)
+                        end
+                    elseif obj:IsA("Model") and obj ~= LocalPlayer.Character then
+                        local n = obj.Name:lower()
+                        local p = obj.Parent and obj.Parent.Name:lower() or ""
+                        if n:find("enemy") or n:find("monster") or n:find("boss") or n:find("stage") or p:find("enemies") or p:find("stages") then
+                            local part = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Head") or obj:FindFirstChildWhichIsA("BasePart")
+                            if part then
+                                table.insert(stageObjects, part)
+                            end
                         end
                     elseif obj:IsA("ProximityPrompt") then
                         local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
-                        if act:find("win") or act:find("claim") or act:find("finish") or act:find("reward") then
+                        if act:find("win") or act:find("claim") or act:find("finish") or act:find("reward") or act:find("door") or act:find("open") then
                             triggerPrompt(obj)
                         end
                     end
                 end
 
-                -- 3. If track/finish parts found, physically move/teleport through them!
-                if #candidateParts > 0 then
-                    -- Sort from closest to farthest along track
-                    table.sort(candidateParts, function(a, b)
-                        return (a.Position - root.Position).Magnitude < (b.Position - root.Position).Magnitude
-                    end)
+                -- 3. Sort stage objects from closest to farthest across the entire track
+                table.sort(stageObjects, function(a, b)
+                    return (a.Position - root.Position).Magnitude < (b.Position - root.Position).Magnitude
+                end)
 
-                    for _, targetPart in ipairs(candidateParts) do
-                        if not AutoWinEnabled then break end
-                        
-                        -- Move character to target part
-                        pcall(function()
-                            if root.AssemblyLinearVelocity then
-                                root.AssemblyLinearVelocity = Vector3.zero
-                            else
-                                root.Velocity = Vector3.zero
-                            end
-                            root.CFrame = targetPart.CFrame + Vector3.new(0, 3.5, 0)
-                        end)
-                        
-                        safeTouch(root, targetPart)
-                        
-                        -- Equip weapon & attack in case of breakable gates/walls
-                        local tool = equipTool()
-                        if tool then 
-                            tool:Activate() 
+                -- 4. Advance through all stages, kill stage enemies, break doors, and claim trophies
+                local tool = equipTool()
+                for _, targetPart in ipairs(stageObjects) do
+                    if not AutoWinEnabled then break end
+                    
+                    -- Move to stage object
+                    pcall(function()
+                        if root.AssemblyLinearVelocity then
+                            root.AssemblyLinearVelocity = Vector3.zero
+                        else
+                            root.Velocity = Vector3.zero
                         end
-                        
-                        task.wait(0.12)
+                        root.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
+                    end)
+                    
+                    safeTouch(root, targetPart)
+                    
+                    -- Attack enemies and doors
+                    if tool then
+                        tool:Activate()
                     end
-                else
-                    -- Fallback: Scan for track / runway floor parts
-                    local trackParts = {}
-                    for _, obj in ipairs(Workspace:GetDescendants()) do
-                        if obj:IsA("BasePart") and obj.Size.Magnitude > 25 then
-                            local n = obj.Name:lower()
-                            if n:find("track") or n:find("road") or n:find("floor") or n:find("ramp") or n:find("runway") or n:find("course") then
-                                table.insert(trackParts, obj)
+
+                    -- Fire damage remotes at stage enemies
+                    local hitRemotes = findRemotes({"damage", "attack", "hit", "strike", "gaindamage", "punch", "slash"})
+                    for _, hr in ipairs(hitRemotes) do
+                        pcall(function()
+                            if hr:IsA("RemoteEvent") then
+                                hr:FireServer(targetPart)
+                                hr:FireServer(targetPart.Position)
+                                hr:FireServer()
+                            elseif hr:IsA("RemoteFunction") then
+                                hr:InvokeServer(targetPart)
                             end
-                        end
+                        end)
                     end
                     
-                    for _, track in ipairs(trackParts) do
-                        if not AutoWinEnabled then break end
-                        pcall(function()
-                            if root.AssemblyLinearVelocity then
-                                root.AssemblyLinearVelocity = Vector3.zero
-                            else
-                                root.Velocity = Vector3.zero
-                            end
-                            root.CFrame = track.CFrame + Vector3.new(0, 4, 0)
-                        end)
-                        safeTouch(root, track)
-                        task.wait(0.15)
-                    end
+                    task.wait(0.08)
                 end
             end)
             task.wait(0.1)
@@ -599,7 +595,7 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  4. SUPERCHARGED AUTO BUY BEST EGG (Smart Multi-Tier Hatching)
+--  4. BULLETPROOF AUTO BUY BEST EGG (Multi-Tier & Hatch Support)
 --==============================================================--
 task.spawn(function()
     while true do
@@ -611,7 +607,7 @@ task.spawn(function()
                 local eggKeywords = {
                     "hatch", "openegg", "buyegg", "purchaseegg", "hatchpet", "draweqq", 
                     "egg", "eggs", "capsule", "opencapsule", "buycapsule", "pet", "pethatch",
-                    "drawpet", "buypet", "hatchsingle", "open"
+                    "drawpet", "buypet", "hatchsingle", "open", "buy_egg", "open_egg"
                 }
                 local hatchRemotes = findRemotes(eggKeywords)
 
@@ -621,8 +617,8 @@ task.spawn(function()
                     if not parent then return end
                     for _, obj in ipairs(parent:GetDescendants()) do
                         local name = obj.Name:lower()
-                        if (name:find("egg") or name:find("capsule") or name:find("gacha")) and 
-                           (obj:IsA("Model") or obj:IsA("BasePart") or obj:IsA("Folder")) then
+                        if (name:find("egg") or name:find("capsule") or name:find("gacha") or name:find("pet")) and 
+                           (obj:IsA("Model") or obj:IsA("BasePart")) then
                             table.insert(discoveredEggs, obj)
                         end
                     end
@@ -636,8 +632,7 @@ task.spawn(function()
                 for _, eggObj in ipairs(discoveredEggs) do
                     table.insert(eggNamesToTry, eggObj.Name)
                 end
-                -- Add fallback standard names
-                for _, commonName in ipairs({"Starter Egg", "Basic Egg", "Common Egg", "Egg1", "Starter", "Egg", "Spider Egg", "Iron Egg", "Hero Egg"}) do
+                for _, commonName in ipairs({"Starter Egg", "Basic Egg", "Common Egg", "Egg1", "Starter", "Egg", "Spider Egg", "Iron Egg", "Hero Egg", "1", 1}) do
                     table.insert(eggNamesToTry, commonName)
                 end
 
@@ -657,7 +652,6 @@ task.spawn(function()
                             end
                         end)
                     end
-                    -- Also fire generic open calls
                     pcall(function()
                         if remote:IsA("RemoteEvent") then
                             remote:FireServer("Single", 1)
@@ -666,7 +660,7 @@ task.spawn(function()
                     end)
                 end
 
-                -- 4. Trigger nearest egg ProximityPrompt or Touch
+                -- 4. Trigger egg ProximityPrompts or Touch nearest Egg Stand
                 if root then
                     for _, eggObj in ipairs(discoveredEggs) do
                         if eggObj:IsA("BasePart") then
@@ -685,7 +679,7 @@ task.spawn(function()
                     end
                 end
 
-                -- 5. Click any Hatch / Buy Button in PlayerGui if open
+                -- 5. Click any Hatch / Buy Button in PlayerGui
                 local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
                 if playerGui then
                     for _, obj in ipairs(playerGui:GetDescendants()) do
@@ -699,7 +693,7 @@ task.spawn(function()
                     end
                 end
             end)
-            task.wait(0.5)
+            task.wait(0.4)
         else
             task.wait(0.5)
         end
