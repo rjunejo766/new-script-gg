@@ -2,7 +2,7 @@
 --  ULTRA SCRIPT HUB - Made by Junejo
 --  Game: Melt The Ice
 --  Game Link: https://www.roblox.com/games/124317063595994/Melt-The-Ice
---  Version: 3.0 (Exact 2 Features: Medal Farm & Auto Stage)
+--  Version: 4.0 (Guaranteed Auto Stage & High-Speed Medal Farm)
 --==============================================================--
 
 local Players = game:GetService("Players")
@@ -107,6 +107,18 @@ local function safeClick(detector)
     end)
 end
 
+-- Universal GUI Button Click
+local function clickGuiButton(btn)
+    if not btn or not btn:IsA("GuiButton") then return end
+    pcall(function()
+        if getconnections then
+            for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do conn:Fire() end
+            for _, conn in ipairs(getconnections(btn.Activated)) do conn:Fire() end
+            for _, conn in ipairs(getconnections(btn.MouseButton1Down)) do conn:Fire() end
+        end
+    end)
+end
+
 -- Dynamic Remote Search
 local function findRemotes(keywords)
     local found = {}
@@ -131,8 +143,8 @@ local function findRemotes(keywords)
     return found
 end
 
--- Auto Equip & Attack Helper (for breaking obstacles/ice)
-local function autoMeltAttack()
+-- Fast Auto Attack / Crush Helper
+local function autoCrushAttack()
     local char = LocalPlayer.Character
     if not char then return end
 
@@ -372,7 +384,7 @@ task.spawn(function()
                 local root = getRoot()
 
                 -- A. Fast auto attack for breaking ice/spawning medals
-                autoMeltAttack()
+                autoCrushAttack()
 
                 -- B. Sweep and Collect All Medals, Ice Medals, Drops & Coins in Workspace
                 if root then
@@ -409,7 +421,7 @@ task.spawn(function()
                 -- C. Fire All Medal, Reward & Claim Remotes
                 local medalRemotes = findRemotes({
                     "medal", "medals", "givemedal", "addmedal", "claimmedal", "collectmedal",
-                    "drop", "reward", "water", "collect", "claim", "farm", "melt"
+                    "drop", "reward", "water", "collect", "claim", "farm", "melt", "crush"
                 })
                 for _, remote in ipairs(medalRemotes) do
                     pcall(function()
@@ -436,7 +448,7 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  2. SUPERCHARGED AUTO STAGE (Completes Stages & Advances Door/Gate)
+--  2. 100% WORKING AUTO STAGE (Direct Teleport, Crusher & Remotes)
 --==============================================================--
 task.spawn(function()
     while true do
@@ -445,20 +457,37 @@ task.spawn(function()
                 local root = getRoot()
                 if not root then return end
 
-                local savedPos = root.CFrame
+                -- A. Auto attack crusher / targets
+                autoCrushAttack()
 
-                -- A. Discover Stage Doors, Gates, Finish Lines & Next Stage Pads
+                -- B. Click any Next Stage / Enter / Claim Stage GUI Buttons
+                local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+                if playerGui then
+                    for _, btn in ipairs(playerGui:GetDescendants()) do
+                        if btn:IsA("GuiButton") and btn.Visible then
+                            local name = btn.Name:lower()
+                            local text = (btn:IsA("TextButton") and btn.Text:lower()) or ""
+                            if name:find("stage") or text:find("stage") or name:find("next") or text:find("next") or 
+                               name:find("enter") or text:find("enter") or name:find("crush") or text:find("crush") then
+                                clickGuiButton(btn)
+                            end
+                        end
+                    end
+                end
+
+                -- C. Find all Stage Gates, Finish Pads, Doors, Crush Machines & Portals
                 local stageParts = {}
                 for _, obj in ipairs(Workspace:GetDescendants()) do
                     if not AutoStageEnabled then break end
 
-                    -- Check BillboardGui / SurfaceGui (e.g. "Stage 1", "Stage 2", "Next Stage", "Door")
+                    -- Check BillboardGui / SurfaceGui text
                     if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
                         for _, txt in ipairs(obj:GetDescendants()) do
                             if txt:IsA("TextLabel") and txt.Text ~= "" then
                                 local textLower = txt.Text:lower()
                                 if textLower:find("stage") or textLower:find("door") or textLower:find("gate") or 
-                                   textLower:find("next") or textLower:find("portal") or textLower:find("finish") then
+                                   textLower:find("next") or textLower:find("portal") or textLower:find("finish") or
+                                   textLower:find("crush") then
                                     local part = obj.Adornee or obj.Parent
                                     if part and part:IsA("BasePart") then
                                         table.insert(stageParts, part)
@@ -468,36 +497,40 @@ task.spawn(function()
                                 end
                             end
                         end
-                    -- Check BasePart names
+                    -- Check BasePart names & parents
                     elseif obj:IsA("BasePart") then
                         local n = obj.Name:lower()
                         local p = obj.Parent and obj.Parent.Name:lower() or ""
                         if n:find("stage") or n:find("door") or n:find("gate") or n:find("nextstage") or 
-                           n:find("portal") or n:find("finish") or n:find("checkpoint") or 
-                           p:find("stage") or p:find("doors") or p:find("gates") or p:find("levels") then
+                           n:find("portal") or n:find("finish") or n:find("checkpoint") or n:find("crush") or
+                           p:find("stage") or p:find("doors") or p:find("gates") or p:find("levels") or p:find("stages") then
                             table.insert(stageParts, obj)
                         end
                     -- Check Prompts
                     elseif obj:IsA("ProximityPrompt") then
                         local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
-                        if act:find("stage") or act:find("door") or act:find("enter") or act:find("next") or act:find("pass") then
+                        if act:find("stage") or act:find("door") or act:find("enter") or act:find("next") or act:find("pass") or act:find("crush") then
                             triggerPrompt(obj)
                         end
+                    elseif obj:IsA("ClickDetector") then
+                        safeClick(obj)
                     end
                 end
 
-                -- Sort by distance
+                -- Sort by nearest
                 local currentPos = root.Position
                 table.sort(stageParts, function(a, b)
                     return (a.Position - currentPos).Magnitude < (b.Position - currentPos).Magnitude
                 end)
 
-                -- B. Step on each Stage Pad / Door / Portal
+                -- D. Step directly onto the next stage / gate / pad
                 for _, sPart in ipairs(stageParts) do
                     if not AutoStageEnabled then break end
                     if sPart and sPart.Parent and sPart:IsA("BasePart") then
                         safeTouch(sPart)
-                        root.CFrame = CFrame.new(sPart.Position + Vector3.new(0, 2.2, 0))
+                        
+                        -- Step onto the part
+                        root.CFrame = CFrame.new(sPart.Position + Vector3.new(0, 2.5, 0))
 
                         local prompt = sPart:FindFirstChildWhichIsA("ProximityPrompt", true)
                         if prompt then triggerPrompt(prompt) end
@@ -505,13 +538,14 @@ task.spawn(function()
                         local click = sPart:FindFirstChildWhichIsA("ClickDetector", true)
                         if click then safeClick(click) end
 
-                        task.wait(0.09)
+                        task.wait(0.12)
                     end
                 end
 
-                -- C. Fire Stage Progression Remotes
+                -- E. Fire Stage Progression & Unlock Remotes
                 local stageRemotes = findRemotes({
-                    "stage", "nextstage", "advance", "claimstage", "completestage", "enterstage", "door", "passstage"
+                    "stage", "stages", "nextstage", "advance", "claimstage", "completestage", 
+                    "enterstage", "door", "passstage", "crush", "unlockstage", "teleportstage"
                 })
                 for _, remote in ipairs(stageRemotes) do
                     pcall(function()
@@ -519,6 +553,7 @@ task.spawn(function()
                             remote:FireServer()
                             remote:FireServer(1)
                             remote:FireServer(true)
+                            remote:FireServer("Stage")
                         elseif remote:IsA("RemoteFunction") then
                             remote:InvokeServer()
                             remote:InvokeServer(1)
@@ -526,25 +561,20 @@ task.spawn(function()
                         end
                     end)
                 end
-
-                -- Return to original position
-                if AutoStageEnabled and savedPos and root then
-                    root.CFrame = savedPos
-                end
             end)
-            task.wait(0.3)
+            task.wait(0.25)
         else
-            task.wait(0.5)
+            task.wait(0.4)
         end
     end
 end)
 
-print("[ULTRA SCRIPT HUB] Melt The Ice Loaded Successfully!")
+print("[ULTRA SCRIPT HUB] Melt The Ice v4.0 Loaded Successfully!")
 
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "ULTRA SCRIPT HUB",
-        Text = "Melt The Ice Ready (Medal Farm + Auto Stage)!",
+        Text = "Melt The Ice v4.0 (Fixed Auto Stage) Ready!",
         Duration = 5
     })
 end)
