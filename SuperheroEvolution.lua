@@ -385,8 +385,28 @@ task.spawn(function()
     end
 end)
 
+-- Universal FireSignal helper for GUI buttons
+local function clickGuiButton(btn)
+    if not btn or not btn:IsA("GuiButton") then return end
+    pcall(function()
+        if firesignal then
+            firesignal(btn.MouseButton1Click)
+            firesignal(btn.MouseButton1Down)
+            firesignal(btn.MouseButton1Up)
+            firesignal(btn.Activated)
+        else
+            if btn.MouseButton1Click then
+                -- Fallback trigger
+                for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do
+                    conn:Fire()
+                end
+            end
+        end
+    end)
+end
+
 --==============================================================--
---  2. AUTO WIN LOOP (Finish Line / Race End / Stage Rewards)
+--  2. SUPERCHARGED AUTO WIN (Finish Track / Gates / Remotes / Pads)
 --==============================================================--
 task.spawn(function()
     while true do
@@ -395,44 +415,52 @@ task.spawn(function()
                 local root = getRoot()
                 if not root then return end
 
-                -- Method A: Trigger Win / Race Finish remotes
-                local winRemotes = findRemotes({"win", "finish", "claimwin", "givereward", "endrace", "addwin", "reachfinish"})
+                -- 1. Scan & fire all Win, Finish, Race, Stage Remotes
+                local winKeywords = {
+                    "win", "wins", "finish", "finishline", "claimwin", "givereward", 
+                    "endrace", "addwin", "reachfinish", "claim", "reward", "stage", 
+                    "checkpoint", "race", "goal", "nextstage", "nextzone", "complete"
+                }
+                local winRemotes = findRemotes(winKeywords)
                 for _, remote in ipairs(winRemotes) do
-                    if remote:IsA("RemoteEvent") then
-                        remote:FireServer()
-                    elseif remote:IsA("RemoteFunction") then
-                        remote:InvokeServer()
-                    end
+                    pcall(function()
+                        if remote:IsA("RemoteEvent") then
+                            remote:FireServer()
+                            remote:FireServer(1)
+                            remote:FireServer("Win")
+                            remote:FireServer(true)
+                        elseif remote:IsA("RemoteFunction") then
+                            remote:InvokeServer()
+                            remote:InvokeServer(1)
+                        end
+                    end)
                 end
 
-                -- Method B: Scan for finish pads, win lines, or reward checkpoints in Workspace
-                local candidateWins = {}
+                -- 2. Scan Workspace for Win Pads, Finish Lines, End Gates, Stage Portals
+                local winTargets = {}
                 for _, obj in ipairs(Workspace:GetDescendants()) do
                     if obj:IsA("BasePart") then
-                        local name = obj.Name:lower()
-                        if name:find("win") or name:find("finish") or name:find("goal") or name:find("endpad") or name:find("reward") then
-                            table.insert(candidateWins, obj)
+                        local n = obj.Name:lower()
+                        local p = obj.Parent and obj.Parent.Name:lower() or ""
+                        if n:find("win") or n:find("finish") or n:find("goal") or n:find("endpad") or n:find("stage") or n:find("checkpoint") or n:find("reward") or
+                           p:find("win") or p:find("finish") or p:find("track") or p:find("race") then
+                            table.insert(winTargets, obj)
+                        end
+                    elseif obj:IsA("ProximityPrompt") then
+                        local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
+                        if act:find("win") or act:find("claim") or act:find("finish") or act:find("reward") then
+                            triggerPrompt(obj)
                         end
                     end
                 end
 
-                if #candidateWins > 0 then
-                    -- Touch all win pads or teleport touch sequence safely
-                    for _, winPart in ipairs(candidateWins) do
-                        if not AutoWinEnabled then break end
-                        safeTouch(root, winPart)
-                        
-                        -- Optional subtle CFrame offset to ensure hit detection
-                        local oldPos = root.CFrame
-                        root.CFrame = winPart.CFrame + Vector3.new(0, 2, 0)
-                        task.wait(0.1)
-                        safeTouch(root, winPart)
-                        task.wait(0.2)
-                        root.CFrame = oldPos
-                    end
+                -- 3. Touch all detected win pads
+                for _, pad in ipairs(winTargets) do
+                    if not AutoWinEnabled then break end
+                    safeTouch(root, pad)
                 end
             end)
-            task.wait(0.5)
+            task.wait(0.3)
         else
             task.wait(0.5)
         end
@@ -440,38 +468,68 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  3. AUTO REBIRTH LOOP (Evolution / Prestige / Ascend)
+--  3. SUPERCHARGED AUTO REBIRTH (Remotes + GUI Buttons + Pads)
 --==============================================================--
 task.spawn(function()
     while true do
         if AutoRebirthEnabled then
             pcall(function()
-                -- 1. Scan and fire rebirth remotes
-                local rebirthRemotes = findRemotes({"rebirth", "evolve", "evolution", "ascend", "prestige", "buyrebirth"})
+                local root = getRoot()
+
+                -- 1. Scan and Fire Rebirth / Evolution Remotes
+                local rebirthKeywords = {
+                    "rebirth", "rebirths", "evolve", "evolution", "ascend", "prestige", 
+                    "buyrebirth", "requestrebirth", "dorebirth", "rankup", "upgradehero", 
+                    "herorebirth", "heroevolution", "transform"
+                }
+                local rebirthRemotes = findRemotes(rebirthKeywords)
                 for _, remote in ipairs(rebirthRemotes) do
-                    if remote:IsA("RemoteEvent") then
-                        remote:FireServer()
-                        remote:FireServer(1)
-                    elseif remote:IsA("RemoteFunction") then
-                        remote:InvokeServer()
-                        remote:InvokeServer(1)
+                    pcall(function()
+                        if remote:IsA("RemoteEvent") then
+                            remote:FireServer()
+                            remote:FireServer(1)
+                            remote:FireServer(true)
+                            remote:FireServer("Rebirth")
+                            remote:FireServer("1")
+                        elseif remote:IsA("RemoteFunction") then
+                            remote:InvokeServer()
+                            remote:InvokeServer(1)
+                        end
+                    end)
+                end
+
+                -- 2. Click Rebirth / Evolve Buttons inside PlayerGui
+                local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+                if playerGui then
+                    for _, obj in ipairs(playerGui:GetDescendants()) do
+                        if obj:IsA("GuiButton") and obj.Visible then
+                            local name = obj.Name:lower()
+                            local text = (obj:IsA("TextButton") and obj.Text:lower()) or ""
+                            if name:find("rebirth") or name:find("evolve") or text:find("rebirth") or text:find("evolve") or text:find("evolution") then
+                                clickGuiButton(obj)
+                            end
+                        end
                     end
                 end
 
-                -- 2. Trigger any rebirth ProximityPrompts or buttons
-                local root = getRoot()
+                -- 3. Trigger Workspace Rebirth Prompts & Pads
                 if root then
                     for _, obj in ipairs(Workspace:GetDescendants()) do
                         if obj:IsA("ProximityPrompt") then
                             local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
-                            if act:find("rebirth") or act:find("evolve") then
+                            if act:find("rebirth") or act:find("evolve") or act:find("evolution") then
                                 triggerPrompt(obj)
+                            end
+                        elseif obj:IsA("BasePart") then
+                            local n = obj.Name:lower()
+                            if n:find("rebirth") or n:find("evolve") then
+                                safeTouch(root, obj)
                             end
                         end
                     end
                 end
             end)
-            task.wait(1.5)
+            task.wait(0.8)
         else
             task.wait(0.5)
         end
@@ -479,72 +537,107 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  4. AUTO BUY BEST EGG LOOP (Smart Egg Detection & Hatch)
+--  4. SUPERCHARGED AUTO BUY BEST EGG (Smart Multi-Tier Hatching)
 --==============================================================--
 task.spawn(function()
     while true do
         if AutoBuyBestEggEnabled then
             pcall(function()
                 local root = getRoot()
-                
-                -- 1. Search for hatch remotes
-                local hatchRemotes = findRemotes({"hatch", "openegg", "buyegg", "purchaseegg", "hatchpet", "draweqq", "egg"})
-                
-                -- 2. Discover all egg models in Workspace or ReplicatedStorage
-                local eggList = {}
-                local function checkEggs(container)
-                    if not container then return end
-                    for _, obj in ipairs(container:GetDescendants()) do
+
+                -- 1. Find all Egg / Hatch Remotes
+                local eggKeywords = {
+                    "hatch", "openegg", "buyegg", "purchaseegg", "hatchpet", "draweqq", 
+                    "egg", "eggs", "capsule", "opencapsule", "buycapsule", "pet", "pethatch",
+                    "drawpet", "buypet", "hatchsingle", "open"
+                }
+                local hatchRemotes = findRemotes(eggKeywords)
+
+                -- 2. Discover all Egg models in Workspace & ReplicatedStorage
+                local discoveredEggs = {}
+                local function scanForEggs(parent)
+                    if not parent then return end
+                    for _, obj in ipairs(parent:GetDescendants()) do
                         local name = obj.Name:lower()
-                        if (name:find("egg") or name:find("capsule")) and (obj:IsA("Model") or obj:IsA("BasePart")) then
-                            -- Check if it contains cost / tier / order
-                            table.insert(eggList, obj)
+                        if (name:find("egg") or name:find("capsule") or name:find("gacha")) and 
+                           (obj:IsA("Model") or obj:IsA("BasePart") or obj:IsA("Folder")) then
+                            table.insert(discoveredEggs, obj)
                         end
                     end
                 end
-                
-                checkEggs(Workspace)
-                
-                -- Sort or find the best egg available
-                local bestEgg = nil
-                if #eggList > 0 then
-                    -- Pick highest order or closest best egg
-                    bestEgg = eggList[#eggList]
+
+                scanForEggs(Workspace)
+                scanForEggs(ReplicatedStorage)
+
+                -- 3. Fire hatch remotes with detected egg names and common defaults
+                local eggNamesToTry = {}
+                for _, eggObj in ipairs(discoveredEggs) do
+                    table.insert(eggNamesToTry, eggObj.Name)
+                end
+                -- Add fallback standard names
+                for _, commonName in ipairs({"Starter Egg", "Basic Egg", "Common Egg", "Egg1", "Starter", "Egg", "Spider Egg", "Iron Egg", "Hero Egg"}) do
+                    table.insert(eggNamesToTry, commonName)
                 end
 
-                -- Fire hatch remotes with best egg name or fallback
                 for _, remote in ipairs(hatchRemotes) do
-                    if bestEgg then
+                    for _, eggName in ipairs(eggNamesToTry) do
+                        if not AutoBuyBestEggEnabled then break end
+                        pcall(function()
+                            if remote:IsA("RemoteEvent") then
+                                remote:FireServer(eggName, 1)
+                                remote:FireServer(eggName, "Single")
+                                remote:FireServer(eggName, 1, false)
+                                remote:FireServer(eggName, {})
+                                remote:FireServer(eggName)
+                            elseif remote:IsA("RemoteFunction") then
+                                remote:InvokeServer(eggName, 1)
+                                remote:InvokeServer(eggName, "Single")
+                            end
+                        end)
+                    end
+                    -- Also fire generic open calls
+                    pcall(function()
                         if remote:IsA("RemoteEvent") then
-                            remote:FireServer(bestEgg.Name, "Single")
-                            remote:FireServer(bestEgg.Name, 1)
-                            remote:FireServer(bestEgg.Name)
-                        elseif remote:IsA("RemoteFunction") then
-                            remote:InvokeServer(bestEgg.Name, "Single")
-                            remote:InvokeServer(bestEgg.Name, 1)
-                        end
-                    else
-                        if remote:IsA("RemoteEvent") then
-                            remote:FireServer("Egg", 1)
+                            remote:FireServer("Single", 1)
                             remote:FireServer(1)
                         end
+                    end)
+                end
+
+                -- 4. Trigger nearest egg ProximityPrompt or Touch
+                if root then
+                    for _, eggObj in ipairs(discoveredEggs) do
+                        if eggObj:IsA("BasePart") then
+                            safeTouch(root, eggObj)
+                        elseif eggObj:IsA("Model") then
+                            local primary = eggObj.PrimaryPart or eggObj:FindFirstChildWhichIsA("BasePart")
+                            if primary then
+                                safeTouch(root, primary)
+                            end
+                        end
+
+                        local prompt = eggObj:FindFirstChildWhichIsA("ProximityPrompt", true)
+                        if prompt then
+                            triggerPrompt(prompt)
+                        end
                     end
                 end
 
-                -- Trigger egg proximity prompt or touch if bestEgg exists in Workspace
-                if bestEgg and root then
-                    local eggPart = bestEgg:IsA("BasePart") and bestEgg or bestEgg:FindFirstChildWhichIsA("BasePart")
-                    if eggPart then
-                        local prompt = bestEgg:FindFirstChildWhichIsA("ProximityPrompt", true)
-                        if prompt then
-                            triggerPrompt(prompt)
-                        else
-                            safeTouch(root, eggPart)
+                -- 5. Click any Hatch / Buy Button in PlayerGui if open
+                local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+                if playerGui then
+                    for _, obj in ipairs(playerGui:GetDescendants()) do
+                        if obj:IsA("GuiButton") and obj.Visible then
+                            local name = obj.Name:lower()
+                            local text = (obj:IsA("TextButton") and obj.Text:lower()) or ""
+                            if (name:find("hatch") or name:find("buy1") or text:find("hatch") or text:find("open 1") or text:find("buy")) and not name:find("robux") then
+                                clickGuiButton(obj)
+                            end
                         end
                     end
                 end
             end)
-            task.wait(0.6)
+            task.wait(0.5)
         else
             task.wait(0.5)
         end
