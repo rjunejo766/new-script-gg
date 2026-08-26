@@ -465,28 +465,30 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  2. SUPERCHARGED SHOOT AURA (Instant Auto-Aim, Shoot & Remotes)
+--  2. RAPID CONTINUOUS AUTO-SHOOT & SHOOT AURA
 --==============================================================--
 task.spawn(function()
     while true do
         if ShootAuraEnabled then
             pcall(function()
-                local enemyPart, dist = getNearestEnemy(300)
+                -- 1. Auto equip gun / weapon immediately
+                local tool = equipGun()
+                
+                -- 2. Search for any enemy/monster in range
+                local enemyPart, dist = getNearestEnemy(600)
+                
                 if enemyPart and enemyPart.Parent then
-                    -- 1. Auto equip gun / weapon
-                    local tool = equipGun()
-                    
-                    -- 2. Aim camera directly at enemy Head / Root
+                    -- Aim camera at enemy
                     pcall(function()
                         Camera.CFrame = CFrame.new(Camera.CFrame.Position, enemyPart.Position)
                     end)
 
-                    -- 3. Fire tool
+                    -- Fire weapon at enemy
                     if tool then
                         tool:Activate()
                     end
 
-                    -- 4. Fire shoot / damage remotes
+                    -- Fire shoot/hit remotes with enemy target
                     local shootRemotes = findRemotes({"shoot", "fire", "attack", "hit", "damage", "gun", "bullet", "raycast", "weapon"})
                     for _, remote in ipairs(shootRemotes) do
                         pcall(function()
@@ -500,19 +502,34 @@ task.spawn(function()
                             end
                         end)
                     end
-
-                    -- 5. Virtual clicks
-                    if VirtualUser then
-                        VirtualUser:Button1Down(Vector2.new(0, 0), Camera.CFrame)
+                else
+                    -- No enemy nearby: Still auto-shoot continuously straight ahead
+                    if tool then
+                        tool:Activate()
                     end
-                    if mouse1click then
-                        pcall(mouse1click)
+
+                    local shootRemotes = findRemotes({"shoot", "fire", "attack", "hit", "damage", "gun", "bullet", "raycast", "weapon"})
+                    for _, remote in ipairs(shootRemotes) do
+                        pcall(function()
+                            if remote:IsA("RemoteEvent") then
+                                remote:FireServer(Camera.CFrame.LookVector * 100)
+                                remote:FireServer()
+                            end
+                        end)
                     end
                 end
+
+                -- 3. Rapid click simulation
+                if VirtualUser then
+                    VirtualUser:Button1Down(Vector2.new(0, 0), Camera.CFrame)
+                end
+                if mouse1click then
+                    pcall(mouse1click)
+                end
             end)
-            task.wait(0.06)
+            task.wait(0.02)
         else
-            task.wait(0.5)
+            task.wait(0.4)
         end
     end
 end)
