@@ -414,20 +414,21 @@ local function clickGuiButton(btn)
 end
 
 --==============================================================--
---  2. SUPERCHARGED AUTO WIN (Finish Track / Gates / Remotes / Pads)
+--  2. REAL-MOVEMENT AUTO WIN (Finish Track / Speed Run / Teleport)
 --==============================================================--
 task.spawn(function()
     while true do
         if AutoWinEnabled then
             pcall(function()
                 local root = getRoot()
-                if not root then return end
+                local hum = getHum()
+                if not root or not hum then return end
 
                 -- 1. Scan & fire all Win, Finish, Race, Stage Remotes
                 local winKeywords = {
                     "win", "wins", "finish", "finishline", "claimwin", "givereward", 
                     "endrace", "addwin", "reachfinish", "claim", "reward", "stage", 
-                    "checkpoint", "race", "goal", "nextstage", "nextzone", "complete"
+                    "checkpoint", "race", "goal", "nextstage", "nextzone", "complete", "gate"
                 }
                 local winRemotes = findRemotes(winKeywords)
                 for _, remote in ipairs(winRemotes) do
@@ -444,15 +445,17 @@ task.spawn(function()
                     end)
                 end
 
-                -- 2. Scan Workspace for Win Pads, Finish Lines, End Gates, Stage Portals
-                local winTargets = {}
+                -- 2. Find all Finish Pads, Gates, Checkpoints, and Stage Parts in Workspace
+                local candidateParts = {}
                 for _, obj in ipairs(Workspace:GetDescendants()) do
                     if obj:IsA("BasePart") then
                         local n = obj.Name:lower()
                         local p = obj.Parent and obj.Parent.Name:lower() or ""
-                        if n:find("win") or n:find("finish") or n:find("goal") or n:find("endpad") or n:find("stage") or n:find("checkpoint") or n:find("reward") or
-                           p:find("win") or p:find("finish") or p:find("track") or p:find("race") then
-                            table.insert(winTargets, obj)
+                        if n:find("win") or n:find("finish") or n:find("goal") or n:find("endpad") or 
+                           n:find("stage") or n:find("checkpoint") or n:find("reward") or n:find("trophy") or
+                           n:find("gate") or n:find("wall") or n:find("zone") or n:find("door") or
+                           p:find("win") or p:find("finish") or p:find("track") or p:find("race") or p:find("stages") then
+                            table.insert(candidateParts, obj)
                         end
                     elseif obj:IsA("ProximityPrompt") then
                         local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
@@ -462,13 +465,64 @@ task.spawn(function()
                     end
                 end
 
-                -- 3. Touch all detected win pads
-                for _, pad in ipairs(winTargets) do
-                    if not AutoWinEnabled then break end
-                    safeTouch(root, pad)
+                -- 3. If track/finish parts found, physically move/teleport through them!
+                if #candidateParts > 0 then
+                    -- Sort from closest to farthest along track
+                    table.sort(candidateParts, function(a, b)
+                        return (a.Position - root.Position).Magnitude < (b.Position - root.Position).Magnitude
+                    end)
+
+                    for _, targetPart in ipairs(candidateParts) do
+                        if not AutoWinEnabled then break end
+                        
+                        -- Move character to target part
+                        pcall(function()
+                            if root.AssemblyLinearVelocity then
+                                root.AssemblyLinearVelocity = Vector3.zero
+                            else
+                                root.Velocity = Vector3.zero
+                            end
+                            root.CFrame = targetPart.CFrame + Vector3.new(0, 3.5, 0)
+                        end)
+                        
+                        safeTouch(root, targetPart)
+                        
+                        -- Equip weapon & attack in case of breakable gates/walls
+                        local tool = equipTool()
+                        if tool then 
+                            tool:Activate() 
+                        end
+                        
+                        task.wait(0.12)
+                    end
+                else
+                    -- Fallback: Scan for track / runway floor parts
+                    local trackParts = {}
+                    for _, obj in ipairs(Workspace:GetDescendants()) do
+                        if obj:IsA("BasePart") and obj.Size.Magnitude > 25 then
+                            local n = obj.Name:lower()
+                            if n:find("track") or n:find("road") or n:find("floor") or n:find("ramp") or n:find("runway") or n:find("course") then
+                                table.insert(trackParts, obj)
+                            end
+                        end
+                    end
+                    
+                    for _, track in ipairs(trackParts) do
+                        if not AutoWinEnabled then break end
+                        pcall(function()
+                            if root.AssemblyLinearVelocity then
+                                root.AssemblyLinearVelocity = Vector3.zero
+                            else
+                                root.Velocity = Vector3.zero
+                            end
+                            root.CFrame = track.CFrame + Vector3.new(0, 4, 0)
+                        end)
+                        safeTouch(root, track)
+                        task.wait(0.15)
+                    end
                 end
             end)
-            task.wait(0.3)
+            task.wait(0.1)
         else
             task.wait(0.5)
         end
