@@ -92,3 +92,19 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 3. 🏃 **WalkSpeed (50)**: High movement speed boost.
 4. 🦿 **Hip Height Boost**: Elevates character above ground so ground monsters cannot hit you.
 
+---
+
+## 🎮 7. Save Your Cat
+- **Game Link**: [https://www.roblox.com/games/119427438574114/Save-Your-Cat](https://www.roblox.com/games/119427438574114/Save-Your-Cat)
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/SaveYourCat.lua?t=" .. tostring(os.time())))()
+```
+
+### ✨ Features (Exact 3 Features)
+1. 🌾 **Inf Seed**: Automatically farms, collects, and multiplies seeds via remotes & drops.
+2. 🔄 **Auto Rebirth**: Automatically performs rebirths via remotes, GUI buttons, and rebirth pads.
+3. 🔘 **Auto Button**: Automatically discovers, steps on, and buys all tycoon build buttons & upgrade pads.
+
+
