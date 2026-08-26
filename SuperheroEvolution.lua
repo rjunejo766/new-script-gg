@@ -414,7 +414,7 @@ local function clickGuiButton(btn)
 end
 
 --==============================================================--
---  2. SEQUENTIAL ALL-STAGE AUTO WIN (Clears Stage 1 to Max Stage)
+--  2. PERFECT ALL-STAGE AUTO WIN (Defeats Stage Enemies & Clears Track)
 --==============================================================--
 task.spawn(function()
     while true do
@@ -424,7 +424,7 @@ task.spawn(function()
                 local hum = getHum()
                 if not root or not hum then return end
 
-                -- 1. Scan and fire all server win remotes
+                -- 1. Scan & fire all Win and Finish remotes
                 local winRemotes = findRemotes({
                     "win", "wins", "finish", "finishline", "claimwin", "givereward", 
                     "endrace", "addwin", "reachfinish", "claim", "reward", "stage", 
@@ -444,39 +444,32 @@ task.spawn(function()
                     end)
                 end
 
-                -- 2. Discover all Stage models, folders, doors, trophies across the whole map
-                local stageList = {}
-                
-                -- Method A: Look for numbered Stage models/folders in Workspace
+                -- 2. Find all Enemies / Monsters inside Stages ("Kill all enemies to continue")
+                local stageEnemies = {}
                 for _, obj in ipairs(Workspace:GetDescendants()) do
-                    if obj:IsA("Model") or obj:IsA("Folder") then
-                        local n = obj.Name:lower()
-                        if n:find("stage") or n:find("zone") or n:find("level") or n:find("world") then
-                            local num = tonumber(obj.Name:match("%d+")) or 0
-                            table.insert(stageList, {
-                                Object = obj,
-                                StageNumber = num,
-                                Position = (obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart"))) and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")).Position or Vector3.zero
-                            })
+                    if obj:IsA("Model") and obj ~= LocalPlayer.Character then
+                        local enemyHum = obj:FindFirstChildOfClass("Humanoid")
+                        local enemyRoot = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Head") or obj:FindFirstChild("Torso") or obj:FindFirstChildWhichIsA("BasePart")
+                        if enemyRoot and ((enemyHum and enemyHum.Health > 0) or not enemyHum) then
+                            local n = obj.Name:lower()
+                            local p = obj.Parent and obj.Parent.Name:lower() or ""
+                            if not Players:GetPlayerFromCharacter(obj) then
+                                table.insert(stageEnemies, enemyRoot)
+                            end
                         end
                     end
                 end
 
-                -- Method B: Collect all Stage Trophies, Doors, Walls, and Finish Pads
-                local allStageParts = {}
+                -- 3. Find all Stage Trophies, Win Pads, and Stage Doors
+                local stageTargets = {}
                 for _, obj in ipairs(Workspace:GetDescendants()) do
                     if obj:IsA("BasePart") then
                         local n = obj.Name:lower()
                         local p = obj.Parent and obj.Parent.Name:lower() or ""
                         if n:find("trophy") or n:find("win") or n:find("finish") or n:find("goal") or 
-                           n:find("stage") or n:find("door") or n:find("gate") or n:find("wall") or 
+                           n:find("stage") or n:find("door") or n:find("gate") or n:find("pad") or
                            p:find("stage") or p:find("trophy") or p:find("doors") or p:find("track") then
-                            local num = tonumber(obj.Name:match("%d+")) or tonumber(p:match("%d+")) or 0
-                            table.insert(allStageParts, {
-                                Part = obj,
-                                StageNumber = num,
-                                Position = obj.Position
-                            })
+                            table.insert(stageTargets, obj)
                         end
                     elseif obj:IsA("ProximityPrompt") then
                         local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
@@ -486,63 +479,67 @@ task.spawn(function()
                     end
                 end
 
-                -- Sort all stage parts sequentially from Stage 1 -> Stage 2 -> Stage 3 -> ... -> Max
-                if #allStageParts > 0 then
-                    -- First sort by stage number if available, then by distance from spawn
-                    table.sort(allStageParts, function(a, b)
-                        if a.StageNumber ~= b.StageNumber and a.StageNumber > 0 and b.StageNumber > 0 then
-                            return a.StageNumber < b.StageNumber
-                        end
-                        -- Along the track axis
-                        return a.Position.Z < b.Position.Z or a.Position.X < b.Position.X
-                    end)
+                -- Sort stage parts from closest to furthest
+                local spawnPos = root.Position
+                table.sort(stageTargets, function(a, b)
+                    return (a.Position - spawnPos).Magnitude < (b.Position - spawnPos).Magnitude
+                end)
 
-                    local tool = equipTool()
+                local tool = equipTool()
 
-                    for _, item in ipairs(allStageParts) do
-                        if not AutoWinEnabled then break end
-                        local targetPart = item.Part
-                        if targetPart and targetPart.Parent then
-                            -- Teleport directly in front of stage door / trophy
+                -- 4. Attack & eliminate stage enemies
+                for _, enemyPart in ipairs(stageEnemies) do
+                    if not AutoWinEnabled then break end
+                    if enemyPart and enemyPart.Parent then
+                        pcall(function()
+                            if root.AssemblyLinearVelocity then
+                                root.AssemblyLinearVelocity = Vector3.zero
+                            else
+                                root.Velocity = Vector3.zero
+                            end
+                            root.CFrame = enemyPart.CFrame + Vector3.new(0, 2, 0)
+                        end)
+
+                        safeTouch(root, enemyPart)
+                        if tool then tool:Activate() end
+
+                        local hitRemotes = findRemotes({"damage", "attack", "hit", "strike", "punch", "door", "slash", "gaindamage"})
+                        for _, hr in ipairs(hitRemotes) do
                             pcall(function()
-                                if root.AssemblyLinearVelocity then
-                                    root.AssemblyLinearVelocity = Vector3.zero
-                                else
-                                    root.Velocity = Vector3.zero
+                                if hr:IsA("RemoteEvent") then
+                                    hr:FireServer(enemyPart)
+                                    hr:FireServer(enemyPart.Position)
+                                    hr:FireServer()
+                                elseif hr:IsA("RemoteFunction") then
+                                    hr:InvokeServer(enemyPart)
                                 end
-                                root.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
                             end)
-
-                            -- Touch trophy pad & gate
-                            safeTouch(root, targetPart)
-
-                            -- Attack doors, barriers, and enemies in this stage
-                            if tool then
-                                tool:Activate()
-                            end
-
-                            -- Fire damage & attack remotes
-                            local hitRemotes = findRemotes({"damage", "attack", "hit", "strike", "punch", "door", "slash", "gaindamage"})
-                            for _, hr in ipairs(hitRemotes) do
-                                pcall(function()
-                                    if hr:IsA("RemoteEvent") then
-                                        hr:FireServer(targetPart)
-                                        hr:FireServer(targetPart.Position)
-                                        hr:FireServer()
-                                    elseif hr:IsA("RemoteFunction") then
-                                        hr:InvokeServer(targetPart)
-                                    end
-                                end)
-                            end
-
-                            -- Check for proximity prompt on door / trophy
-                            local prompt = targetPart:FindFirstChildWhichIsA("ProximityPrompt", true)
-                            if prompt then
-                                triggerPrompt(prompt)
-                            end
-
-                            task.wait(0.12)
                         end
+                        task.wait(0.08)
+                    end
+                end
+
+                -- 5. Touch and clear all stage trophy pads and doors
+                for _, pad in ipairs(stageTargets) do
+                    if not AutoWinEnabled then break end
+                    if pad and pad.Parent then
+                        pcall(function()
+                            if root.AssemblyLinearVelocity then
+                                root.AssemblyLinearVelocity = Vector3.zero
+                            else
+                                root.Velocity = Vector3.zero
+                            end
+                            root.CFrame = pad.CFrame + Vector3.new(0, 3, 0)
+                        end)
+
+                        safeTouch(root, pad)
+                        if tool then tool:Activate() end
+
+                        local prompt = pad:FindFirstChildWhichIsA("ProximityPrompt", true)
+                        if prompt then
+                            triggerPrompt(prompt)
+                        end
+                        task.wait(0.08)
                     end
                 end
             end)
@@ -623,7 +620,7 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  4. OVERHAULED AUTO BUY BEST EGG (Smart Multi-Egg Hatch)
+--  4. FULL AUTO BUY BEST EGG (Direct Proximity, Touch & Remotes)
 --==============================================================--
 task.spawn(function()
     while true do
@@ -631,7 +628,18 @@ task.spawn(function()
             pcall(function()
                 local root = getRoot()
 
-                -- 1. Find all Egg / Hatch Remotes
+                -- 1. Trigger all Egg / Pet ProximityPrompts across Workspace
+                for _, obj in ipairs(Workspace:GetDescendants()) do
+                    if obj:IsA("ProximityPrompt") then
+                        local act = (obj.ActionText .. " " .. obj.ObjectText .. " " .. (obj.Parent and obj.Parent.Name or "")):lower()
+                        if act:find("egg") or act:find("hatch") or act:find("open") or act:find("pet") or 
+                           act:find("capsule") or act:find("thanos") or act:find("draw") or act:find("buy") then
+                            triggerPrompt(obj)
+                        end
+                    end
+                end
+
+                -- 2. Find all Egg / Hatch Remotes
                 local eggKeywords = {
                     "hatch", "openegg", "buyegg", "purchaseegg", "hatchpet", "draweqq", 
                     "egg", "eggs", "capsule", "opencapsule", "buycapsule", "pet", "pethatch",
@@ -639,36 +647,29 @@ task.spawn(function()
                 }
                 local hatchRemotes = findRemotes(eggKeywords)
 
-                -- 2. Discover all Egg models in Workspace & ReplicatedStorage
-                local discoveredEggs = {}
-                local function scanForEggs(parent)
-                    if not parent then return end
-                    for _, obj in ipairs(parent:GetDescendants()) do
-                        local name = obj.Name:lower()
-                        if (name:find("egg") or name:find("capsule") or name:find("gacha") or name:find("pet")) and 
-                           (obj:IsA("Model") or obj:IsA("BasePart")) then
-                            table.insert(discoveredEggs, obj)
-                        end
+                -- 3. Discover all Egg models / stands in Workspace
+                local eggStands = {}
+                for _, obj in ipairs(Workspace:GetDescendants()) do
+                    local name = obj.Name:lower()
+                    if (name:find("egg") or name:find("capsule") or name:find("gacha") or name:find("thanos")) and 
+                       (obj:IsA("Model") or obj:IsA("BasePart")) then
+                        table.insert(eggStands, obj)
                     end
                 end
 
-                scanForEggs(Workspace)
-                scanForEggs(ReplicatedStorage)
-
-                -- 3. Collect all Egg names
+                -- 4. Fire hatch remotes with all detected egg names & numbers
                 local eggNamesToTry = {}
-                for _, eggObj in ipairs(discoveredEggs) do
+                for _, eggObj in ipairs(eggStands) do
                     table.insert(eggNamesToTry, eggObj.Name)
                 end
                 for _, commonName in ipairs({
                     "Starter Egg", "Basic Egg", "Common Egg", "Egg1", "Starter", "Egg", 
                     "Spider Egg", "Iron Egg", "Hero Egg", "Rare Egg", "Epic Egg", "Legendary Egg",
-                    "1", 1, "2", 2, "3", 3, "4", 4
+                    "Thanos", "1", 1, "2", 2, "3", 3, "4", 4
                 }) do
                     table.insert(eggNamesToTry, commonName)
                 end
 
-                -- 4. Fire hatch remotes with all signatures
                 for _, remote in ipairs(hatchRemotes) do
                     for _, eggName in ipairs(eggNamesToTry) do
                         if not AutoBuyBestEggEnabled then break end
@@ -680,6 +681,7 @@ task.spawn(function()
                                 remote:FireServer(eggName, {})
                                 remote:FireServer(eggName)
                                 remote:FireServer(1, eggName)
+                                remote:FireServer(eggName, true)
                             elseif remote:IsA("RemoteFunction") then
                                 remote:InvokeServer(eggName, 1)
                                 remote:InvokeServer(eggName, "Single")
@@ -695,9 +697,9 @@ task.spawn(function()
                     end)
                 end
 
-                -- 5. Trigger nearest Egg Stand ProximityPrompt and Touch
+                -- 5. Safe touch egg stands if nearby
                 if root then
-                    for _, eggObj in ipairs(discoveredEggs) do
+                    for _, eggObj in ipairs(eggStands) do
                         if eggObj:IsA("BasePart") then
                             safeTouch(root, eggObj)
                         elseif eggObj:IsA("Model") then
@@ -705,11 +707,6 @@ task.spawn(function()
                             if primary then
                                 safeTouch(root, primary)
                             end
-                        end
-
-                        local prompt = eggObj:FindFirstChildWhichIsA("ProximityPrompt", true)
-                        if prompt then
-                            triggerPrompt(prompt)
                         end
                     end
                 end
@@ -728,7 +725,7 @@ task.spawn(function()
                     end
                 end
             end)
-            task.wait(0.4)
+            task.wait(0.3)
         else
             task.wait(0.5)
         end
@@ -744,4 +741,5 @@ pcall(function()
         Duration = 5
     })
 end)
+
 
