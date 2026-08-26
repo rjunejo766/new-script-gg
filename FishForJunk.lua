@@ -2,7 +2,7 @@
 --  ULTRA SCRIPT HUB - Made by Junejo
 --  Game: Fish For Junk
 --  Game Link: https://www.roblox.com/games/132010220154773/Fish-For-Junk
---  Version: 1.0 (Cast 100%, Auto Upgrade, Sell All)
+--  Version: 2.0 (Guaranteed Auto Upgrade, 100% Cast & Sell All)
 --==============================================================--
 
 local Players = game:GetService("Players")
@@ -153,7 +153,6 @@ local function equipRod()
     if not tool then
         local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
         if backpack then
-            -- Prefer tools with rod / fish in name or first tool
             for _, t in ipairs(backpack:GetChildren()) do
                 if t:IsA("Tool") then
                     t.Parent = char
@@ -464,69 +463,104 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  2. AUTO UPGRADE (Buy Best Rods, Luck, Speed & Capacity)
+--  2. GUARANTEED AUTO UPGRADE (Shop GUI, Upgrade Pads & Remotes)
 --==============================================================--
 task.spawn(function()
     while true do
         if AutoUpgradeEnabled then
             pcall(function()
                 local root = getRoot()
+                if not root then return end
 
-                -- A. Click Upgrade / Buy Buttons in PlayerGui
+                -- A. Click Upgrade & Buy Buttons across PlayerGui
                 local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
                 if playerGui then
                     for _, btn in ipairs(playerGui:GetDescendants()) do
                         if btn:IsA("GuiButton") and btn.Visible then
                             local name = btn.Name:lower()
                             local text = (btn:IsA("TextButton") and btn.Text:lower()) or ""
-                            if (name:find("upgrade") or text:find("upgrade") or name:find("buyrod") or text:find("buy") or 
-                                name:find("luck") or text:find("luck") or name:find("speed") or text:find("capacity")) and not name:find("robux") then
+                            if (name:find("upgrade") or text:find("upgrade") or name:find("buy") or text:find("buy") or 
+                                name:find("rod") or text:find("rod") or name:find("luck") or text:find("luck") or 
+                                name:find("speed") or text:find("speed") or name:find("capacity") or text:find("capacity") or
+                                name:find("level") or text:find("level") or name:find("stat") or text:find("stat")) and not name:find("robux") then
                                 clickGuiButton(btn)
                             end
                         end
                     end
                 end
 
-                -- B. Scan and Touch Upgrade Pads in Workspace
-                if root then
-                    for _, obj in ipairs(Workspace:GetDescendants()) do
-                        if not AutoUpgradeEnabled then break end
+                -- B. Find all Upgrade Pads & Rod Merchants in Workspace
+                local upgradeParts = {}
+                for _, obj in ipairs(Workspace:GetDescendants()) do
+                    if not AutoUpgradeEnabled then break end
 
-                        if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
-                            for _, txt in ipairs(obj:GetDescendants()) do
-                                if txt:IsA("TextLabel") and txt.Text ~= "" then
-                                    local textLower = txt.Text:lower()
-                                    if textLower:find("upgrade") or textLower:find("buy") or textLower:find("rod") or 
-                                       textLower:find("luck") or textLower:find("cost") or string.match(txt.Text, "%d+") then
-                                        local part = obj.Adornee or obj.Parent
-                                        if part and part:IsA("BasePart") then
-                                            safeTouch(part)
-                                        end
+                    -- Check BillboardGui / SurfaceGui text
+                    if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
+                        for _, txt in ipairs(obj:GetDescendants()) do
+                            if txt:IsA("TextLabel") and txt.Text ~= "" then
+                                local textLower = txt.Text:lower()
+                                if textLower:find("upgrade") or textLower:find("buy") or textLower:find("rod") or 
+                                   textLower:find("luck") or textLower:find("speed") or textLower:find("cost") or 
+                                   textLower:find("%$") or string.match(txt.Text, "%d+") then
+                                    local part = obj.Adornee or obj.Parent
+                                    if part and part:IsA("BasePart") then
+                                        table.insert(upgradeParts, part)
+                                    elseif part and part:IsA("Model") and part.PrimaryPart then
+                                        table.insert(upgradeParts, part.PrimaryPart)
                                     end
                                 end
                             end
-                        elseif obj:IsA("BasePart") then
-                            local n = obj.Name:lower()
-                            local p = obj.Parent and obj.Parent.Name:lower() or ""
-                            if n:find("upgrade") or n:find("buy") or n:find("rod") or n:find("pad") or 
-                               p:find("upgrade") or p:find("shop") or p:find("merchant") then
-                                safeTouch(obj)
-                            end
-                        elseif obj:IsA("ProximityPrompt") then
-                            local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
-                            if act:find("upgrade") or act:find("buy") or act:find("purchase") or act:find("rod") then
-                                triggerPrompt(obj)
-                            end
-                        elseif obj:IsA("ClickDetector") then
-                            safeClick(obj)
                         end
+                    -- Check BasePart names & parent names
+                    elseif obj:IsA("BasePart") then
+                        local n = obj.Name:lower()
+                        local p = obj.Parent and obj.Parent.Name:lower() or ""
+                        if n:find("upgrade") or n:find("buy") or n:find("rod") or n:find("pad") or 
+                           n:find("luck") or n:find("speed") or n:find("merchant") or 
+                           p:find("upgrade") or p:find("shop") or p:find("merchant") or p:find("rods") or p:find("luck") then
+                            table.insert(upgradeParts, obj)
+                        end
+                    -- Check Prompts & ClickDetectors
+                    elseif obj:IsA("ProximityPrompt") then
+                        local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
+                        if act:find("upgrade") or act:find("buy") or act:find("purchase") or act:find("rod") or act:find("luck") then
+                            triggerPrompt(obj)
+                        end
+                    elseif obj:IsA("ClickDetector") then
+                        safeClick(obj)
                     end
                 end
 
-                -- C. Fire Upgrade Remotes
+                -- Sort by distance
+                local currentPos = root.Position
+                table.sort(upgradeParts, function(a, b)
+                    return (a.Position - currentPos).Magnitude < (b.Position - currentPos).Magnitude
+                end)
+
+                -- C. Step directly onto each upgrade pad and trigger prompts
+                for _, pad in ipairs(upgradeParts) do
+                    if not AutoUpgradeEnabled then break end
+                    if pad and pad.Parent and pad:IsA("BasePart") then
+                        safeTouch(pad)
+
+                        -- Step onto the pad
+                        root.CFrame = CFrame.new(pad.Position + Vector3.new(0, 2.2, 0))
+
+                        local prompt = pad:FindFirstChildWhichIsA("ProximityPrompt", true)
+                        if prompt then triggerPrompt(prompt) end
+
+                        local click = pad:FindFirstChildWhichIsA("ClickDetector", true)
+                        if click then safeClick(click) end
+
+                        task.wait(0.08)
+                    end
+                end
+
+                -- D. Fire All Upgrade Remotes
                 local upgradeRemotes = findRemotes({
-                    "upgrade", "buyrod", "purchaserod", "upgradeluck", "upgraderod", 
-                    "buyupgrade", "purchase", "buyspeed", "buycapacity"
+                    "upgrade", "upgrades", "buy", "purchase", "buyrod", "purchaserod", 
+                    "upgradeluck", "upgraderod", "buyupgrade", "luck", "speed", 
+                    "capacity", "backpack", "rod", "item", "stat", "levelup", "shop"
                 })
                 for _, remote in ipairs(upgradeRemotes) do
                     pcall(function()
@@ -536,17 +570,23 @@ task.spawn(function()
                             remote:FireServer(true)
                             remote:FireServer("Rod")
                             remote:FireServer("Luck")
+                            remote:FireServer("Speed")
+                            remote:FireServer("Capacity")
+                            remote:FireServer("Upgrade")
+                            remote:FireServer(1, true)
                         elseif remote:IsA("RemoteFunction") then
                             remote:InvokeServer()
                             remote:InvokeServer(1)
                             remote:InvokeServer(true)
+                            remote:InvokeServer("Rod")
+                            remote:InvokeServer("Luck")
                         end
                     end)
                 end
             end)
-            task.wait(0.4)
+            task.wait(0.2)
         else
-            task.wait(0.5)
+            task.wait(0.4)
         end
     end
 end)
@@ -559,6 +599,7 @@ task.spawn(function()
         if SellAllEnabled then
             pcall(function()
                 local root = getRoot()
+                if not root then return end
 
                 -- A. Click Sell / Sell All Buttons in PlayerGui
                 local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
@@ -575,35 +616,33 @@ task.spawn(function()
                 end
 
                 -- B. Touch Sell Pads & Sell Circles in Workspace
-                if root then
-                    for _, obj in ipairs(Workspace:GetDescendants()) do
-                        if not SellAllEnabled then break end
+                for _, obj in ipairs(Workspace:GetDescendants()) do
+                    if not SellAllEnabled then break end
 
-                        if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
-                            for _, txt in ipairs(obj:GetDescendants()) do
-                                if txt:IsA("TextLabel") and txt.Text ~= "" then
-                                    if txt.Text:lower():find("sell") then
-                                        local part = obj.Adornee or obj.Parent
-                                        if part and part:IsA("BasePart") then
-                                            safeTouch(part)
-                                        end
+                    if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
+                        for _, txt in ipairs(obj:GetDescendants()) do
+                            if txt:IsA("TextLabel") and txt.Text ~= "" then
+                                if txt.Text:lower():find("sell") then
+                                    local part = obj.Adornee or obj.Parent
+                                    if part and part:IsA("BasePart") then
+                                        safeTouch(part)
                                     end
                                 end
                             end
-                        elseif obj:IsA("BasePart") then
-                            local n = obj.Name:lower()
-                            local p = obj.Parent and obj.Parent.Name:lower() or ""
-                            if n:find("sell") or p:find("sell") or n:find("junkbuyer") or p:find("junkbuyer") then
-                                safeTouch(obj)
-                            end
-                        elseif obj:IsA("ProximityPrompt") then
-                            local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
-                            if act:find("sell") or act:find("junk") then
-                                triggerPrompt(obj)
-                            end
-                        elseif obj:IsA("ClickDetector") then
-                            safeClick(obj)
                         end
+                    elseif obj:IsA("BasePart") then
+                        local n = obj.Name:lower()
+                        local p = obj.Parent and obj.Parent.Name:lower() or ""
+                        if n:find("sell") or p:find("sell") or n:find("junkbuyer") or p:find("junkbuyer") then
+                            safeTouch(obj)
+                        end
+                    elseif obj:IsA("ProximityPrompt") then
+                        local act = (obj.ActionText .. " " .. obj.ObjectText):lower()
+                        if act:find("sell") or act:find("junk") then
+                            triggerPrompt(obj)
+                        end
+                    elseif obj:IsA("ClickDetector") then
+                        safeClick(obj)
                     end
                 end
 
@@ -635,12 +674,12 @@ task.spawn(function()
     end
 end)
 
-print("[ULTRA SCRIPT HUB] Fish For Junk Loaded Successfully!")
+print("[ULTRA SCRIPT HUB] Fish For Junk v2.0 Loaded Successfully!")
 
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "ULTRA SCRIPT HUB",
-        Text = "Fish For Junk Loaded!",
+        Text = "Fish For Junk v2.0 Ready!",
         Duration = 5
     })
 end)
