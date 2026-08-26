@@ -94,19 +94,27 @@ local function findRemotes(keywords)
     return found
 end
 
--- Find Nearest Enemy / Monster / Zombie (Deep workspace scan)
+-- Dynamic Remote Cache (Scanned once, zero lag)
+local CachedShootRemotes = {}
+local CachedReloadRemotes = {}
+
+local function refreshRemoteCache()
+    CachedShootRemotes = findRemotes({"shoot", "fire", "attack", "hit", "damage", "gun", "bullet", "raycast", "weapon"})
+    CachedReloadRemotes = findRemotes({"reload", "refill", "takeammo", "giveammo", "addammo"})
+end
+pcall(refreshRemoteCache)
+
+-- Find Nearest Enemy / Monster / Zombie (Fast & Lag-Free)
 local function getNearestEnemy(maxDistance)
     local root = getRoot()
     if not root then return nil, math.huge end
     
     local closestEnemy = nil
-    local shortestDist = maxDistance or 250
+    local shortestDist = maxDistance or 300
 
     local function checkModel(model)
         if not model or not model:IsA("Model") then return end
         if model == LocalPlayer.Character then return end
-        
-        -- Check if it's a real player
         if Players:GetPlayerFromCharacter(model) then return end
 
         local hum = model:FindFirstChildOfClass("Humanoid")
@@ -114,9 +122,7 @@ local function getNearestEnemy(maxDistance)
         
         if enemyRoot and ((hum and hum.Health > 0) or not hum) then
             local n = model.Name:lower()
-            local p = model.Parent and model.Parent.Name:lower() or ""
-            -- Make sure it's not base building blocks or player structures
-            if not n:find("base") and not n:find("block") and not n:find("wall") and not n:find("door") and not n:find("plot") then
+            if not n:find("base") and not n:find("block") and not n:find("wall") and not n:find("door") and not n:find("plot") and not n:find("stand") then
                 local dist = (enemyRoot.Position - root.Position).Magnitude
                 if dist < shortestDist then
                     shortestDist = dist
@@ -126,10 +132,17 @@ local function getNearestEnemy(maxDistance)
         end
     end
 
-    -- Deep scan all Workspace descendants
-    for _, obj in ipairs(Workspace:GetDescendants()) do
+    -- Fast scan Workspace children and common entity folders
+    for _, obj in ipairs(Workspace:GetChildren()) do
         if obj:IsA("Model") then
             checkModel(obj)
+        elseif obj:IsA("Folder") then
+            local n = obj.Name:lower()
+            if n:find("monster") or n:find("zombie") or n:find("enemy") or n:find("mob") or n:find("npc") or n:find("wave") or n:find("creature") or n:find("entity") then
+                for _, sub in ipairs(obj:GetChildren()) do
+                    checkModel(sub)
+                end
+            end
         end
     end
 
@@ -397,7 +410,6 @@ task.spawn(function()
                                 child.Value = 999999
                             end
                         elseif child:IsA("ModuleScript") then
-                            -- Attempt to modify GunSetting module tables
                             local n = child.Name:lower()
                             if n:find("setting") or n:find("config") or n:find("gun") then
                                 pcall(function()
@@ -447,8 +459,7 @@ task.spawn(function()
                 end
 
                 -- 3. Fire reload / refill remotes
-                local reloadRemotes = findRemotes({"reload", "refill", "takeammo", "giveammo", "addammo"})
-                for _, remote in ipairs(reloadRemotes) do
+                for _, remote in ipairs(CachedReloadRemotes) do
                     pcall(function()
                         if remote:IsA("RemoteEvent") then
                             remote:FireServer()
@@ -457,7 +468,7 @@ task.spawn(function()
                     end)
                 end
             end)
-            task.wait(0.15)
+            task.wait(0.3)
         else
             task.wait(0.5)
         end
@@ -465,7 +476,7 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  2. RAPID CONTINUOUS AUTO-SHOOT & SHOOT AURA
+--  2. RAPID CONTINUOUS AUTO-SHOOT & SHOOT AURA (Smooth 60 FPS)
 --==============================================================--
 task.spawn(function()
     while true do
@@ -475,7 +486,7 @@ task.spawn(function()
                 local tool = equipGun()
                 
                 -- 2. Search for any enemy/monster in range
-                local enemyPart, dist = getNearestEnemy(600)
+                local enemyPart, dist = getNearestEnemy(500)
                 
                 if enemyPart and enemyPart.Parent then
                     -- Aim camera at enemy
@@ -489,8 +500,7 @@ task.spawn(function()
                     end
 
                     -- Fire shoot/hit remotes with enemy target
-                    local shootRemotes = findRemotes({"shoot", "fire", "attack", "hit", "damage", "gun", "bullet", "raycast", "weapon"})
-                    for _, remote in ipairs(shootRemotes) do
+                    for _, remote in ipairs(CachedShootRemotes) do
                         pcall(function()
                             if remote:IsA("RemoteEvent") then
                                 remote:FireServer(enemyPart, enemyPart.Position)
@@ -503,13 +513,12 @@ task.spawn(function()
                         end)
                     end
                 else
-                    -- No enemy nearby: Still auto-shoot continuously straight ahead
+                    -- No enemy nearby: Still auto-shoot straight ahead
                     if tool then
                         tool:Activate()
                     end
 
-                    local shootRemotes = findRemotes({"shoot", "fire", "attack", "hit", "damage", "gun", "bullet", "raycast", "weapon"})
-                    for _, remote in ipairs(shootRemotes) do
+                    for _, remote in ipairs(CachedShootRemotes) do
                         pcall(function()
                             if remote:IsA("RemoteEvent") then
                                 remote:FireServer(Camera.CFrame.LookVector * 100)
@@ -519,15 +528,12 @@ task.spawn(function()
                     end
                 end
 
-                -- 3. Rapid click simulation
+                -- 3. Virtual click
                 if VirtualUser then
                     VirtualUser:Button1Down(Vector2.new(0, 0), Camera.CFrame)
                 end
-                if mouse1click then
-                    pcall(mouse1click)
-                end
             end)
-            task.wait(0.02)
+            task.wait(0.08)
         else
             task.wait(0.4)
         end
