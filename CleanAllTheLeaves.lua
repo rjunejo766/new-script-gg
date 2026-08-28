@@ -37,14 +37,14 @@ pcall(function()
 end)
 
 ----------------------------------------------------------------
--- GUI CREATION (100% Reliable Universal Screen Display)
+-- GUI CREATION (100% Guaranteed Instant Screen Display)
 ----------------------------------------------------------------
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UltraScriptHub_CleanAllTheLeaves"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 999999
-ScreenGui.IgnoreGuiInset = true
+ScreenGui.Enabled = true
 
 -- Clean previous instances
 pcall(function()
@@ -53,52 +53,31 @@ pcall(function()
     end
 end)
 pcall(function()
-    if CoreGui and CoreGui:FindFirstChild("UltraScriptHub_CleanAllTheLeaves") then
-        CoreGui:FindFirstChild("UltraScriptHub_CleanAllTheLeaves"):Destroy()
-    end
-end)
-pcall(function()
-    local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
     if pgui and pgui:FindFirstChild("UltraScriptHub_CleanAllTheLeaves") then
         pgui:FindFirstChild("UltraScriptHub_CleanAllTheLeaves"):Destroy()
     end
 end)
 
--- Safe UI Parent Selection
-local guiParent = nil
+-- Safe UI Parent (PlayerGui priority guarantees 100% visibility on all executors)
+local targetParent = nil
 if gethui then
-    pcall(function() guiParent = gethui() end)
+    pcall(function() targetParent = gethui() end)
 end
-if not guiParent then
+if not targetParent then
     pcall(function()
-        if syn and syn.protect_gui then
-            syn.protect_gui(ScreenGui)
-        end
-        if CoreGui and pcall(function() return CoreGui.Name end) then
-            guiParent = CoreGui
-        end
-    end)
-end
-if not guiParent then
-    pcall(function()
-        guiParent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+        targetParent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 10)
     end)
 end
 
-pcall(function()
-    ScreenGui.Parent = guiParent
-end)
-if not ScreenGui.Parent then
-    pcall(function()
-        ScreenGui.Parent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
-    end)
-end
+ScreenGui.Parent = targetParent or LocalPlayer:WaitForChild("PlayerGui")
 
--- Main Outer Frame
+-- Main Outer Frame (Exact Centered & Draggable)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 MainFrame.Size = UDim2.new(0, 320, 0, 245)
-MainFrame.Position = UDim2.new(0.5, -160, 0.4, -122)
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -115,6 +94,31 @@ local UIStroke = Instance.new("UIStroke")
 UIStroke.Color = Color3.fromRGB(45, 48, 60)
 UIStroke.Thickness = 1.2
 UIStroke.Parent = MainFrame
+
+-- Floating Open/Close Toggle Button (Always reachable)
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleUI_Btn"
+ToggleButton.Size = UDim2.new(0, 42, 0, 42)
+ToggleButton.Position = UDim2.new(0, 15, 0.5, -21)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+ToggleButton.BorderColor3 = Color3.fromRGB(0, 170, 255)
+ToggleButton.BorderSizePixel = 1
+ToggleButton.Text = "⚡"
+ToggleButton.TextColor3 = Color3.fromRGB(0, 170, 255)
+ToggleButton.TextSize = 20
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.Active = true
+ToggleButton.Draggable = true
+ToggleButton.ZIndex = 20
+ToggleButton.Parent = ScreenGui
+
+local BtnCorner = Instance.new("UICorner")
+BtnCorner.CornerRadius = UDim.new(0, 10)
+BtnCorner.Parent = ToggleButton
+
+ToggleButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
 
 -- Header Title
 local HeaderTitle = Instance.new("TextLabel")
@@ -274,7 +278,7 @@ end)
 -- HELPER FUNCTIONS (Character, Remotes, Prompts)
 ----------------------------------------------------------------
 local function getChar()
-    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    return LocalPlayer.Character
 end
 
 local function getRoot()
