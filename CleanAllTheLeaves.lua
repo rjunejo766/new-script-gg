@@ -12,11 +12,8 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 
-local LocalPlayer = Players.LocalPlayer
-while not LocalPlayer do
-    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
-    LocalPlayer = Players.LocalPlayer
-end
+local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
+
 
 -- Feature Toggle States (Exact 3 Features)
 local AutoFarmEnabled = false

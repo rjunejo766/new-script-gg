@@ -12,11 +12,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 
-local LocalPlayer = Players.LocalPlayer
-if not LocalPlayer then
-    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
-    LocalPlayer = Players.LocalPlayer
-end
+local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
 
 -- Feature Toggle States (Exact 3 Features)
 local BestPetSpawnerEnabled = false
@@ -35,7 +31,7 @@ pcall(function()
 end)
 
 ----------------------------------------------------------------
--- GUI CREATION (Guaranteed 100% Instant Screen Display)
+-- GUI CREATION (100% Guaranteed Screen Display)
 ----------------------------------------------------------------
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UltraScriptHub_AdoptMe"
@@ -44,45 +40,37 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 999999
 ScreenGui.IgnoreGuiInset = true
 
--- Clean previous instances safely
+-- Safe GUI Parent Resolution (PlayerGui priority)
+local parentGui = nil
+if gethui then
+    pcall(function() parentGui = gethui() end)
+end
+if not parentGui then
+    pcall(function()
+        parentGui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+    end)
+end
+if not parentGui then
+    parentGui = CoreGui
+end
+
+-- Clean previous instances
 pcall(function()
-    if gethui and gethui():FindFirstChild("UltraScriptHub_AdoptMe") then
-        gethui():FindFirstChild("UltraScriptHub_AdoptMe"):Destroy()
+    if parentGui and parentGui:FindFirstChild("UltraScriptHub_AdoptMe") then
+        parentGui:FindFirstChild("UltraScriptHub_AdoptMe"):Destroy()
     end
-end)
-pcall(function()
     if CoreGui and CoreGui:FindFirstChild("UltraScriptHub_AdoptMe") then
         CoreGui:FindFirstChild("UltraScriptHub_AdoptMe"):Destroy()
     end
 end)
-pcall(function()
-    local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
-    if pgui and pgui:FindFirstChild("UltraScriptHub_AdoptMe") then
-        pgui:FindFirstChild("UltraScriptHub_AdoptMe"):Destroy()
-    end
-end)
 
--- Guaranteed PlayerGui / gethui Parent Resolution
-local guiParent = nil
-if gethui then
-    pcall(function() guiParent = gethui() end)
-end
-if not guiParent then
-    pcall(function()
-        guiParent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
-    end)
-end
-if not guiParent then
-    pcall(function() guiParent = CoreGui end)
-end
-
-ScreenGui.Parent = guiParent
+ScreenGui.Parent = parentGui
 
 -- Main Outer Frame (Exact centered & visible)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 320, 0, 245)
-MainFrame.Position = UDim2.new(0.5, -160, 0.5, -122)
+MainFrame.Position = UDim2.new(0.5, -160, 0.4, -122)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
