@@ -12,8 +12,13 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 
-local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
-
+local LocalPlayer = Players.LocalPlayer
+if not LocalPlayer then
+    repeat
+        task.wait()
+        LocalPlayer = Players.LocalPlayer
+    until LocalPlayer
+end
 
 -- Feature Toggle States (Exact 4 Features)
 local AutoUpgradeEnabled = false
@@ -67,14 +72,28 @@ if gethui then
 end
 if not guiParent then
     pcall(function()
-        guiParent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+        if syn and syn.protect_gui then
+            syn.protect_gui(ScreenGui)
+        end
+        if CoreGui and pcall(function() return CoreGui.Name end) then
+            guiParent = CoreGui
+        end
     end)
 end
 if not guiParent then
-    pcall(function() guiParent = CoreGui end)
+    pcall(function()
+        guiParent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+    end)
 end
 
-ScreenGui.Parent = guiParent
+pcall(function()
+    ScreenGui.Parent = guiParent
+end)
+if not ScreenGui.Parent then
+    pcall(function()
+        ScreenGui.Parent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+    end)
+end
 
 -- Main Outer Frame (Compact & Centered for 4 Features)
 local MainFrame = Instance.new("Frame")
@@ -549,4 +568,13 @@ task.spawn(function()
             end)
         end
     end
+end)
+
+-- Send loaded notification
+pcall(function()
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Ultra Script Hub",
+        Text = "Throw An Anime Coin loaded successfully!",
+        Duration = 3
+    })
 end)
