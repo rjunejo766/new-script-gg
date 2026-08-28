@@ -1,15 +1,22 @@
--- ULTRA SCRIPT HUB - Made by Junejo
--- Game: Adopt Me!
--- Game Link: https://www.roblox.com/games/920587237/Adopt-Me
--- Features: Best Pet Spawner, Trade Scam, Auto Farm
+--==============================================================--
+--  ULTRA SCRIPT HUB - Made by Junejo
+--  Game: Adopt Me!
+--  Game Link: https://www.roblox.com/games/920587237/Adopt-Me
+--  Features: Best Pet Spawner, Trade Scam, Auto Farm
+--==============================================================--
 
 local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
+if not LocalPlayer then
+    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+    LocalPlayer = Players.LocalPlayer
+end
 
 -- Feature Toggle States (Exact 3 Features)
 local BestPetSpawnerEnabled = false
@@ -28,57 +35,74 @@ pcall(function()
 end)
 
 ----------------------------------------------------------------
--- GUI Creation (Pixel-Perfect ULTRA SCRIPT HUB Theme)
+-- GUI CREATION (Guaranteed 100% Instant Screen Display)
 ----------------------------------------------------------------
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UltraScriptHub_AdoptMe"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.DisplayOrder = 999999
+ScreenGui.IgnoreGuiInset = true
 
--- Clean previous instance
+-- Clean previous instances safely
 pcall(function()
     if gethui and gethui():FindFirstChild("UltraScriptHub_AdoptMe") then
         gethui():FindFirstChild("UltraScriptHub_AdoptMe"):Destroy()
     end
+end)
+pcall(function()
     if CoreGui and CoreGui:FindFirstChild("UltraScriptHub_AdoptMe") then
         CoreGui:FindFirstChild("UltraScriptHub_AdoptMe"):Destroy()
     end
-    if LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("UltraScriptHub_AdoptMe") then
-        LocalPlayer.PlayerGui:FindFirstChild("UltraScriptHub_AdoptMe"):Destroy()
+end)
+pcall(function()
+    local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if pgui and pgui:FindFirstChild("UltraScriptHub_AdoptMe") then
+        pgui:FindFirstChild("UltraScriptHub_AdoptMe"):Destroy()
     end
 end)
 
--- Safe GUI Parent Resolution
-local parentGui = nil
+-- Guaranteed PlayerGui / gethui Parent Resolution
+local guiParent = nil
 if gethui then
-    pcall(function() parentGui = gethui() end)
-elseif CoreGui then
-    pcall(function() parentGui = CoreGui end)
+    pcall(function() guiParent = gethui() end)
 end
-if not parentGui and LocalPlayer then
-    parentGui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+if not guiParent then
+    pcall(function()
+        guiParent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+    end)
+end
+if not guiParent then
+    pcall(function() guiParent = CoreGui end)
 end
 
-ScreenGui.Parent = parentGui or CoreGui
+ScreenGui.Parent = guiParent
 
--- Main Outer Frame
+-- Main Outer Frame (Exact centered & visible)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 320, 0, 245)
-MainFrame.Position = UDim2.new(0.5, -160, 0.35, -122)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -122)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
+MainFrame.Visible = true
+MainFrame.ZIndex = 10
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 10)
 UICorner.Parent = MainFrame
 
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(45, 48, 60)
+UIStroke.Thickness = 1.2
+UIStroke.Parent = MainFrame
+
 -- Header Title
 local HeaderTitle = Instance.new("TextLabel")
-HeaderTitle.Size = UDim2.new(1, -40, 0, 35)
+HeaderTitle.Size = UDim2.new(1, -50, 0, 35)
 HeaderTitle.Position = UDim2.new(0, 16, 0, 10)
 HeaderTitle.BackgroundTransparency = 1
 HeaderTitle.Text = "ADOPT ME!"
@@ -86,6 +110,7 @@ HeaderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 HeaderTitle.TextSize = 14
 HeaderTitle.Font = Enum.Font.SourceSansBold
 HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
+HeaderTitle.ZIndex = 11
 HeaderTitle.Parent = MainFrame
 
 -- Close Button (X)
@@ -97,6 +122,7 @@ CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
 CloseBtn.TextSize = 16
 CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.ZIndex = 11
 CloseBtn.Parent = MainFrame
 
 CloseBtn.MouseButton1Click:Connect(function()
@@ -108,6 +134,7 @@ local Container = Instance.new("Frame")
 Container.Size = UDim2.new(1, -32, 0, 125)
 Container.Position = UDim2.new(0, 16, 0, 50)
 Container.BackgroundTransparency = 1
+Container.ZIndex = 11
 Container.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
@@ -124,6 +151,7 @@ FooterTitle.Text = "ULTRA SCRIPT HUB"
 FooterTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 FooterTitle.TextSize = 17
 FooterTitle.Font = Enum.Font.SourceSansBold
+FooterTitle.ZIndex = 11
 FooterTitle.Parent = MainFrame
 
 local FooterSub = Instance.new("TextLabel")
@@ -134,6 +162,7 @@ FooterSub.Text = "Made by Junejo"
 FooterSub.TextColor3 = Color3.fromRGB(150, 150, 150)
 FooterSub.TextSize = 13
 FooterSub.Font = Enum.Font.SourceSans
+FooterSub.ZIndex = 11
 FooterSub.Parent = MainFrame
 
 -- Checkbox Row Generator
@@ -141,6 +170,7 @@ local function CreateToggleRow(name, callback)
     local Row = Instance.new("Frame")
     Row.Size = UDim2.new(1, 0, 0, 28)
     Row.BackgroundTransparency = 1
+    Row.ZIndex = 12
     Row.Parent = Container
 
     local Label = Instance.new("TextLabel")
@@ -151,6 +181,7 @@ local function CreateToggleRow(name, callback)
     Label.TextSize = 14
     Label.Font = Enum.Font.SourceSansBold
     Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.ZIndex = 13
     Label.Parent = Row
 
     local Checkbox = Instance.new("TextButton")
@@ -160,6 +191,7 @@ local function CreateToggleRow(name, callback)
     Checkbox.BorderColor3 = Color3.fromRGB(45, 48, 60)
     Checkbox.Text = ""
     Checkbox.AutoButtonColor = false
+    Checkbox.ZIndex = 13
     Checkbox.Parent = Row
 
     local BoxCorner = Instance.new("UICorner")
@@ -171,6 +203,7 @@ local function CreateToggleRow(name, callback)
     CheckIcon.Position = UDim2.new(0, 3, 0, 3)
     CheckIcon.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
     CheckIcon.Visible = false
+    CheckIcon.ZIndex = 14
     CheckIcon.Parent = Checkbox
 
     local CheckIconCorner = Instance.new("UICorner")
@@ -207,7 +240,7 @@ local function CreateToggleRow(name, callback)
 end
 
 ----------------------------------------------------------------
--- ADD EXACT 3 FEATURES TO GUI
+-- ADD EXACT 3 REQUESTED FEATURES TO GUI
 ----------------------------------------------------------------
 CreateToggleRow("Best Pet Spawner", function(state)
     BestPetSpawnerEnabled = state
@@ -222,14 +255,14 @@ CreateToggleRow("Auto Farm", function(state)
 end)
 
 ----------------------------------------------------------------
--- HELPER FUNCTIONS (Character, Inventory, Remotes)
+-- HELPER FUNCTIONS (Safe Character & Remotes)
 ----------------------------------------------------------------
 local function getChar()
-    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    return LocalPlayer.Character
 end
 
 local function getRoot()
-    local char = getChar()
+    local char = LocalPlayer.Character
     return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char.PrimaryPart)
 end
 
