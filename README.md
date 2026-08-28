@@ -166,4 +166,20 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 2. 🤝 **Trade Scam**: Automated instant trade lock, auto-accept spoofing, and high-tier clone offer injector.
 3. 🏠 **Auto Farm**: Automatically completes all pet and baby needs (sleep, shower, hungry, thirsty, school, playground, salon, sick, daily rewards & bucks).
 
+---
+
+## 🎮 12. Clean all the leaves
+- **Game Link**: [https://www.roblox.com/games/92637789841354/Clean-all-the-leaves](https://www.roblox.com/games/92637789841354/Clean-all-the-leaves)
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/CleanAllTheLeaves.lua?t=" .. tostring(os.time())))()
+```
+
+### ✨ Features (Exact 3 Features)
+1. 🧹 **Auto Farm**: Automatically equips tools, activates rakes/blowers, sweeps leaves, and cleans map-wide leaf piles.
+2. ⚡ **Instant Pickup**: Instantly triggers all proximity prompts without delay and collects all dropped items & leaf tokens.
+3. 🚪 **Auto Sell & Escape**: Automatically deposits and sells all collected leaves, exchanges for cash, and activates escape/exit doors.
+
+
 
