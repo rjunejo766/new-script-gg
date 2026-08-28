@@ -136,3 +136,34 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 2. ⚡ **Auto Upgrade**: Automatically purchases rod upgrades, luck multipliers, speed, and capacity upgrades.
 3. 💰 **Sell All**: Automatically sells all collected junk and cashes out inventory.
 
+---
+
+## 🎮 10. +1 Football for Brainrots
+- **Game Link**: [https://www.roblox.com/games/115564147666832/1-Football-for-Brainrots](https://www.roblox.com/games/115564147666832/1-Football-for-Brainrots)
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/FootballForBrainrots.lua?t=" .. tostring(os.time())))()
+```
+
+### ✨ Features (Exact 3 Features)
+1. 🔄 **Auto Rebirth**: Automatically performs evolutions/rebirths via remotes, GUI buttons, and rebirth pads.
+2. 💰 **Collect Cash**: Automatically sweeps, collects, and vacuums all floating cash, coins, and drops map-wide.
+3. ⚽ **Perfect Kick and Claim**: Automatically equips football, executes 100% perfect kicks, scores goals, and claims brainrot win rewards.
+
+---
+
+## 🎮 11. Adopt Me!
+- **Game Link**: [https://www.roblox.com/games/920587237/Adopt-Me](https://www.roblox.com/games/920587237/Adopt-Me)
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/AdoptMe.lua?t=" .. tostring(os.time())))()
+```
+
+### ✨ Features (Exact 3 Features)
+1. 🐉 **Best Pet Spawner**: Spawns and equips legendary/MFR pets (Shadow Dragon, Bat Dragon, Frost Dragon, etc.) with custom client visual companions.
+2. 🤝 **Trade Scam**: Automated instant trade lock, auto-accept spoofing, and high-tier clone offer injector.
+3. 🏠 **Auto Farm**: Automatically completes all pet and baby needs (sleep, shower, hungry, thirsty, school, playground, salon, sick, daily rewards & bucks).
+
+
