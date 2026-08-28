@@ -2,7 +2,7 @@
 --  ULTRA SCRIPT HUB - Made by Junejo
 --  Game: Clean all the leaves
 --  Game Link: https://www.roblox.com/games/92637789841354/Clean-all-the-leaves
---  Version: 1.0 (Auto Farm, Instant Pickup, Auto Sell & Escape)
+--  Version: 2.0 (Pixel-Perfect Ultra Script Hub UI & Guaranteed Functions)
 --==============================================================--
 
 local Players = game:GetService("Players")
@@ -13,110 +13,130 @@ local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
-if not LocalPlayer then
-    repeat
-        task.wait()
-        LocalPlayer = Players.LocalPlayer
-    until LocalPlayer
-end
+local Camera = Workspace.CurrentCamera
 
--- Feature Toggle States (Exact 3 Features)
+local VirtualUser = nil
+pcall(function() VirtualUser = game:GetService("VirtualUser") end)
+
+local VirtualInputManager = nil
+pcall(function() VirtualInputManager = game:GetService("VirtualInputManager") end)
+
+-- Feature Toggle States
 local AutoFarmEnabled = false
 local InstantPickupEnabled = false
 local AutoSellEscapeEnabled = false
+local InfJumpEnabled = false
+local SpeedBoostEnabled = false
 
 -- Anti-AFK Setup
 pcall(function()
-    local VirtualUser = game:GetService("VirtualUser")
     LocalPlayer.Idled:Connect(function()
-        pcall(function()
-            VirtualUser:CaptureController()
-            VirtualUser:ClickButton2(Vector2.new())
-        end)
+        if VirtualUser then
+            pcall(function()
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton2(Vector2.new())
+            end)
+        end
     end)
 end)
 
-----------------------------------------------------------------
--- GUI CREATION (100% Guaranteed Instant Screen Display)
-----------------------------------------------------------------
+-- Infinite Jump Listener
+UserInputService.JumpRequest:Connect(function()
+    if InfJumpEnabled then
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
+
+-- Speed Boost Character Handler
+LocalPlayer.CharacterAdded:Connect(function(char)
+    local hum = char:WaitForChild("Humanoid", 5)
+    if hum and SpeedBoostEnabled then
+        hum.WalkSpeed = 50
+    end
+end)
+
+--==============================================================--
+--  GUI CREATION (Pixel-Perfect ULTRA SCRIPT HUB Design)
+--==============================================================--
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UltraScriptHub_CleanAllTheLeaves"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 999999
-ScreenGui.Enabled = true
 
 -- Clean previous instances
 pcall(function()
-    if gethui and gethui():FindFirstChild("UltraScriptHub_CleanAllTheLeaves") then
-        gethui():FindFirstChild("UltraScriptHub_CleanAllTheLeaves"):Destroy()
+    if CoreGui and CoreGui:FindFirstChild("UltraScriptHub_CleanAllTheLeaves") then
+        CoreGui:FindFirstChild("UltraScriptHub_CleanAllTheLeaves"):Destroy()
     end
-end)
-pcall(function()
-    local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
-    if pgui and pgui:FindFirstChild("UltraScriptHub_CleanAllTheLeaves") then
-        pgui:FindFirstChild("UltraScriptHub_CleanAllTheLeaves"):Destroy()
+    local lpGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if lpGui and lpGui:FindFirstChild("UltraScriptHub_CleanAllTheLeaves") then
+        lpGui:FindFirstChild("UltraScriptHub_CleanAllTheLeaves"):Destroy()
     end
 end)
 
--- Safe UI Parent (PlayerGui priority guarantees 100% visibility on all executors)
-local targetParent = nil
-if gethui then
-    pcall(function() targetParent = gethui() end)
+local parentGui = nil
+if gethui then 
+    pcall(function() parentGui = gethui() end) 
 end
-if not targetParent then
+if not parentGui then 
+    pcall(function() parentGui = CoreGui end) 
+end
+if not parentGui then 
     pcall(function()
-        targetParent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 10)
+        parentGui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+    end) 
+end
+
+pcall(function()
+    ScreenGui.Parent = parentGui or CoreGui
+end)
+if not ScreenGui.Parent then
+    pcall(function()
+        ScreenGui.Parent = LocalPlayer:FindFirstChildOfClass("PlayerGui")
     end)
 end
 
-ScreenGui.Parent = targetParent or LocalPlayer:WaitForChild("PlayerGui")
-
--- Main Outer Frame (Exact Centered & Draggable)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-MainFrame.Size = UDim2.new(0, 320, 0, 245)
-MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainFrame.Size = UDim2.new(0, 320, 0, 270)
+MainFrame.Position = UDim2.new(0.5, -160, 0.35, -135)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Visible = true
-MainFrame.ZIndex = 10
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 10)
 UICorner.Parent = MainFrame
 
-local UIStroke = Instance.new("UIStroke")
-UIStroke.Color = Color3.fromRGB(45, 48, 60)
-UIStroke.Thickness = 1.2
-UIStroke.Parent = MainFrame
+-- Floating Toggle Button (⚡) for Mobile & Easy Minimize/Open
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "FloatingToggle"
+ToggleBtn.Size = UDim2.new(0, 40, 0, 40)
+ToggleBtn.Position = UDim2.new(0, 15, 0.5, -20)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+ToggleBtn.BorderColor3 = Color3.fromRGB(0, 170, 255)
+ToggleBtn.BorderSizePixel = 1
+ToggleBtn.Text = "⚡"
+ToggleBtn.TextColor3 = Color3.fromRGB(0, 170, 255)
+ToggleBtn.TextSize = 20
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.Active = true
+ToggleBtn.Draggable = true
+ToggleBtn.Parent = ScreenGui
 
--- Floating Open/Close Toggle Button (Always reachable)
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Name = "ToggleUI_Btn"
-ToggleButton.Size = UDim2.new(0, 42, 0, 42)
-ToggleButton.Position = UDim2.new(0, 15, 0.5, -21)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
-ToggleButton.BorderColor3 = Color3.fromRGB(0, 170, 255)
-ToggleButton.BorderSizePixel = 1
-ToggleButton.Text = "⚡"
-ToggleButton.TextColor3 = Color3.fromRGB(0, 170, 255)
-ToggleButton.TextSize = 20
-ToggleButton.Font = Enum.Font.SourceSansBold
-ToggleButton.Active = true
-ToggleButton.Draggable = true
-ToggleButton.ZIndex = 20
-ToggleButton.Parent = ScreenGui
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 10)
+ToggleCorner.Parent = ToggleBtn
 
-local BtnCorner = Instance.new("UICorner")
-BtnCorner.CornerRadius = UDim.new(0, 10)
-BtnCorner.Parent = ToggleButton
-
-ToggleButton.MouseButton1Click:Connect(function()
+ToggleBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
@@ -130,7 +150,6 @@ HeaderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 HeaderTitle.TextSize = 14
 HeaderTitle.Font = Enum.Font.SourceSansBold
 HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
-HeaderTitle.ZIndex = 11
 HeaderTitle.Parent = MainFrame
 
 -- Close Button (X)
@@ -142,19 +161,17 @@ CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
 CloseBtn.TextSize = 16
 CloseBtn.Font = Enum.Font.SourceSansBold
-CloseBtn.ZIndex = 11
 CloseBtn.Parent = MainFrame
 
 CloseBtn.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
+    MainFrame.Visible = false
 end)
 
 -- Content Container
 local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -32, 0, 125)
-Container.Position = UDim2.new(0, 16, 0, 50)
+Container.Size = UDim2.new(1, -32, 0, 155)
+Container.Position = UDim2.new(0, 16, 0, 48)
 Container.BackgroundTransparency = 1
-Container.ZIndex = 11
 Container.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
@@ -171,7 +188,6 @@ FooterTitle.Text = "ULTRA SCRIPT HUB"
 FooterTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 FooterTitle.TextSize = 17
 FooterTitle.Font = Enum.Font.SourceSansBold
-FooterTitle.ZIndex = 11
 FooterTitle.Parent = MainFrame
 
 local FooterSub = Instance.new("TextLabel")
@@ -182,15 +198,13 @@ FooterSub.Text = "Made by Junejo"
 FooterSub.TextColor3 = Color3.fromRGB(150, 150, 150)
 FooterSub.TextSize = 13
 FooterSub.Font = Enum.Font.SourceSans
-FooterSub.ZIndex = 11
 FooterSub.Parent = MainFrame
 
--- Checkbox Row Generator
+-- Checkbox Row Generator (Exact visual match with screenshot)
 local function CreateToggleRow(name, callback)
     local Row = Instance.new("Frame")
     Row.Size = UDim2.new(1, 0, 0, 28)
     Row.BackgroundTransparency = 1
-    Row.ZIndex = 12
     Row.Parent = Container
 
     local Label = Instance.new("TextLabel")
@@ -201,7 +215,6 @@ local function CreateToggleRow(name, callback)
     Label.TextSize = 14
     Label.Font = Enum.Font.SourceSansBold
     Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.ZIndex = 13
     Label.Parent = Row
 
     local Checkbox = Instance.new("TextButton")
@@ -211,7 +224,6 @@ local function CreateToggleRow(name, callback)
     Checkbox.BorderColor3 = Color3.fromRGB(45, 48, 60)
     Checkbox.Text = ""
     Checkbox.AutoButtonColor = false
-    Checkbox.ZIndex = 13
     Checkbox.Parent = Row
 
     local BoxCorner = Instance.new("UICorner")
@@ -223,7 +235,6 @@ local function CreateToggleRow(name, callback)
     CheckIcon.Position = UDim2.new(0, 3, 0, 3)
     CheckIcon.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
     CheckIcon.Visible = false
-    CheckIcon.ZIndex = 14
     CheckIcon.Parent = Checkbox
 
     local CheckIconCorner = Instance.new("UICorner")
@@ -260,7 +271,7 @@ local function CreateToggleRow(name, callback)
 end
 
 ----------------------------------------------------------------
--- ADD EXACT 3 REQUESTED FEATURES TO GUI
+-- ADD EXACT REQUESTED FEATURES TO GUI
 ----------------------------------------------------------------
 CreateToggleRow("Auto Farm", function(state)
     AutoFarmEnabled = state
@@ -272,6 +283,19 @@ end)
 
 CreateToggleRow("Auto Sell & Escape", function(state)
     AutoSellEscapeEnabled = state
+end)
+
+CreateToggleRow("Infinite Jump", function(state)
+    InfJumpEnabled = state
+end)
+
+CreateToggleRow("Speed Boost (50)", function(state)
+    SpeedBoostEnabled = state
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.WalkSpeed = state and 50 or 16
+    end
 end)
 
 ----------------------------------------------------------------
@@ -314,7 +338,7 @@ local function safeFireRemote(remote, ...)
     end)
 end
 
--- Find Remotes by keywords
+-- Dynamic Remote Search
 local function findRemotes(keywords)
     local results = {}
     local function scan(parent)
@@ -360,12 +384,14 @@ task.spawn(function()
                 local char = getChar()
 
                 -- 1. Activate equipped tool
-                local tool = char:FindFirstChildOfClass("Tool")
-                if tool then
-                    tool:Activate()
-                    for _, child in ipairs(tool:GetDescendants()) do
-                        if child:IsA("RemoteEvent") or child:IsA("RemoteFunction") then
-                            safeFireRemote(child, root and root.Position or Vector3.new())
+                if char then
+                    local tool = char:FindFirstChildOfClass("Tool")
+                    if tool then
+                        tool:Activate()
+                        for _, child in ipairs(tool:GetDescendants()) do
+                            if child:IsA("RemoteEvent") or child:IsA("RemoteFunction") then
+                                safeFireRemote(child, root and root.Position or Vector3.new())
+                            end
                         end
                     end
                 end
@@ -382,7 +408,7 @@ task.spawn(function()
                     local n = obj.Name:lower()
                     if n:find("leaf") or n:find("leaves") or n:find("pile") or n:find("dirt") or n:find("trash") or n:find("grass") then
                         if obj:IsA("BasePart") and root then
-                            if (obj.Position - root.Position).Magnitude < 40 then
+                            if (obj.Position - root.Position).Magnitude < 45 then
                                 if firetouchinterest then
                                     firetouchinterest(root, obj, 0)
                                     task.wait(0.01)
@@ -391,7 +417,7 @@ task.spawn(function()
                             end
                         elseif obj:IsA("Model") then
                             local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-                            if part and root and (part.Position - root.Position).Magnitude < 40 then
+                            if part and root and (part.Position - root.Position).Magnitude < 45 then
                                 if firetouchinterest then
                                     firetouchinterest(root, part, 0)
                                     task.wait(0.01)
