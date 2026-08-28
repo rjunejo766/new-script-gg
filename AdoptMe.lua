@@ -1,28 +1,15 @@
---==============================================================--
---  ULTRA SCRIPT HUB - Made by Junejo
---  Game: Adopt Me!
---  Game Link: https://www.roblox.com/games/920587237/Adopt-Me
---  Version: 1.1 (Best Pet Spawner, Trade Scam, Auto Farm)
---==============================================================--
+-- ULTRA SCRIPT HUB - Made by Junejo
+-- Game: Adopt Me!
+-- Game Link: https://www.roblox.com/games/920587237/Adopt-Me
+-- Features: Best Pet Spawner, Trade Scam, Auto Farm
 
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
-while not LocalPlayer do
-    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
-    LocalPlayer = Players.LocalPlayer
-end
-
-local Camera = Workspace.CurrentCamera
-
-local VirtualUser = nil
-pcall(function() VirtualUser = game:GetService("VirtualUser") end)
 
 -- Feature Toggle States (Exact 3 Features)
 local BestPetSpawnerEnabled = false
@@ -31,141 +18,74 @@ local AutoFarmEnabled = false
 
 -- Anti-AFK Setup
 pcall(function()
+    local VirtualUser = game:GetService("VirtualUser")
     LocalPlayer.Idled:Connect(function()
-        if VirtualUser then
-            pcall(function()
-                VirtualUser:CaptureController()
-                VirtualUser:ClickButton2(Vector2.new())
-            end)
-        end
+        pcall(function()
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton2(Vector2.new())
+        end)
     end)
 end)
 
---==============================================================--
---  GUI CREATION (100% Universal Compatibility across all Executors)
---==============================================================--
-local GuiName = "UltraScriptHub_AdoptMe"
-
--- Clean old instances
-pcall(function()
-    if gethui and gethui():FindFirstChild(GuiName) then
-        gethui():FindFirstChild(GuiName):Destroy()
-    end
-end)
-pcall(function()
-    if CoreGui and CoreGui:FindFirstChild(GuiName) then
-        CoreGui:FindFirstChild(GuiName):Destroy()
-    end
-end)
-pcall(function()
-    local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
-    if pgui and pgui:FindFirstChild(GuiName) then
-        pgui:FindFirstChild(GuiName):Destroy()
-    end
-end)
-
+----------------------------------------------------------------
+-- GUI Creation (Pixel-Perfect ULTRA SCRIPT HUB Theme)
+----------------------------------------------------------------
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = GuiName
+ScreenGui.Name = "UltraScriptHub_AdoptMe"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.DisplayOrder = 999999
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.Enabled = true
 
--- Universal safe parenting
-local parented = false
+-- Clean previous instance
+pcall(function()
+    if gethui and gethui():FindFirstChild("UltraScriptHub_AdoptMe") then
+        gethui():FindFirstChild("UltraScriptHub_AdoptMe"):Destroy()
+    end
+    if CoreGui and CoreGui:FindFirstChild("UltraScriptHub_AdoptMe") then
+        CoreGui:FindFirstChild("UltraScriptHub_AdoptMe"):Destroy()
+    end
+    if LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("UltraScriptHub_AdoptMe") then
+        LocalPlayer.PlayerGui:FindFirstChild("UltraScriptHub_AdoptMe"):Destroy()
+    end
+end)
+
+-- Safe GUI Parent Resolution
+local parentGui = nil
 if gethui then
-    pcall(function()
-        ScreenGui.Parent = gethui()
-        parented = (ScreenGui.Parent ~= nil)
-    end)
+    pcall(function() parentGui = gethui() end)
+elseif CoreGui then
+    pcall(function() parentGui = CoreGui end)
+end
+if not parentGui and LocalPlayer then
+    parentGui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
 end
 
-if not parented then
-    pcall(function()
-        if syn and syn.protect_gui then
-            syn.protect_gui(ScreenGui)
-        end
-        ScreenGui.Parent = CoreGui
-        parented = (ScreenGui.Parent ~= nil)
-    end)
-end
+ScreenGui.Parent = parentGui or CoreGui
 
-if not parented or not ScreenGui.Parent then
-    pcall(function()
-        local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
-        ScreenGui.Parent = pgui
-        parented = (ScreenGui.Parent ~= nil)
-    end)
-end
-
--- Fallback parent
-if not ScreenGui.Parent then
-    pcall(function() ScreenGui.Parent = CoreGui end)
-end
-
--- Floating Open/Close Toggle Button (Always visible on screen)
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Name = "OpenToggleButton"
-ToggleButton.Size = UDim2.new(0, 110, 0, 32)
-ToggleButton.Position = UDim2.new(0, 15, 0.4, 0)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
-ToggleButton.BorderColor3 = Color3.fromRGB(0, 170, 255)
-ToggleButton.BorderSizePixel = 1
-ToggleButton.Text = "⚡ ULTRA HUB"
-ToggleButton.TextColor3 = Color3.fromRGB(0, 200, 255)
-ToggleButton.TextSize = 13
-ToggleButton.Font = Enum.Font.SourceSansBold
-ToggleButton.Active = true
-ToggleButton.Draggable = true
-ToggleButton.ZIndex = 100
-ToggleButton.Parent = ScreenGui
-
-local ToggleBtnCorner = Instance.new("UICorner")
-ToggleBtnCorner.CornerRadius = UDim.new(0, 8)
-ToggleBtnCorner.Parent = ToggleButton
-
--- Main UI Frame
+-- Main Outer Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 250)
-MainFrame.Position = UDim2.new(0.5, -160, 0.4, -125)
+MainFrame.Size = UDim2.new(0, 320, 0, 245)
+MainFrame.Position = UDim2.new(0.5, -160, 0.35, -122)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.Visible = true
-MainFrame.ZIndex = 10
 MainFrame.Parent = ScreenGui
 
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 10)
-MainCorner.Parent = MainFrame
-
-local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = Color3.fromRGB(40, 45, 55)
-MainStroke.Thickness = 1.2
-MainStroke.Parent = MainFrame
-
--- Toggle Button Click Action
-ToggleButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
-ToggleButton.TouchTap:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
 
 -- Header Title
 local HeaderTitle = Instance.new("TextLabel")
-HeaderTitle.Size = UDim2.new(1, -50, 0, 35)
+HeaderTitle.Size = UDim2.new(1, -40, 0, 35)
 HeaderTitle.Position = UDim2.new(0, 16, 0, 10)
 HeaderTitle.BackgroundTransparency = 1
 HeaderTitle.Text = "ADOPT ME!"
 HeaderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-HeaderTitle.TextSize = 15
+HeaderTitle.TextSize = 14
 HeaderTitle.Font = Enum.Font.SourceSansBold
 HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
-HeaderTitle.ZIndex = 11
 HeaderTitle.Parent = MainFrame
 
 -- Close Button (X)
@@ -177,39 +97,33 @@ CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
 CloseBtn.TextSize = 16
 CloseBtn.Font = Enum.Font.SourceSansBold
-CloseBtn.ZIndex = 11
 CloseBtn.Parent = MainFrame
 
 CloseBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
-end)
-CloseBtn.TouchTap:Connect(function()
-    MainFrame.Visible = false
+    ScreenGui:Destroy()
 end)
 
 -- Content Container
 local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -32, 0, 130)
-Container.Position = UDim2.new(0, 16, 0, 48)
+Container.Size = UDim2.new(1, -32, 0, 125)
+Container.Position = UDim2.new(0, 16, 0, 50)
 Container.BackgroundTransparency = 1
-Container.ZIndex = 11
 Container.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, 8)
+UIListLayout.Padding = UDim.new(0, 7)
 UIListLayout.Parent = Container
 
 -- Footer Titles
 local FooterTitle = Instance.new("TextLabel")
-FooterTitle.Size = UDim2.new(1, 0, 0, 20)
-FooterTitle.Position = UDim2.new(0, 0, 1, -42)
+FooterTitle.Size = UDim2.new(1, 0, 0, 22)
+FooterTitle.Position = UDim2.new(0, 0, 1, -44)
 FooterTitle.BackgroundTransparency = 1
 FooterTitle.Text = "ULTRA SCRIPT HUB"
 FooterTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-FooterTitle.TextSize = 16
+FooterTitle.TextSize = 17
 FooterTitle.Font = Enum.Font.SourceSansBold
-FooterTitle.ZIndex = 11
 FooterTitle.Parent = MainFrame
 
 local FooterSub = Instance.new("TextLabel")
@@ -218,61 +132,45 @@ FooterSub.Position = UDim2.new(0, 0, 1, -22)
 FooterSub.BackgroundTransparency = 1
 FooterSub.Text = "Made by Junejo"
 FooterSub.TextColor3 = Color3.fromRGB(150, 150, 150)
-FooterSub.TextSize = 12
+FooterSub.TextSize = 13
 FooterSub.Font = Enum.Font.SourceSans
-FooterSub.ZIndex = 11
 FooterSub.Parent = MainFrame
 
 -- Checkbox Row Generator
 local function CreateToggleRow(name, callback)
-    local Row = Instance.new("TextButton")
-    Row.Size = UDim2.new(1, 0, 0, 30)
-    Row.BackgroundColor3 = Color3.fromRGB(22, 24, 30)
-    Row.BorderSizePixel = 0
-    Row.Text = ""
-    Row.AutoButtonColor = false
-    Row.ZIndex = 12
+    local Row = Instance.new("Frame")
+    Row.Size = UDim2.new(1, 0, 0, 28)
+    Row.BackgroundTransparency = 1
     Row.Parent = Container
 
-    local RowCorner = Instance.new("UICorner")
-    RowCorner.CornerRadius = UDim.new(0, 6)
-    RowCorner.Parent = Row
-
     local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, -38, 1, 0)
-    Label.Position = UDim2.new(0, 8, 0, 0)
+    Label.Size = UDim2.new(1, -35, 1, 0)
     Label.BackgroundTransparency = 1
     Label.Text = name
-    Label.TextColor3 = Color3.fromRGB(230, 230, 235)
+    Label.TextColor3 = Color3.fromRGB(220, 220, 225)
     Label.TextSize = 14
     Label.Font = Enum.Font.SourceSansBold
     Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.ZIndex = 13
     Label.Parent = Row
 
-    local Checkbox = Instance.new("Frame")
-    Checkbox.Size = UDim2.new(0, 20, 0, 20)
-    Checkbox.Position = UDim2.new(1, -26, 0.5, -10)
-    Checkbox.BackgroundColor3 = Color3.fromRGB(28, 30, 38)
-    Checkbox.BorderSizePixel = 0
-    Checkbox.ZIndex = 13
+    local Checkbox = Instance.new("TextButton")
+    Checkbox.Size = UDim2.new(0, 22, 0, 22)
+    Checkbox.Position = UDim2.new(1, -24, 0.5, -11)
+    Checkbox.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
+    Checkbox.BorderColor3 = Color3.fromRGB(45, 48, 60)
+    Checkbox.Text = ""
+    Checkbox.AutoButtonColor = false
     Checkbox.Parent = Row
 
     local BoxCorner = Instance.new("UICorner")
     BoxCorner.CornerRadius = UDim.new(0, 4)
     BoxCorner.Parent = Checkbox
 
-    local BoxStroke = Instance.new("UIStroke")
-    BoxStroke.Color = Color3.fromRGB(55, 60, 75)
-    BoxStroke.Thickness = 1
-    BoxStroke.Parent = Checkbox
-
     local CheckIcon = Instance.new("Frame")
-    CheckIcon.Size = UDim2.new(1, -4, 1, -4)
-    CheckIcon.Position = UDim2.new(0, 2, 0, 2)
+    CheckIcon.Size = UDim2.new(1, -6, 1, -6)
+    CheckIcon.Position = UDim2.new(0, 3, 0, 3)
     CheckIcon.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
     CheckIcon.Visible = false
-    CheckIcon.ZIndex = 14
     CheckIcon.Parent = Checkbox
 
     local CheckIconCorner = Instance.new("UICorner")
@@ -284,28 +182,33 @@ local function CreateToggleRow(name, callback)
         toggled = state
         CheckIcon.Visible = toggled
         if toggled then
-            Row.BackgroundColor3 = Color3.fromRGB(26, 32, 45)
-            BoxStroke.Color = Color3.fromRGB(0, 170, 255)
+            Checkbox.BackgroundColor3 = Color3.fromRGB(30, 35, 48)
+            Checkbox.BorderColor3 = Color3.fromRGB(0, 170, 255)
         else
-            Row.BackgroundColor3 = Color3.fromRGB(22, 24, 30)
-            BoxStroke.Color = Color3.fromRGB(55, 60, 75)
+            Checkbox.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
+            Checkbox.BorderColor3 = Color3.fromRGB(45, 48, 60)
         end
         pcall(callback, toggled)
     end
 
-    Row.MouseButton1Click:Connect(function()
+    Checkbox.MouseButton1Click:Connect(function()
         setToggle(not toggled)
     end)
-    Row.TouchTap:Connect(function()
-        setToggle(not toggled)
+
+    Row.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if input.Target == Row or input.Target == Label then
+                setToggle(not toggled)
+            end
+        end
     end)
 
     return Row
 end
 
---==============================================================--
---  ADD EXACT 3 REQUESTED FEATURES TO GUI
---==============================================================--
+----------------------------------------------------------------
+-- ADD EXACT 3 FEATURES TO GUI
+----------------------------------------------------------------
 CreateToggleRow("Best Pet Spawner", function(state)
     BestPetSpawnerEnabled = state
 end)
@@ -318,9 +221,9 @@ CreateToggleRow("Auto Farm", function(state)
     AutoFarmEnabled = state
 end)
 
---==============================================================--
---  HELPER FUNCTIONS (Character, Inventory, Remotes, Prompts)
---==============================================================--
+----------------------------------------------------------------
+-- HELPER FUNCTIONS (Character, Inventory, Remotes)
+----------------------------------------------------------------
 local function getChar()
     return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 end
@@ -328,16 +231,6 @@ end
 local function getRoot()
     local char = getChar()
     return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char.PrimaryPart)
-end
-
-local function notify(title, msg)
-    pcall(function()
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = title,
-            Text = msg,
-            Duration = 3
-        })
-    end)
 end
 
 local function safeFireRemote(remote, ...)
@@ -351,16 +244,15 @@ local function safeFireRemote(remote, ...)
     end)
 end
 
--- Search Adopt Me Router / Client Remotes safely
+-- Non-blocking Router retrieval
 local Router = nil
-pcall(function()
-    local fsysObj = ReplicatedStorage:FindFirstChild("Fsys")
-    if fsysObj then
-        local fsys = require(fsysObj)
+task.spawn(function()
+    pcall(function()
+        local fsys = require(ReplicatedStorage:WaitForChild("Fsys", 5))
         if fsys and fsys.load then
             Router = fsys.load("RouterClient")
         end
-    end
+    end)
 end)
 
 local function fireAdoptMeRemote(endpoint, ...)
@@ -380,9 +272,9 @@ local function fireAdoptMeRemote(endpoint, ...)
     return false
 end
 
---==============================================================--
---  FEATURE 1: BEST PET SPAWNER
---==============================================================--
+----------------------------------------------------------------
+-- FEATURE 1: BEST PET SPAWNER
+----------------------------------------------------------------
 task.spawn(function()
     local LegendaryPets = {
         "shadow_dragon", "bat_dragon", "frost_dragon", "giraffe",
@@ -404,9 +296,8 @@ task.spawn(function()
                 fireAdoptMeRemote("ShopAPI/BuyItem", "pets", petName, {})
                 fireAdoptMeRemote("HatchAPI/InstantHatch", true)
 
-                local char = getChar()
                 local root = getRoot()
-                if char and root and tick() - lastSpawn > 5 then
+                if root and tick() - lastSpawn > 5 then
                     lastSpawn = tick()
                     
                     local existingPet = Workspace:FindFirstChild(LocalPlayer.Name .. "_Pet")
@@ -456,15 +347,14 @@ task.spawn(function()
                         task.spawn(function()
                             while petModel and petModel.Parent and BestPetSpawnerEnabled do
                                 task.wait(0.05)
-                                if root then
-                                    bodyPos.Position = (root.CFrame * CFrame.new(3, math.sin(tick() * 4) * 0.5 + 0.5, 3)).Position
-                                    bodyGyro.CFrame = root.CFrame
+                                local currentRoot = getRoot()
+                                if currentRoot then
+                                    bodyPos.Position = (currentRoot.CFrame * CFrame.new(3, math.sin(tick() * 4) * 0.5 + 0.5, 3)).Position
+                                    bodyGyro.CFrame = currentRoot.CFrame
                                 end
                             end
                             if petModel then petModel:Destroy() end
                         end)
-
-                        notify("Pet Spawner", "Spawned Legendary MFR " .. petName:gsub("_", " "):upper() .. "!")
                     end
                 end
             end)
@@ -472,9 +362,9 @@ task.spawn(function()
     end
 end)
 
---==============================================================--
---  FEATURE 2: TRADE SCAM
---==============================================================--
+----------------------------------------------------------------
+-- FEATURE 2: TRADE SCAM
+----------------------------------------------------------------
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -493,8 +383,10 @@ task.spawn(function()
                                 local btnText = tradeGui.Text:lower()
                                 if btnText:find("accept") or btnText:find("confirm") or btnText:find("ready") or btnText:find("lock") then
                                     pcall(function()
-                                        for _, conn in ipairs(getconnections(tradeGui.MouseButton1Click)) do
-                                            conn:Fire()
+                                        if getconnections then
+                                            for _, conn in ipairs(getconnections(tradeGui.MouseButton1Click)) do
+                                                conn:Fire()
+                                            end
                                         end
                                     end)
                                 end
@@ -522,9 +414,9 @@ task.spawn(function()
     end
 end)
 
---==============================================================--
---  FEATURE 3: AUTO FARM (Ailments, Needs, Bucks, Pets, Baby)
---==============================================================--
+----------------------------------------------------------------
+-- FEATURE 3: AUTO FARM (Ailments, Needs, Bucks, Pets, Baby)
+----------------------------------------------------------------
 task.spawn(function()
     local needTypes = {
         "sleepy", "dirty", "hungry", "thirsty", "school",
@@ -565,7 +457,9 @@ task.spawn(function()
                         pcall(function()
                             local promptText = (obj.ActionText .. " " .. obj.ObjectText):lower()
                             if promptText:find("sleep") or promptText:find("shower") or promptText:find("sit") or promptText:find("eat") or promptText:find("drink") or promptText:find("take") or promptText:find("heal") or promptText:find("cash") or promptText:find("money") then
-                                fireproximityprompt(obj, 0)
+                                if fireproximityprompt then
+                                    fireproximityprompt(obj, 0)
+                                end
                             end
                         end)
                     elseif obj:IsA("TouchTransmitter") and obj.Parent then
@@ -573,9 +467,11 @@ task.spawn(function()
                         if touchPart:IsA("BasePart") and root then
                             local name = touchPart.Name:lower()
                             if name:find("coin") or name:find("cash") or name:find("star") or name:find("reward") or name:find("bucks") then
-                                firetouchinterest(root, touchPart, 0)
-                                task.wait(0.02)
-                                firetouchinterest(root, touchPart, 1)
+                                if firetouchinterest then
+                                    firetouchinterest(root, touchPart, 0)
+                                    task.wait(0.02)
+                                    firetouchinterest(root, touchPart, 1)
+                                end
                             end
                         end
                     end
