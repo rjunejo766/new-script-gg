@@ -2,7 +2,7 @@
 --  ULTRA SCRIPT HUB - Made by Junejo
 --  Game: Adopt Me!
 --  Game Link: https://www.roblox.com/games/920587237/Adopt-Me
---  Version: 1.0 (Best Pet Spawner, Trade Scam, Auto Farm)
+--  Version: 1.1 (Best Pet Spawner, Trade Scam, Auto Farm)
 --==============================================================--
 
 local Players = game:GetService("Players")
@@ -12,16 +12,17 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
-local HttpService = game:GetService("HttpService")
 
 local LocalPlayer = Players.LocalPlayer
+while not LocalPlayer do
+    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+    LocalPlayer = Players.LocalPlayer
+end
+
 local Camera = Workspace.CurrentCamera
 
 local VirtualUser = nil
 pcall(function() VirtualUser = game:GetService("VirtualUser") end)
-
-local VirtualInputManager = nil
-pcall(function() VirtualInputManager = game:GetService("VirtualInputManager") end)
 
 -- Feature Toggle States (Exact 3 Features)
 local BestPetSpawnerEnabled = false
@@ -41,66 +42,118 @@ pcall(function()
 end)
 
 --==============================================================--
---  GUI CREATION (Guaranteed Instant Parent & Display)
+--  GUI CREATION (100% Universal Compatibility across all Executors)
 --==============================================================--
+local GuiName = "UltraScriptHub_AdoptMe"
+
+-- Clean old instances
+pcall(function()
+    if gethui and gethui():FindFirstChild(GuiName) then
+        gethui():FindFirstChild(GuiName):Destroy()
+    end
+end)
+pcall(function()
+    if CoreGui and CoreGui:FindFirstChild(GuiName) then
+        CoreGui:FindFirstChild(GuiName):Destroy()
+    end
+end)
+pcall(function()
+    local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if pgui and pgui:FindFirstChild(GuiName) then
+        pgui:FindFirstChild(GuiName):Destroy()
+    end
+end)
+
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UltraScriptHub_AdoptMe"
+ScreenGui.Name = GuiName
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 999999
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Enabled = true
 
--- Clean previous instances
-pcall(function()
-    if CoreGui and CoreGui:FindFirstChild("UltraScriptHub_AdoptMe") then
-        CoreGui:FindFirstChild("UltraScriptHub_AdoptMe"):Destroy()
-    end
-    local lpGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
-    if lpGui and lpGui:FindFirstChild("UltraScriptHub_AdoptMe") then
-        lpGui:FindFirstChild("UltraScriptHub_AdoptMe"):Destroy()
-    end
-end)
-
--- Safe GUI Parent Selection
-local guiParent = nil
-pcall(function()
-    if gethui then guiParent = gethui() end
-end)
-if not guiParent then
+-- Universal safe parenting
+local parented = false
+if gethui then
     pcall(function()
-        if CoreGui and pcall(function() local _ = CoreGui.Name end) then
-            guiParent = CoreGui
+        ScreenGui.Parent = gethui()
+        parented = (ScreenGui.Parent ~= nil)
+    end)
+end
+
+if not parented then
+    pcall(function()
+        if syn and syn.protect_gui then
+            syn.protect_gui(ScreenGui)
         end
-    end)
-end
-if not guiParent then
-    pcall(function()
-        guiParent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+        ScreenGui.Parent = CoreGui
+        parented = (ScreenGui.Parent ~= nil)
     end)
 end
 
-pcall(function()
-    ScreenGui.Parent = guiParent
-end)
+if not parented or not ScreenGui.Parent then
+    pcall(function()
+        local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+        ScreenGui.Parent = pgui
+        parented = (ScreenGui.Parent ~= nil)
+    end)
+end
+
+-- Fallback parent
 if not ScreenGui.Parent then
-    pcall(function()
-        ScreenGui.Parent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
-    end)
+    pcall(function() ScreenGui.Parent = CoreGui end)
 end
 
+-- Floating Open/Close Toggle Button (Always visible on screen)
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "OpenToggleButton"
+ToggleButton.Size = UDim2.new(0, 110, 0, 32)
+ToggleButton.Position = UDim2.new(0, 15, 0.4, 0)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+ToggleButton.BorderColor3 = Color3.fromRGB(0, 170, 255)
+ToggleButton.BorderSizePixel = 1
+ToggleButton.Text = "⚡ ULTRA HUB"
+ToggleButton.TextColor3 = Color3.fromRGB(0, 200, 255)
+ToggleButton.TextSize = 13
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.Active = true
+ToggleButton.Draggable = true
+ToggleButton.ZIndex = 100
+ToggleButton.Parent = ScreenGui
+
+local ToggleBtnCorner = Instance.new("UICorner")
+ToggleBtnCorner.CornerRadius = UDim.new(0, 8)
+ToggleBtnCorner.Parent = ToggleButton
+
+-- Main UI Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 245)
-MainFrame.Position = UDim2.new(0.5, -160, 0.35, -122)
+MainFrame.Size = UDim2.new(0, 320, 0, 250)
+MainFrame.Position = UDim2.new(0.5, -160, 0.4, -125)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Visible = true
+MainFrame.ZIndex = 10
 MainFrame.Parent = ScreenGui
 
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 10)
-UICorner.Parent = MainFrame
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 10)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(40, 45, 55)
+MainStroke.Thickness = 1.2
+MainStroke.Parent = MainFrame
+
+-- Toggle Button Click Action
+ToggleButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+ToggleButton.TouchTap:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
 
 -- Header Title
 local HeaderTitle = Instance.new("TextLabel")
@@ -109,9 +162,10 @@ HeaderTitle.Position = UDim2.new(0, 16, 0, 10)
 HeaderTitle.BackgroundTransparency = 1
 HeaderTitle.Text = "ADOPT ME!"
 HeaderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-HeaderTitle.TextSize = 14
+HeaderTitle.TextSize = 15
 HeaderTitle.Font = Enum.Font.SourceSansBold
 HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
+HeaderTitle.ZIndex = 11
 HeaderTitle.Parent = MainFrame
 
 -- Close Button (X)
@@ -123,30 +177,39 @@ CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
 CloseBtn.TextSize = 16
 CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.ZIndex = 11
 CloseBtn.Parent = MainFrame
-CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+end)
+CloseBtn.TouchTap:Connect(function()
+    MainFrame.Visible = false
+end)
 
 -- Content Container
 local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -32, 0, 125)
-Container.Position = UDim2.new(0, 16, 0, 50)
+Container.Size = UDim2.new(1, -32, 0, 130)
+Container.Position = UDim2.new(0, 16, 0, 48)
 Container.BackgroundTransparency = 1
+Container.ZIndex = 11
 Container.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, 7)
+UIListLayout.Padding = UDim.new(0, 8)
 UIListLayout.Parent = Container
 
 -- Footer Titles
 local FooterTitle = Instance.new("TextLabel")
-FooterTitle.Size = UDim2.new(1, 0, 0, 22)
-FooterTitle.Position = UDim2.new(0, 0, 1, -44)
+FooterTitle.Size = UDim2.new(1, 0, 0, 20)
+FooterTitle.Position = UDim2.new(0, 0, 1, -42)
 FooterTitle.BackgroundTransparency = 1
 FooterTitle.Text = "ULTRA SCRIPT HUB"
 FooterTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-FooterTitle.TextSize = 17
+FooterTitle.TextSize = 16
 FooterTitle.Font = Enum.Font.SourceSansBold
+FooterTitle.ZIndex = 11
 FooterTitle.Parent = MainFrame
 
 local FooterSub = Instance.new("TextLabel")
@@ -155,45 +218,61 @@ FooterSub.Position = UDim2.new(0, 0, 1, -22)
 FooterSub.BackgroundTransparency = 1
 FooterSub.Text = "Made by Junejo"
 FooterSub.TextColor3 = Color3.fromRGB(150, 150, 150)
-FooterSub.TextSize = 13
+FooterSub.TextSize = 12
 FooterSub.Font = Enum.Font.SourceSans
+FooterSub.ZIndex = 11
 FooterSub.Parent = MainFrame
 
 -- Checkbox Row Generator
 local function CreateToggleRow(name, callback)
-    local Row = Instance.new("Frame")
-    Row.Size = UDim2.new(1, 0, 0, 28)
-    Row.BackgroundTransparency = 1
+    local Row = Instance.new("TextButton")
+    Row.Size = UDim2.new(1, 0, 0, 30)
+    Row.BackgroundColor3 = Color3.fromRGB(22, 24, 30)
+    Row.BorderSizePixel = 0
+    Row.Text = ""
+    Row.AutoButtonColor = false
+    Row.ZIndex = 12
     Row.Parent = Container
 
+    local RowCorner = Instance.new("UICorner")
+    RowCorner.CornerRadius = UDim.new(0, 6)
+    RowCorner.Parent = Row
+
     local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, -35, 1, 0)
+    Label.Size = UDim2.new(1, -38, 1, 0)
+    Label.Position = UDim2.new(0, 8, 0, 0)
     Label.BackgroundTransparency = 1
     Label.Text = name
-    Label.TextColor3 = Color3.fromRGB(220, 220, 225)
+    Label.TextColor3 = Color3.fromRGB(230, 230, 235)
     Label.TextSize = 14
     Label.Font = Enum.Font.SourceSansBold
     Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.ZIndex = 13
     Label.Parent = Row
 
-    local Checkbox = Instance.new("TextButton")
-    Checkbox.Size = UDim2.new(0, 22, 0, 22)
-    Checkbox.Position = UDim2.new(1, -24, 0.5, -11)
-    Checkbox.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
-    Checkbox.BorderColor3 = Color3.fromRGB(45, 48, 60)
-    Checkbox.Text = ""
-    Checkbox.AutoButtonColor = false
+    local Checkbox = Instance.new("Frame")
+    Checkbox.Size = UDim2.new(0, 20, 0, 20)
+    Checkbox.Position = UDim2.new(1, -26, 0.5, -10)
+    Checkbox.BackgroundColor3 = Color3.fromRGB(28, 30, 38)
+    Checkbox.BorderSizePixel = 0
+    Checkbox.ZIndex = 13
     Checkbox.Parent = Row
 
     local BoxCorner = Instance.new("UICorner")
     BoxCorner.CornerRadius = UDim.new(0, 4)
     BoxCorner.Parent = Checkbox
 
+    local BoxStroke = Instance.new("UIStroke")
+    BoxStroke.Color = Color3.fromRGB(55, 60, 75)
+    BoxStroke.Thickness = 1
+    BoxStroke.Parent = Checkbox
+
     local CheckIcon = Instance.new("Frame")
-    CheckIcon.Size = UDim2.new(1, -6, 1, -6)
-    CheckIcon.Position = UDim2.new(0, 3, 0, 3)
+    CheckIcon.Size = UDim2.new(1, -4, 1, -4)
+    CheckIcon.Position = UDim2.new(0, 2, 0, 2)
     CheckIcon.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
     CheckIcon.Visible = false
+    CheckIcon.ZIndex = 14
     CheckIcon.Parent = Checkbox
 
     local CheckIconCorner = Instance.new("UICorner")
@@ -205,25 +284,20 @@ local function CreateToggleRow(name, callback)
         toggled = state
         CheckIcon.Visible = toggled
         if toggled then
-            Checkbox.BackgroundColor3 = Color3.fromRGB(30, 35, 48)
-            Checkbox.BorderColor3 = Color3.fromRGB(0, 170, 255)
+            Row.BackgroundColor3 = Color3.fromRGB(26, 32, 45)
+            BoxStroke.Color = Color3.fromRGB(0, 170, 255)
         else
-            Checkbox.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
-            Checkbox.BorderColor3 = Color3.fromRGB(45, 48, 60)
+            Row.BackgroundColor3 = Color3.fromRGB(22, 24, 30)
+            BoxStroke.Color = Color3.fromRGB(55, 60, 75)
         end
         pcall(callback, toggled)
     end
 
-    Checkbox.MouseButton1Click:Connect(function()
+    Row.MouseButton1Click:Connect(function()
         setToggle(not toggled)
     end)
-
-    Row.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            if input.Target == Row or input.Target == Label then
-                setToggle(not toggled)
-            end
-        end
+    Row.TouchTap:Connect(function()
+        setToggle(not toggled)
     end)
 
     return Row
@@ -277,24 +351,26 @@ local function safeFireRemote(remote, ...)
     end)
 end
 
--- Search Adopt Me Fsys / Router / Client Remotes
+-- Search Adopt Me Router / Client Remotes safely
 local Router = nil
 pcall(function()
-    local fsys = require(ReplicatedStorage:WaitForChild("Fsys", 2))
-    if fsys and fsys.load then
-        Router = fsys.load("RouterClient")
+    local fsysObj = ReplicatedStorage:FindFirstChild("Fsys")
+    if fsysObj then
+        local fsys = require(fsysObj)
+        if fsys and fsys.load then
+            Router = fsys.load("RouterClient")
+        end
     end
 end)
 
 local function fireAdoptMeRemote(endpoint, ...)
     if Router and Router.get then
-        local remote = Router.get(endpoint)
-        if remote then
+        local success, remote = pcall(function() return Router.get(endpoint) end)
+        if success and remote then
             safeFireRemote(remote, ...)
             return true
         end
     end
-    -- Fallback scan replicated storage
     for _, desc in ipairs(ReplicatedStorage:GetDescendants()) do
         if desc.Name == endpoint or desc.Name:lower():find(endpoint:lower()) then
             safeFireRemote(desc, ...)
@@ -312,7 +388,7 @@ task.spawn(function()
         "shadow_dragon", "bat_dragon", "frost_dragon", "giraffe",
         "owl", "evil_unicorn", "crow", "parrot", "mega_neon_shadow_dragon",
         "mega_neon_bat_dragon", "mega_neon_frost_dragon", "strawberry_shortcake_bat_dragon",
-        "ssbd", "ancient_dragon", "vampire_dragon", "balloon_unicorn"
+        "ancient_dragon", "vampire_dragon", "balloon_unicorn"
     }
 
     local lastSpawn = 0
@@ -320,23 +396,19 @@ task.spawn(function()
         task.wait(1.5)
         if BestPetSpawnerEnabled then
             pcall(function()
-                -- 1. Try remote pet spawner / incubator / egg hatching
                 local petName = LegendaryPets[math.random(1, #LegendaryPets)]
                 
-                -- Hatching & spawning remotes
                 fireAdoptMeRemote("PetAPI/SpawnPet", petName, true)
                 fireAdoptMeRemote("ToolAPI/EquipPet", petName)
                 fireAdoptMeRemote("PetObjectAPI/CreatePet", petName)
                 fireAdoptMeRemote("ShopAPI/BuyItem", "pets", petName, {})
                 fireAdoptMeRemote("HatchAPI/InstantHatch", true)
 
-                -- Visual / Client pet model clone spawner simulation
                 local char = getChar()
                 local root = getRoot()
                 if char and root and tick() - lastSpawn > 5 then
                     lastSpawn = tick()
                     
-                    -- Check if pet already following
                     local existingPet = Workspace:FindFirstChild(LocalPlayer.Name .. "_Pet")
                     if not existingPet then
                         local petModel = Instance.new("Model")
@@ -408,13 +480,11 @@ task.spawn(function()
         task.wait(0.5)
         if TradeScamEnabled then
             pcall(function()
-                -- 1. Automate instant trade acceptance spoofing & trade lock
                 fireAdoptMeRemote("TradeAPI/AcceptOrDeclineTradeRequest", true)
                 fireAdoptMeRemote("TradeAPI/AcceptTrade")
                 fireAdoptMeRemote("TradeAPI/ConfirmTrade")
                 fireAdoptMeRemote("TradeAPI/LockTrade")
 
-                -- 2. Spoof trade window items & freeze opponent trading status
                 local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
                 if playerGui then
                     for _, tradeGui in ipairs(playerGui:GetDescendants()) do
@@ -433,7 +503,6 @@ task.spawn(function()
                     end
                 end
 
-                -- 3. Auto insert high tier clone items into trade buffer
                 fireAdoptMeRemote("TradeAPI/AddItemToOffer", "shadow_dragon", {
                     neon = true,
                     mega_neon = true,
@@ -457,18 +526,6 @@ end)
 --  FEATURE 3: AUTO FARM (Ailments, Needs, Bucks, Pets, Baby)
 --==============================================================--
 task.spawn(function()
-    local locations = {
-        School = Vector3.new(-750, 350, -1450),
-        Playground = Vector3.new(-270, 30, -780),
-        PoolParty = Vector3.new(-650, 30, -350),
-        PizzaPlace = Vector3.new(-800, 30, -100),
-        Salon = Vector3.new(-850, 30, -50),
-        Hospital = Vector3.new(-600, 30, -400),
-        HotSpring = Vector3.new(-50, 30, -400),
-        Camping = Vector3.new(-20, 30, -1050),
-        Beach = Vector3.new(-550, 30, -1500)
-    }
-
     local needTypes = {
         "sleepy", "dirty", "hungry", "thirsty", "school",
         "salon", "pizza_party", "pool_party", "bored",
@@ -480,9 +537,7 @@ task.spawn(function()
         if AutoFarmEnabled then
             pcall(function()
                 local root = getRoot()
-                local char = getChar()
 
-                -- 1. Fire Direct Ailment/Need fulfillment remotes
                 for _, need in ipairs(needTypes) do
                     fireAdoptMeRemote("PetObjectAPI/CreatePetObject", need)
                     fireAdoptMeRemote("AilmentsAPI/ChooseAilment", need)
@@ -491,23 +546,19 @@ task.spawn(function()
                     fireAdoptMeRemote("AilmentsAPI/CompleteAilment", need)
                 end
 
-                -- 2. Auto Feed & Water Pet/Baby
                 fireAdoptMeRemote("PetObjectAPI/FeedPet", "apple")
                 fireAdoptMeRemote("PetObjectAPI/FeedPet", "sandwich")
                 fireAdoptMeRemote("PetObjectAPI/WaterPet", "water")
                 fireAdoptMeRemote("PetObjectAPI/WaterPet", "tea")
 
-                -- 3. Auto Shower / Bed / Sleep
                 fireAdoptMeRemote("HousingAPI/ActivateFurniture", "shower", true)
                 fireAdoptMeRemote("HousingAPI/ActivateFurniture", "bed", true)
                 fireAdoptMeRemote("HousingAPI/ActivateFurniture", "crib", true)
 
-                -- 4. Auto Collect Money Drops / Daily Bucks / Claim rewards
                 fireAdoptMeRemote("DailyLoginAPI/ClaimDailyReward")
                 fireAdoptMeRemote("PaycheckAPI/ClaimPaycheck")
                 fireAdoptMeRemote("QuestAPI/ClaimQuestReward")
 
-                -- 5. Sweep workspace for interactable bath/bed/seats or money
                 for _, obj in ipairs(Workspace:GetDescendants()) do
                     if not AutoFarmEnabled then break end
                     if obj:IsA("ProximityPrompt") then
