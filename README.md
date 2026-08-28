@@ -181,5 +181,22 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 2. ⚡ **Instant Pickup**: Instantly triggers all proximity prompts without delay and collects all dropped items & leaf tokens.
 3. 🚪 **Auto Sell & Escape**: Automatically deposits and sells all collected leaves, exchanges for cash, and activates escape/exit doors.
 
+---
+
+## 🎮 13. Throw an Anime Coin
+- **Game Link**: [https://www.roblox.com/games/105198923939638/Throw-an-Anime-Coin](https://www.roblox.com/games/105198923939638/Throw-an-Anime-Coin)
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/ThrowAnAnimeCoin.lua?t=" .. tostring(os.time())))()
+```
+
+### ✨ Features (Exact 4 Features)
+1. ⚡ **Auto Upgrade**: Automatically purchases luck, coin power, throw speed, multipliers, and fountain upgrades.
+2. 🪙 **Fast Throw**: Automatically and rapidly throws coins into the wishing fountain at 100% maximum power.
+3. 💰 **Collect Cash**: Automatically sweeps and vacuums all floating cash drops, plot figure rewards, and money tokens map-wide.
+4. 🏪 **Auto Sell**: Automatically deposits and sells all anime figures and coin inventory for max cash profit.
+
+
 
 
