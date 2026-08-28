@@ -176,10 +176,11 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/CleanAllTheLeaves.lua?t=" .. tostring(os.time())))()
 ```
 
-### ✨ Features (Exact 3 Features)
-1. 🧹 **Auto Farm**: Automatically equips tools, activates rakes/blowers, sweeps leaves, and cleans map-wide leaf piles.
-2. ⚡ **Instant Pickup**: Instantly triggers all proximity prompts without delay and collects all dropped items & leaf tokens.
-3. 🚪 **Auto Sell & Escape**: Automatically deposits and sells all collected leaves, exchanges for cash, and activates escape/exit doors.
+### ✨ Features (Exact 4 Features)
+1. 🍃 **Auto Collect Leaves**: Automatically equips tools, activates rakes/blowers, sweeps leaves, collects all dropped items, and map-wide leaf piles.
+2. 🔄 **Auto Rebirth**: Automatically triggers rebirths via remotes, rebirth pads, and GUI buttons.
+3. 🕊️ **Fly Mode**: Smooth flying in camera direction using WASD, Space (Up), and LeftShift (Down).
+4. 🏃 **WalkSpeed Boost (50)**: High movement speed multiplier for fast navigation across the map.
 
 ---
 
