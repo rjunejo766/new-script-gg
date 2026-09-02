@@ -198,6 +198,19 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 3. 💰 **Collect Cash**: Automatically sweeps and vacuums all floating cash drops, plot figure rewards, and money tokens map-wide.
 4. 🏪 **Auto Sell**: Automatically deposits and sells all anime figures and coin inventory for max cash profit.
 
+---
 
+## 🎮 14. Dig and Clean
+- **Game Link**: [https://www.roblox.com/games/83038462357724/Dig-Clean](https://www.roblox.com/games/83038462357724/Dig-Clean)
 
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/DigAndClean.lua?t=" .. tostring(os.time())))()
+```
 
+### ✨ Features
+1. ⛏️ **Auto Dig**: Automatically equips shovel/dig tools, activates digging, clicks, and collects dirt/ground nodes.
+2. 🧼 **Auto Clean**: Automatically washes and cleans objects, removes mud, stains, and dirt.
+3. 💰 **Auto Sell**: Automatically triggers sell zones and remotes to convert collected items to cash.
+4. 📍 **Teleports**: Fast teleports to Dig Zone, Clean Station, Sell Zone, Shop/Upgrades, and Spawn.
+5. 🏃 **Player Boosts**: WalkSpeed Boost (45), Infinite Jump & Anti-AFK.
