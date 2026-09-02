@@ -15,7 +15,7 @@ local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 
--- Safe LocalPlayer Resolution
+-- 100% Safe LocalPlayer Resolution
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then
     repeat
@@ -23,6 +23,8 @@ if not LocalPlayer then
         LocalPlayer = Players.LocalPlayer
     until LocalPlayer
 end
+
+local Camera = Workspace.CurrentCamera
 
 -- Feature Toggle States
 local AutoDigEnabled = false
@@ -35,78 +37,39 @@ local NormalSpeed = 16
 local BoostSpeed = 45
 
 --==============================================================--
---  1. INSTANT GUI CREATION (Rendered First Before Anything Else)
+--  GUI CREATION (Guaranteed 100% Instant Screen Display)
 --==============================================================--
-local GuiName = "UltraScriptHub_DigAndClean"
 
--- Cleanup old instances
-pcall(function()
-    if gethui and gethui():FindFirstChild(GuiName) then
-        gethui():FindFirstChild(GuiName):Destroy()
-    end
-end)
+-- Clean old instances
 pcall(function()
     local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
-    if pgui and pgui:FindFirstChild(GuiName) then
-        pgui:FindFirstChild(GuiName):Destroy()
+    if pgui and pgui:FindFirstChild("UltraScriptHub_DigAndClean") then
+        pgui:FindFirstChild("UltraScriptHub_DigAndClean"):Destroy()
     end
 end)
 pcall(function()
-    if CoreGui and CoreGui:FindFirstChild(GuiName) then
-        CoreGui:FindFirstChild(GuiName):Destroy()
+    if CoreGui and CoreGui:FindFirstChild("UltraScriptHub_DigAndClean") then
+        CoreGui:FindFirstChild("UltraScriptHub_DigAndClean"):Destroy()
+    end
+end)
+pcall(function()
+    if gethui and gethui():FindFirstChild("UltraScriptHub_DigAndClean") then
+        gethui():FindFirstChild("UltraScriptHub_DigAndClean"):Destroy()
     end
 end)
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = GuiName
+ScreenGui.Name = "UltraScriptHub_DigAndClean"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 999999
 ScreenGui.Enabled = true
 
--- Universal safe parenting (PlayerGui + gethui fallback)
-local targetParent = nil
-if gethui then
-    pcall(function() targetParent = gethui() end)
-end
-if not targetParent then
-    pcall(function()
-        targetParent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
-    end)
-end
-if not targetParent then
-    pcall(function() targetParent = CoreGui end)
-end
-
-ScreenGui.Parent = targetParent or LocalPlayer:WaitForChild("PlayerGui")
-
--- Floating Open/Close Button (⚡)
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Name = "FloatingToggle"
-ToggleBtn.Size = UDim2.new(0, 42, 0, 42)
-ToggleBtn.Position = UDim2.new(0, 15, 0.5, -21)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
-ToggleBtn.BorderColor3 = Color3.fromRGB(0, 170, 255)
-ToggleBtn.BorderSizePixel = 1
-ToggleBtn.Text = "⚡"
-ToggleBtn.TextColor3 = Color3.fromRGB(0, 170, 255)
-ToggleBtn.TextSize = 20
-ToggleBtn.Font = Enum.Font.SourceSansBold
-ToggleBtn.Active = true
-ToggleBtn.Draggable = true
-ToggleBtn.ZIndex = 30
-ToggleBtn.Parent = ScreenGui
-
-local ToggleCorner = Instance.new("UICorner")
-ToggleCorner.CornerRadius = UDim.new(0, 10)
-ToggleCorner.Parent = ToggleBtn
-
--- Main Outer Frame (Exact Centered & Draggable)
+-- Main Outer Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-MainFrame.Size = UDim2.new(0, 320, 0, 360)
-MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainFrame.Size = UDim2.new(0, 320, 0, 395)
+MainFrame.Position = UDim2.new(0.5, -160, 0.3, -190)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -123,6 +86,27 @@ local UIStroke = Instance.new("UIStroke")
 UIStroke.Color = Color3.fromRGB(45, 48, 60)
 UIStroke.Thickness = 1.2
 UIStroke.Parent = MainFrame
+
+-- Floating Open/Close Button (⚡) for Mobile & PC
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "FloatingToggle"
+ToggleBtn.Size = UDim2.new(0, 40, 0, 40)
+ToggleBtn.Position = UDim2.new(0, 15, 0.5, -20)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+ToggleBtn.BorderColor3 = Color3.fromRGB(0, 170, 255)
+ToggleBtn.BorderSizePixel = 1
+ToggleBtn.Text = "⚡"
+ToggleBtn.TextColor3 = Color3.fromRGB(0, 170, 255)
+ToggleBtn.TextSize = 20
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.Active = true
+ToggleBtn.Draggable = true
+ToggleBtn.ZIndex = 20
+ToggleBtn.Parent = ScreenGui
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 8)
+ToggleCorner.Parent = ToggleBtn
 
 ToggleBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
@@ -157,134 +141,54 @@ CloseBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
 end)
 
--- Tab Bar
-local TabBar = Instance.new("Frame")
-TabBar.Size = UDim2.new(1, -32, 0, 30)
-TabBar.Position = UDim2.new(0, 16, 0, 42)
-TabBar.BackgroundColor3 = Color3.fromRGB(22, 24, 30)
-TabBar.BorderSizePixel = 0
-TabBar.ZIndex = 11
-TabBar.Parent = MainFrame
+-- Content Scrolling Container
+local Container = Instance.new("ScrollingFrame")
+Container.Size = UDim2.new(1, -24, 0, 280)
+Container.Position = UDim2.new(0, 12, 0, 45)
+Container.BackgroundTransparency = 1
+Container.BorderSizePixel = 0
+Container.ScrollBarThickness = 3
+Container.ScrollBarImageColor3 = Color3.fromRGB(0, 170, 255)
+Container.CanvasSize = UDim2.new(0, 0, 0, 330)
+Container.ZIndex = 11
+Container.Parent = MainFrame
 
-local TabBarCorner = Instance.new("UICorner")
-TabBarCorner.CornerRadius = UDim.new(0, 6)
-TabBarCorner.Parent = TabBar
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 6)
+UIListLayout.Parent = Container
 
-local TabFarmBtn = Instance.new("TextButton")
-TabFarmBtn.Size = UDim2.new(0.5, -2, 1, -4)
-TabFarmBtn.Position = UDim2.new(0, 2, 0, 2)
-TabFarmBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-TabFarmBtn.Text = "⚡ Auto Farm"
-TabFarmBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-TabFarmBtn.TextSize = 12
-TabFarmBtn.Font = Enum.Font.SourceSansBold
-TabFarmBtn.ZIndex = 12
-TabFarmBtn.Parent = TabBar
-
-local TabFarmCorner = Instance.new("UICorner")
-TabFarmCorner.CornerRadius = UDim.new(0, 4)
-TabFarmCorner.Parent = TabFarmBtn
-
-local TabTpBtn = Instance.new("TextButton")
-TabTpBtn.Size = UDim2.new(0.5, -2, 1, -4)
-TabTpBtn.Position = UDim2.new(0.5, 0, 0, 2)
-TabTpBtn.BackgroundColor3 = Color3.fromRGB(28, 30, 38)
-TabTpBtn.Text = "📍 Teleports"
-TabTpBtn.TextColor3 = Color3.fromRGB(180, 180, 190)
-TabTpBtn.TextSize = 12
-TabTpBtn.Font = Enum.Font.SourceSansBold
-TabTpBtn.ZIndex = 12
-TabTpBtn.Parent = TabBar
-
-local TabTpCorner = Instance.new("UICorner")
-TabTpCorner.CornerRadius = UDim.new(0, 4)
-TabTpCorner.Parent = TabTpBtn
-
--- Scrolling Content Pages
-local FarmContainer = Instance.new("ScrollingFrame")
-FarmContainer.Size = UDim2.new(1, -32, 0, 225)
-FarmContainer.Position = UDim2.new(0, 16, 0, 78)
-FarmContainer.BackgroundTransparency = 1
-FarmContainer.BorderSizePixel = 0
-FarmContainer.ScrollBarThickness = 3
-FarmContainer.ScrollBarImageColor3 = Color3.fromRGB(0, 170, 255)
-FarmContainer.CanvasSize = UDim2.new(0, 0, 0, 230)
-FarmContainer.ZIndex = 11
-FarmContainer.Visible = true
-FarmContainer.Parent = MainFrame
-
-local FarmLayout = Instance.new("UIListLayout")
-FarmLayout.SortOrder = Enum.SortOrder.LayoutOrder
-FarmLayout.Padding = UDim.new(0, 6)
-FarmLayout.Parent = FarmContainer
-
-local TpContainer = Instance.new("ScrollingFrame")
-TpContainer.Size = UDim2.new(1, -32, 0, 225)
-TpContainer.Position = UDim2.new(0, 16, 0, 78)
-TpContainer.BackgroundTransparency = 1
-TpContainer.BorderSizePixel = 0
-TpContainer.ScrollBarThickness = 3
-TpContainer.ScrollBarImageColor3 = Color3.fromRGB(0, 170, 255)
-TpContainer.CanvasSize = UDim2.new(0, 0, 0, 230)
-TpContainer.ZIndex = 11
-TpContainer.Visible = false
-TpContainer.Parent = MainFrame
-
-local TpLayout = Instance.new("UIListLayout")
-TpLayout.SortOrder = Enum.SortOrder.LayoutOrder
-TpLayout.Padding = UDim.new(0, 6)
-TpLayout.Parent = TpContainer
-
--- Tab Switching
-TabFarmBtn.MouseButton1Click:Connect(function()
-    FarmContainer.Visible = true
-    TpContainer.Visible = false
-    TabFarmBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-    TabFarmBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TabTpBtn.BackgroundColor3 = Color3.fromRGB(28, 30, 38)
-    TabTpBtn.TextColor3 = Color3.fromRGB(180, 180, 190)
-end)
-
-TabTpBtn.MouseButton1Click:Connect(function()
-    FarmContainer.Visible = false
-    TpContainer.Visible = true
-    TabTpBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-    TabTpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TabFarmBtn.BackgroundColor3 = Color3.fromRGB(28, 30, 38)
-    TabFarmBtn.TextColor3 = Color3.fromRGB(180, 180, 190)
-end)
-
--- Footer
+-- Footer Titles
 local FooterTitle = Instance.new("TextLabel")
-FooterTitle.Size = UDim2.new(1, 0, 0, 18)
-FooterTitle.Position = UDim2.new(0, 0, 1, -40)
+FooterTitle.Size = UDim2.new(1, 0, 0, 20)
+FooterTitle.Position = UDim2.new(0, 0, 1, -44)
 FooterTitle.BackgroundTransparency = 1
 FooterTitle.Text = "ULTRA SCRIPT HUB"
 FooterTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-FooterTitle.TextSize = 14
+FooterTitle.TextSize = 15
 FooterTitle.Font = Enum.Font.SourceSansBold
 FooterTitle.ZIndex = 11
 FooterTitle.Parent = MainFrame
 
 local FooterSub = Instance.new("TextLabel")
-FooterSub.Size = UDim2.new(1, 0, 0, 14)
-FooterSub.Position = UDim2.new(0, 0, 1, -22)
+FooterSub.Size = UDim2.new(1, 0, 0, 16)
+FooterSub.Position = UDim2.new(0, 0, 1, -24)
 FooterSub.BackgroundTransparency = 1
 FooterSub.Text = "Made by Junejo"
 FooterSub.TextColor3 = Color3.fromRGB(150, 150, 150)
-FooterSub.TextSize = 11
+FooterSub.TextSize = 12
 FooterSub.Font = Enum.Font.SourceSans
 FooterSub.ZIndex = 11
 FooterSub.Parent = MainFrame
 
--- Checkbox Row Component
-local function CreateToggleRow(parent, name, callback)
+-- Checkbox Row Generator
+local function CreateToggleRow(name, callback)
     local Row = Instance.new("Frame")
-    Row.Size = UDim2.new(1, -6, 0, 28)
+    Row.Size = UDim2.new(1, 0, 0, 28)
     Row.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
     Row.BackgroundTransparency = 0.5
     Row.ZIndex = 12
-    Row.Parent = parent
+    Row.Parent = Container
 
     local RowCorner = Instance.new("UICorner")
     RowCorner.CornerRadius = UDim.new(0, 6)
@@ -295,7 +199,7 @@ local function CreateToggleRow(parent, name, callback)
     Label.Position = UDim2.new(0, 8, 0, 0)
     Label.BackgroundTransparency = 1
     Label.Text = name
-    Label.TextColor3 = Color3.fromRGB(225, 225, 230)
+    Label.TextColor3 = Color3.fromRGB(220, 220, 225)
     Label.TextSize = 13
     Label.Font = Enum.Font.SourceSansBold
     Label.TextXAlignment = Enum.TextXAlignment.Left
@@ -359,17 +263,17 @@ local function CreateToggleRow(parent, name, callback)
     return Row
 end
 
--- Teleport Button Component
-local function CreateTeleportButton(parent, text, callback)
+-- Action/Teleport Button Generator
+local function CreateActionButton(text, callback)
     local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(1, -6, 0, 28)
+    Btn.Size = UDim2.new(1, 0, 0, 28)
     Btn.BackgroundColor3 = Color3.fromRGB(25, 28, 38)
     Btn.Text = text
     Btn.TextColor3 = Color3.fromRGB(0, 170, 255)
     Btn.TextSize = 13
     Btn.Font = Enum.Font.SourceSansBold
     Btn.ZIndex = 12
-    Btn.Parent = parent
+    Btn.Parent = Container
 
     local BtnCorner = Instance.new("UICorner")
     BtnCorner.CornerRadius = UDim.new(0, 6)
@@ -390,16 +294,40 @@ local function CreateTeleportButton(parent, text, callback)
 end
 
 --==============================================================--
---  CHARACTER & MOVEMENT HELPERS
+--  ADD ALL FEATURES TO GUI
 --==============================================================--
+
+CreateToggleRow("⛏️ Auto Dig", function(state)
+    AutoDigEnabled = state
+end)
+
+CreateToggleRow("🧼 Auto Clean", function(state)
+    AutoCleanEnabled = state
+end)
+
+CreateToggleRow("💰 Auto Sell", function(state)
+    AutoSellEnabled = state
+end)
+
+CreateToggleRow("🏃 WalkSpeed Boost (45)", function(state)
+    WalkSpeedEnabled = state
+    pcall(function()
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = state and BoostSpeed or NormalSpeed
+        end
+    end)
+end)
+
+CreateToggleRow("🦘 Infinite Jump", function(state)
+    InfJumpEnabled = state
+end)
+
+-- Teleport Buttons
 local function getRoot()
     local char = LocalPlayer.Character
     return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char.PrimaryPart)
-end
-
-local function getHum()
-    local char = LocalPlayer.Character
-    return char and char:FindFirstChildOfClass("Humanoid")
 end
 
 local function teleportTo(cf)
@@ -409,37 +337,7 @@ local function teleportTo(cf)
     end
 end
 
---==============================================================--
---  POPULATE GUI CONTROLS
---==============================================================--
-
--- Auto Farm Tab
-CreateToggleRow(FarmContainer, "⛏️ Auto Dig (Dig Dirt & Ground)", function(state)
-    AutoDigEnabled = state
-end)
-
-CreateToggleRow(FarmContainer, "🧼 Auto Clean (Wash Dirt & Items)", function(state)
-    AutoCleanEnabled = state
-end)
-
-CreateToggleRow(FarmContainer, "💰 Auto Sell (Sell Everything)", function(state)
-    AutoSellEnabled = state
-end)
-
-CreateToggleRow(FarmContainer, "🏃 WalkSpeed Boost (45)", function(state)
-    WalkSpeedEnabled = state
-    local hum = getHum()
-    if hum then
-        hum.WalkSpeed = state and BoostSpeed or NormalSpeed
-    end
-end)
-
-CreateToggleRow(FarmContainer, "🦘 Infinite Jump", function(state)
-    InfJumpEnabled = state
-end)
-
--- Teleports Tab
-CreateTeleportButton(TpContainer, "📍 Teleport to Dig Zone", function()
+CreateActionButton("📍 Teleport to Dig Zone", function()
     local root = getRoot()
     if not root then return end
     for _, obj in ipairs(Workspace:GetChildren()) do
@@ -455,7 +353,7 @@ CreateTeleportButton(TpContainer, "📍 Teleport to Dig Zone", function()
     teleportTo(root.CFrame + Vector3.new(0, 0, 25))
 end)
 
-CreateTeleportButton(TpContainer, "🧼 Teleport to Clean Station", function()
+CreateActionButton("🧼 Teleport to Clean Station", function()
     local root = getRoot()
     if not root then return end
     for _, obj in ipairs(Workspace:GetChildren()) do
@@ -471,7 +369,7 @@ CreateTeleportButton(TpContainer, "🧼 Teleport to Clean Station", function()
     teleportTo(root.CFrame + Vector3.new(20, 0, 0))
 end)
 
-CreateTeleportButton(TpContainer, "💰 Teleport to Sell Zone", function()
+CreateActionButton("💰 Teleport to Sell Zone", function()
     local root = getRoot()
     if not root then return end
     for _, obj in ipairs(Workspace:GetChildren()) do
@@ -487,23 +385,7 @@ CreateTeleportButton(TpContainer, "💰 Teleport to Sell Zone", function()
     teleportTo(root.CFrame + Vector3.new(-20, 0, 0))
 end)
 
-CreateTeleportButton(TpContainer, "🏪 Teleport to Shop / Upgrades", function()
-    local root = getRoot()
-    if not root then return end
-    for _, obj in ipairs(Workspace:GetChildren()) do
-        local n = obj.Name:lower()
-        if n:find("upgrade") or n:find("store") or n:find("tool") then
-            local cf = obj:IsA("BasePart") and obj.CFrame or (obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")).CFrame)
-            if cf then
-                teleportTo(cf)
-                return
-            end
-        end
-    end
-    teleportTo(root.CFrame + Vector3.new(0, 0, -25))
-end)
-
-CreateTeleportButton(TpContainer, "🏠 Teleport to Spawn / Base", function()
+CreateActionButton("🏠 Teleport to Spawn / Base", function()
     local spawnObj = Workspace:FindFirstChild("SpawnLocation") or Workspace:FindFirstChildWhichIsA("SpawnLocation", true)
     if spawnObj and spawnObj:IsA("BasePart") then
         teleportTo(spawnObj.CFrame)
@@ -513,8 +395,38 @@ CreateTeleportButton(TpContainer, "🏠 Teleport to Spawn / Base", function()
     end
 end)
 
+-- Safe Universal Parenting (Guaranteed Display)
+local parented = false
+pcall(function()
+    if gethui then
+        ScreenGui.Parent = gethui()
+        parented = true
+    end
+end)
+if not parented or not ScreenGui.Parent then
+    pcall(function()
+        local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+        ScreenGui.Parent = pgui
+        parented = true
+    end)
+end
+if not parented or not ScreenGui.Parent then
+    pcall(function()
+        ScreenGui.Parent = CoreGui
+    end)
+end
+
+-- Success Notification
+pcall(function()
+    StarterGui:SetCore("SendNotification", {
+        Title = "Ultra Script Hub",
+        Text = "Dig and Clean Loaded!",
+        Duration = 3
+    })
+end)
+
 --==============================================================--
---  BACKGROUND ASYNC CACHING & ENGINE
+--  FEATURE ENGINES & REMOTES
 --==============================================================--
 local CachedRemotes = {
     Dig = {},
@@ -533,7 +445,7 @@ local function safeFireRemote(remote, ...)
     end)
 end
 
--- Asynchronous Remote Scanner
+-- Background Remote Discovery
 task.spawn(function()
     pcall(function()
         local function scan(container)
@@ -557,6 +469,11 @@ task.spawn(function()
     end)
 end)
 
+local function getHum()
+    local char = LocalPlayer.Character
+    return char and char:FindFirstChildOfClass("Humanoid")
+end
+
 local function equipAnyTool()
     pcall(function()
         local char = LocalPlayer.Character
@@ -577,7 +494,7 @@ local function equipAnyTool()
     end)
 end
 
--- Infinite Jump Hook
+-- Infinite Jump
 UserInputService.JumpRequest:Connect(function()
     if InfJumpEnabled then
         local hum = getHum()
@@ -611,11 +528,7 @@ task.spawn(function()
     end)
 end)
 
---==============================================================--
---  BACKGROUND FARMING LOOPS
---==============================================================--
-
--- 1. AUTO DIG
+-- 1. AUTO DIG LOOP
 task.spawn(function()
     while true do
         task.wait(0.15)
@@ -631,7 +544,7 @@ task.spawn(function()
     end
 end)
 
--- 2. AUTO CLEAN
+-- 2. AUTO CLEAN LOOP
 task.spawn(function()
     while true do
         task.wait(0.2)
@@ -647,7 +560,7 @@ task.spawn(function()
     end
 end)
 
--- 3. AUTO SELL
+-- 3. AUTO SELL LOOP
 task.spawn(function()
     while true do
         task.wait(0.35)
@@ -663,7 +576,7 @@ task.spawn(function()
     end
 end)
 
--- 4. SPEED STABILIZER
+-- 4. SPEED REGULATOR LOOP
 task.spawn(function()
     while true do
         task.wait(0.8)
@@ -676,13 +589,4 @@ task.spawn(function()
     end
 end)
 
--- Success Notification
-pcall(function()
-    StarterGui:SetCore("SendNotification", {
-        Title = "Ultra Script Hub",
-        Text = "Dig and Clean Loaded Successfully!",
-        Duration = 3
-    })
-end)
-
-print("[Ultra Script Hub] Dig and Clean UI successfully displayed.")
+print("[Ultra Script Hub] Dig and Clean script loaded successfully.")
