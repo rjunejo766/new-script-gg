@@ -13,7 +13,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
-local StarterGui = game:GetService("StarterGui")
 
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then
@@ -23,7 +22,7 @@ if not LocalPlayer then
     until LocalPlayer
 end
 
--- State Variables
+-- Feature Toggle States
 local AutoDigEnabled = false
 local AutoCleanEnabled = false
 local AutoSellEnabled = false
@@ -34,63 +33,63 @@ local NormalSpeed = 16
 local BoostSpeed = 45
 
 --==============================================================--
---  SAFE GUI PARENT RESOLUTION
---==============================================================--
-local GuiParent = nil
-pcall(function()
-    if gethui then
-        GuiParent = gethui()
-    end
-end)
-if not GuiParent then
-    pcall(function()
-        if CoreGui and pcall(function() return CoreGui.Name end) then
-            GuiParent = CoreGui
-        end
-    end)
-end
-if not GuiParent then
-    pcall(function()
-        GuiParent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
-    end)
-end
-if not GuiParent then
-    GuiParent = LocalPlayer:WaitForChild("PlayerGui")
-end
-
--- Cleanup previous GUI instances
-pcall(function()
-    if GuiParent and GuiParent:FindFirstChild("UltraScriptHub_DigAndClean") then
-        GuiParent:FindFirstChild("UltraScriptHub_DigAndClean"):Destroy()
-    end
-    local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
-    if pgui and pgui:FindFirstChild("UltraScriptHub_DigAndClean") then
-        pgui:FindFirstChild("UltraScriptHub_DigAndClean"):Destroy()
-    end
-end)
-
---==============================================================--
---  GUI CREATION
+--  GUI CREATION (100% Guaranteed Visible on Every Executor)
 --==============================================================--
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UltraScriptHub_DigAndClean"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 999999
-ScreenGui.Enabled = true
-ScreenGui.Parent = GuiParent
+
+-- Safe Parent Resolution
+local parentGui = nil
+pcall(function()
+    if gethui then parentGui = gethui() end
+end)
+if not parentGui then
+    pcall(function()
+        if syn and syn.protect_gui then syn.protect_gui(ScreenGui) end
+        parentGui = CoreGui
+    end)
+end
+if not parentGui then
+    pcall(function()
+        parentGui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+    end)
+end
+
+-- Cleanup Old Instances
+pcall(function()
+    if parentGui and parentGui:FindFirstChild("UltraScriptHub_DigAndClean") then
+        parentGui:FindFirstChild("UltraScriptHub_DigAndClean"):Destroy()
+    end
+    if CoreGui and CoreGui:FindFirstChild("UltraScriptHub_DigAndClean") then
+        CoreGui:FindFirstChild("UltraScriptHub_DigAndClean"):Destroy()
+    end
+    local lpGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if lpGui and lpGui:FindFirstChild("UltraScriptHub_DigAndClean") then
+        lpGui:FindFirstChild("UltraScriptHub_DigAndClean"):Destroy()
+    end
+end)
+
+pcall(function()
+    ScreenGui.Parent = parentGui
+end)
+if not ScreenGui.Parent then
+    pcall(function()
+        ScreenGui.Parent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or CoreGui
+    end)
+end
 
 -- Main Outer Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 370)
-MainFrame.Position = UDim2.new(0.5, -160, 0.35, -185)
+MainFrame.Size = UDim2.new(0, 320, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -160, 0.35, -190)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.Visible = true
-MainFrame.ZIndex = 10
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
@@ -137,7 +136,6 @@ HeaderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 HeaderTitle.TextSize = 14
 HeaderTitle.Font = Enum.Font.SourceSansBold
 HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
-HeaderTitle.ZIndex = 11
 HeaderTitle.Parent = MainFrame
 
 -- Close Button (X)
@@ -149,7 +147,6 @@ CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
 CloseBtn.TextSize = 16
 CloseBtn.Font = Enum.Font.SourceSansBold
-CloseBtn.ZIndex = 11
 CloseBtn.Parent = MainFrame
 
 CloseBtn.MouseButton1Click:Connect(function()
@@ -158,14 +155,13 @@ end)
 
 -- Content Scrolling Container
 local Container = Instance.new("ScrollingFrame")
-Container.Size = UDim2.new(1, -24, 0, 255)
+Container.Size = UDim2.new(1, -24, 0, 260)
 Container.Position = UDim2.new(0, 12, 0, 45)
 Container.BackgroundTransparency = 1
 Container.BorderSizePixel = 0
 Container.ScrollBarThickness = 3
 Container.ScrollBarImageColor3 = Color3.fromRGB(0, 170, 255)
-Container.CanvasSize = UDim2.new(0, 0, 0, 300)
-Container.ZIndex = 11
+Container.CanvasSize = UDim2.new(0, 0, 0, 320)
 Container.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
@@ -173,7 +169,7 @@ UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Padding = UDim.new(0, 6)
 UIListLayout.Parent = Container
 
--- Footer Titles
+-- Footer Branding
 local FooterTitle = Instance.new("TextLabel")
 FooterTitle.Size = UDim2.new(1, 0, 0, 20)
 FooterTitle.Position = UDim2.new(0, 0, 1, -44)
@@ -182,7 +178,6 @@ FooterTitle.Text = "ULTRA SCRIPT HUB"
 FooterTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 FooterTitle.TextSize = 15
 FooterTitle.Font = Enum.Font.SourceSansBold
-FooterTitle.ZIndex = 11
 FooterTitle.Parent = MainFrame
 
 local FooterSub = Instance.new("TextLabel")
@@ -193,7 +188,6 @@ FooterSub.Text = "Made by Junejo"
 FooterSub.TextColor3 = Color3.fromRGB(150, 150, 150)
 FooterSub.TextSize = 12
 FooterSub.Font = Enum.Font.SourceSans
-FooterSub.ZIndex = 11
 FooterSub.Parent = MainFrame
 
 -- Checkbox Row Generator
@@ -202,7 +196,6 @@ local function CreateToggleRow(name, callback)
     Row.Size = UDim2.new(1, 0, 0, 28)
     Row.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
     Row.BackgroundTransparency = 0.5
-    Row.ZIndex = 12
     Row.Parent = Container
 
     local RowCorner = Instance.new("UICorner")
@@ -218,7 +211,6 @@ local function CreateToggleRow(name, callback)
     Label.TextSize = 13
     Label.Font = Enum.Font.SourceSansBold
     Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.ZIndex = 13
     Label.Parent = Row
 
     local Checkbox = Instance.new("TextButton")
@@ -228,7 +220,6 @@ local function CreateToggleRow(name, callback)
     Checkbox.BorderColor3 = Color3.fromRGB(45, 48, 60)
     Checkbox.Text = ""
     Checkbox.AutoButtonColor = false
-    Checkbox.ZIndex = 13
     Checkbox.Parent = Row
 
     local BoxCorner = Instance.new("UICorner")
@@ -240,7 +231,6 @@ local function CreateToggleRow(name, callback)
     CheckIcon.Position = UDim2.new(0, 3, 0, 3)
     CheckIcon.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
     CheckIcon.Visible = false
-    CheckIcon.ZIndex = 14
     CheckIcon.Parent = Checkbox
 
     local CheckIconCorner = Instance.new("UICorner")
@@ -278,7 +268,7 @@ local function CreateToggleRow(name, callback)
     return Row
 end
 
--- Action/Teleport Button Generator
+-- Teleport Button Generator
 local function CreateActionButton(text, callback)
     local Btn = Instance.new("TextButton")
     Btn.Size = UDim2.new(1, 0, 0, 28)
@@ -287,7 +277,6 @@ local function CreateActionButton(text, callback)
     Btn.TextColor3 = Color3.fromRGB(0, 170, 255)
     Btn.TextSize = 13
     Btn.Font = Enum.Font.SourceSansBold
-    Btn.ZIndex = 12
     Btn.Parent = Container
 
     local BtnCorner = Instance.new("UICorner")
@@ -309,7 +298,7 @@ local function CreateActionButton(text, callback)
 end
 
 --==============================================================--
---  ADD CONTROLS TO GUI
+--  ADD ALL CONTROLS TO GUI
 --==============================================================--
 
 CreateToggleRow("⛏️ Auto Dig", function(state)
@@ -417,7 +406,7 @@ end)
 
 -- Notification
 pcall(function()
-    StarterGui:SetCore("SendNotification", {
+    game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Ultra Script Hub",
         Text = "Dig and Clean Loaded!",
         Duration = 3
