@@ -214,3 +214,19 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 3. 💰 **Auto Sell**: Automatically triggers sell zones and remotes to convert collected items to cash.
 4. 📍 **Teleports**: Fast teleports to Dig Zone, Clean Station, Sell Zone, Shop/Upgrades, and Spawn.
 5. 🏃 **Player Boosts**: WalkSpeed Boost (45), Infinite Jump & Anti-AFK.
+
+---
+
+## 🎮 15. +1 Speed Monkey Escape
+- **Game Link**: [https://www.roblox.com/games/114697347887839/1-Speed-Monkey-Escape](https://www.roblox.com/games/114697347887839/1-Speed-Monkey-Escape)
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/SpeedMonkeyEscape.lua?t=" .. tostring(os.time())))()
+```
+
+### ✨ Features
+1. ⚡ **Auto Train (Speed)**: Automatically trains speed, equips speed items, and triggers training remotes.
+2. 🏆 **Auto Win (Escape Track)**: Automatically claims track wins, reaches finish pads, and completes stages.
+3. 🔄 **Auto Rebirth**: Automatically performs rebirths via remotes and pads.
+4. 🏃 **WalkSpeed Boost (60)**: High movement speed boost.
