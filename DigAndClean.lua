@@ -15,7 +15,6 @@ local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 
--- 100% Safe LocalPlayer Resolution
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then
     repeat
@@ -24,9 +23,7 @@ if not LocalPlayer then
     until LocalPlayer
 end
 
-local Camera = Workspace.CurrentCamera
-
--- Feature Toggle States
+-- State Variables
 local AutoDigEnabled = false
 local AutoCleanEnabled = false
 local AutoSellEnabled = false
@@ -37,39 +34,57 @@ local NormalSpeed = 16
 local BoostSpeed = 45
 
 --==============================================================--
---  GUI CREATION (Guaranteed 100% Instant Screen Display)
+--  SAFE GUI PARENT RESOLUTION
 --==============================================================--
-
--- Clean old instances
+local GuiParent = nil
 pcall(function()
+    if gethui then
+        GuiParent = gethui()
+    end
+end)
+if not GuiParent then
+    pcall(function()
+        if CoreGui and pcall(function() return CoreGui.Name end) then
+            GuiParent = CoreGui
+        end
+    end)
+end
+if not GuiParent then
+    pcall(function()
+        GuiParent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+    end)
+end
+if not GuiParent then
+    GuiParent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- Cleanup previous GUI instances
+pcall(function()
+    if GuiParent and GuiParent:FindFirstChild("UltraScriptHub_DigAndClean") then
+        GuiParent:FindFirstChild("UltraScriptHub_DigAndClean"):Destroy()
+    end
     local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
     if pgui and pgui:FindFirstChild("UltraScriptHub_DigAndClean") then
         pgui:FindFirstChild("UltraScriptHub_DigAndClean"):Destroy()
     end
 end)
-pcall(function()
-    if CoreGui and CoreGui:FindFirstChild("UltraScriptHub_DigAndClean") then
-        CoreGui:FindFirstChild("UltraScriptHub_DigAndClean"):Destroy()
-    end
-end)
-pcall(function()
-    if gethui and gethui():FindFirstChild("UltraScriptHub_DigAndClean") then
-        gethui():FindFirstChild("UltraScriptHub_DigAndClean"):Destroy()
-    end
-end)
 
+--==============================================================--
+--  GUI CREATION
+--==============================================================--
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UltraScriptHub_DigAndClean"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 999999
 ScreenGui.Enabled = true
+ScreenGui.Parent = GuiParent
 
 -- Main Outer Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 395)
-MainFrame.Position = UDim2.new(0.5, -160, 0.3, -190)
+MainFrame.Size = UDim2.new(0, 320, 0, 370)
+MainFrame.Position = UDim2.new(0.5, -160, 0.35, -185)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -87,11 +102,11 @@ UIStroke.Color = Color3.fromRGB(45, 48, 60)
 UIStroke.Thickness = 1.2
 UIStroke.Parent = MainFrame
 
--- Floating Open/Close Button (⚡) for Mobile & PC
+-- Floating Open/Close Button (⚡)
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Name = "FloatingToggle"
-ToggleBtn.Size = UDim2.new(0, 40, 0, 40)
-ToggleBtn.Position = UDim2.new(0, 15, 0.5, -20)
+ToggleBtn.Size = UDim2.new(0, 42, 0, 42)
+ToggleBtn.Position = UDim2.new(0, 15, 0.5, -21)
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 ToggleBtn.BorderColor3 = Color3.fromRGB(0, 170, 255)
 ToggleBtn.BorderSizePixel = 1
@@ -143,13 +158,13 @@ end)
 
 -- Content Scrolling Container
 local Container = Instance.new("ScrollingFrame")
-Container.Size = UDim2.new(1, -24, 0, 280)
+Container.Size = UDim2.new(1, -24, 0, 255)
 Container.Position = UDim2.new(0, 12, 0, 45)
 Container.BackgroundTransparency = 1
 Container.BorderSizePixel = 0
 Container.ScrollBarThickness = 3
 Container.ScrollBarImageColor3 = Color3.fromRGB(0, 170, 255)
-Container.CanvasSize = UDim2.new(0, 0, 0, 330)
+Container.CanvasSize = UDim2.new(0, 0, 0, 300)
 Container.ZIndex = 11
 Container.Parent = MainFrame
 
@@ -294,7 +309,7 @@ local function CreateActionButton(text, callback)
 end
 
 --==============================================================--
---  ADD ALL FEATURES TO GUI
+--  ADD CONTROLS TO GUI
 --==============================================================--
 
 CreateToggleRow("⛏️ Auto Dig", function(state)
@@ -324,10 +339,15 @@ CreateToggleRow("🦘 Infinite Jump", function(state)
     InfJumpEnabled = state
 end)
 
--- Teleport Buttons
+-- Character Movement Helpers
 local function getRoot()
     local char = LocalPlayer.Character
     return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char.PrimaryPart)
+end
+
+local function getHum()
+    local char = LocalPlayer.Character
+    return char and char:FindFirstChildOfClass("Humanoid")
 end
 
 local function teleportTo(cf)
@@ -395,28 +415,7 @@ CreateActionButton("🏠 Teleport to Spawn / Base", function()
     end
 end)
 
--- Safe Universal Parenting (Guaranteed Display)
-local parented = false
-pcall(function()
-    if gethui then
-        ScreenGui.Parent = gethui()
-        parented = true
-    end
-end)
-if not parented or not ScreenGui.Parent then
-    pcall(function()
-        local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
-        ScreenGui.Parent = pgui
-        parented = true
-    end)
-end
-if not parented or not ScreenGui.Parent then
-    pcall(function()
-        ScreenGui.Parent = CoreGui
-    end)
-end
-
--- Success Notification
+-- Notification
 pcall(function()
     StarterGui:SetCore("SendNotification", {
         Title = "Ultra Script Hub",
@@ -445,7 +444,7 @@ local function safeFireRemote(remote, ...)
     end)
 end
 
--- Background Remote Discovery
+-- Async Remote Discovery
 task.spawn(function()
     pcall(function()
         local function scan(container)
@@ -468,11 +467,6 @@ task.spawn(function()
         scan(Workspace)
     end)
 end)
-
-local function getHum()
-    local char = LocalPlayer.Character
-    return char and char:FindFirstChildOfClass("Humanoid")
-end
 
 local function equipAnyTool()
     pcall(function()
@@ -528,7 +522,7 @@ task.spawn(function()
     end)
 end)
 
--- 1. AUTO DIG LOOP
+-- Auto Dig Loop
 task.spawn(function()
     while true do
         task.wait(0.15)
@@ -544,7 +538,7 @@ task.spawn(function()
     end
 end)
 
--- 2. AUTO CLEAN LOOP
+-- Auto Clean Loop
 task.spawn(function()
     while true do
         task.wait(0.2)
@@ -560,7 +554,7 @@ task.spawn(function()
     end
 end)
 
--- 3. AUTO SELL LOOP
+-- Auto Sell Loop
 task.spawn(function()
     while true do
         task.wait(0.35)
@@ -576,7 +570,7 @@ task.spawn(function()
     end
 end)
 
--- 4. SPEED REGULATOR LOOP
+-- Speed Regulator Loop
 task.spawn(function()
     while true do
         task.wait(0.8)
@@ -589,4 +583,4 @@ task.spawn(function()
     end
 end)
 
-print("[Ultra Script Hub] Dig and Clean script loaded successfully.")
+print("[Ultra Script Hub] Dig and Clean script initialized.")
