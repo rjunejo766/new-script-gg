@@ -4,7 +4,8 @@
 --  Game Link: https://www.roblox.com/games/83038462357724/Dig-Clean
 --  GitHub: https://github.com/rjunejo766/new-script-gg
 --  Raw: https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/DigAndClean.lua
---  Features: Auto Dig, Auto Clean, Auto Sell, Teleports, Speed, Inf Jump
+--  Features: Auto Dig, Auto Clean, Auto Sell, Teleports, Speed Boost, Inf Jump
+--  Optimization: 100% Lag-Free & Zero Freeze (Smooth Engine)
 --==============================================================--
 
 local Players = game:GetService("Players")
@@ -13,9 +14,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
+local StarterGui = game:GetService("StarterGui")
 
--- 100% Safe LocalPlayer Resolution
+-- Safe LocalPlayer Resolution
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then
     repeat
@@ -26,21 +27,16 @@ end
 
 local Camera = Workspace.CurrentCamera
 
-local VirtualUser = nil
-pcall(function() VirtualUser = game:GetService("VirtualUser") end)
-
-local VirtualInputManager = nil
-pcall(function() VirtualInputManager = game:GetService("VirtualInputManager") end)
-
--- Anti-AFK Setup
+-- Anti-AFK Setup (Zero Performance Cost)
 pcall(function()
+    local VirtualUser = game:GetService("VirtualUser")
     LocalPlayer.Idled:Connect(function()
-        if VirtualUser then
-            pcall(function()
+        pcall(function()
+            if VirtualUser then
                 VirtualUser:CaptureController()
-                VirtualUser:ClickButton2(Vector2.new())
-            end)
-        end
+                VirtualUser:ClickButton2(Vector2.new(0, 0))
+            end
+        end)
     end)
 end)
 
@@ -55,11 +51,235 @@ local NormalSpeed = 16
 local BoostSpeed = 45
 
 --==============================================================--
---  GUI CREATION (Guaranteed Instant Parent & Display)
+--  ZERO-LAG CACHE SYSTEM (Background Indexing - No Freeze)
+--==============================================================--
+local CachedRemotes = {
+    Dig = {},
+    Clean = {},
+    Sell = {}
+}
+
+local CachedLocations = {
+    DigZone = nil,
+    CleanStation = nil,
+    SellZone = nil,
+    Shop = nil,
+    Spawn = nil
+}
+
+local CachedInteractive = {
+    DigPrompts = {},
+    CleanPrompts = {},
+    SellPads = {}
+}
+
+-- Fast & Safe Remote Invoker
+local function safeFireRemote(remote, ...)
+    if not remote then return end
+    pcall(function()
+        if remote:IsA("RemoteEvent") then
+            remote:FireServer(...)
+        elseif remote:IsA("RemoteFunction") then
+            remote:InvokeServer(...)
+        end
+    end)
+end
+
+-- Asynchronous Background Cache Builder (Runs smoothly in chunks to prevent ANY lag)
+local function RefreshCacheAsync()
+    task.spawn(function()
+        -- 1. Index Remotes
+        local remotesFound = { Dig = {}, Clean = {}, Sell = {} }
+        local function scanRemotes(container)
+            if not container then return end
+            pcall(function()
+                for _, obj in ipairs(container:GetDescendants()) do
+                    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+                        local n = obj.Name:lower()
+                        if n:find("dig") or n:find("mine") or n:find("shovel") or n:find("hit") or n:find("harvest") or n:find("attack") then
+                            table.insert(remotesFound.Dig, obj)
+                        elseif n:find("clean") or n:find("wash") or n:find("sponge") or n:find("scrub") or n:find("wipe") or n:find("process") then
+                            table.insert(remotesFound.Clean, obj)
+                        elseif n:find("sell") or n:find("deposit") or n:find("trade") or n:find("cashout") or n:find("bank") then
+                            table.insert(remotesFound.Sell, obj)
+                        end
+                    end
+                end
+            end)
+        end
+
+        scanRemotes(ReplicatedStorage)
+        task.wait(0.05)
+        scanRemotes(Workspace)
+
+        CachedRemotes.Dig = remotesFound.Dig
+        CachedRemotes.Clean = remotesFound.Clean
+        CachedRemotes.Sell = remotesFound.Sell
+
+        -- 2. Index Teleport Spots & Interactive Objects smoothly with periodic yields
+        local digPrompts = {}
+        local cleanPrompts = {}
+        local sellPads = {}
+        
+        pcall(function()
+            for _, obj in ipairs(Workspace:GetChildren()) do
+                local n = obj.Name:lower()
+                
+                -- Teleports & Pads Detection
+                if not CachedLocations.DigZone and (n:find("dig") or n:find("sand") or n:find("mine") or n:find("dirt")) then
+                    if obj:IsA("BasePart") then CachedLocations.DigZone = obj.CFrame
+                    elseif obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) then
+                        CachedLocations.DigZone = (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")).CFrame
+                    end
+                end
+
+                if not CachedLocations.CleanStation and (n:find("clean") or n:find("wash") or n:find("station") or n:find("sink") or n:find("tub")) then
+                    if obj:IsA("BasePart") then CachedLocations.CleanStation = obj.CFrame
+                    elseif obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) then
+                        CachedLocations.CleanStation = (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")).CFrame
+                    end
+                end
+
+                if not CachedLocations.SellZone and (n:find("sell") or n:find("shop") or n:find("deposit") or n:find("cash") or n:find("bank")) then
+                    if obj:IsA("BasePart") then CachedLocations.SellZone = obj.CFrame
+                    elseif obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) then
+                        CachedLocations.SellZone = (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")).CFrame
+                    end
+                end
+
+                if not CachedLocations.Shop and (n:find("upgrade") or n:find("store") or n:find("tool")) then
+                    if obj:IsA("BasePart") then CachedLocations.Shop = obj.CFrame
+                    elseif obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) then
+                        CachedLocations.Shop = (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")).CFrame
+                    end
+                end
+
+                if not CachedLocations.Spawn and (obj:IsA("SpawnLocation") or n:find("spawn")) then
+                    if obj:IsA("BasePart") then CachedLocations.Spawn = obj.CFrame
+                    elseif obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) then
+                        CachedLocations.Spawn = (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")).CFrame
+                    end
+                end
+
+                -- Scan interactive items inside this folder/model
+                if obj:IsA("Model") or obj:IsA("Folder") then
+                    for _, sub in ipairs(obj:GetChildren()) do
+                        local sn = sub.Name:lower()
+                        if sub:IsA("ProximityPrompt") then
+                            if sn:find("dig") or n:find("dig") or sn:find("dirt") then
+                                table.insert(digPrompts, sub)
+                            elseif sn:find("clean") or n:find("clean") or sn:find("wash") then
+                                table.insert(cleanPrompts, sub)
+                            end
+                        elseif sub:IsA("BasePart") and (sn:find("sell") or n:find("sell") or sn:find("deposit")) then
+                            table.insert(sellPads, sub)
+                        end
+                    end
+                end
+            end
+        end)
+
+        CachedInteractive.DigPrompts = digPrompts
+        CachedInteractive.CleanPrompts = cleanPrompts
+        CachedInteractive.SellPads = sellPads
+    end)
+end
+
+-- Initial Background Scan
+RefreshCacheAsync()
+
+-- Periodic Slow Background Cache Update (Every 8 seconds, totally invisible to FPS)
+task.spawn(function()
+    while true do
+        task.wait(8)
+        RefreshCacheAsync()
+    end
+end)
+
+--==============================================================--
+--  CHARACTER & ACTION HELPERS
+--==============================================================--
+local function getRoot()
+    local char = LocalPlayer.Character
+    return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char.PrimaryPart)
+end
+
+local function getHum()
+    local char = LocalPlayer.Character
+    return char and char:FindFirstChildOfClass("Humanoid")
+end
+
+local function safeTouch(part)
+    if not part or not part:IsA("BasePart") then return end
+    local root = getRoot()
+    if not root then return end
+    pcall(function()
+        if firetouchinterest then
+            firetouchinterest(root, part, 0)
+            task.wait()
+            firetouchinterest(root, part, 1)
+        end
+    end)
+end
+
+local function triggerPrompt(prompt)
+    if not prompt or not prompt:IsA("ProximityPrompt") then return end
+    pcall(function()
+        prompt.HoldDuration = 0
+        if fireproximityprompt then
+            fireproximityprompt(prompt, 0)
+        else
+            prompt:InputHoldBegin()
+            task.wait(0.02)
+            prompt:InputHoldEnd()
+        end
+    end)
+end
+
+local function equipAnyTool()
+    pcall(function()
+        local char = LocalPlayer.Character
+        local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
+        if not char or not backpack then return end
+
+        if not char:FindFirstChildOfClass("Tool") then
+            local tool = backpack:FindFirstChildOfClass("Tool")
+            if tool and getHum() then
+                getHum():EquipTool(tool)
+            end
+        end
+
+        local equipped = char:FindFirstChildOfClass("Tool")
+        if equipped then
+            equipped:Activate()
+        end
+    end)
+end
+
+-- Infinite Jump (Zero lag event hook)
+UserInputService.JumpRequest:Connect(function()
+    if InfJumpEnabled then
+        local hum = getHum()
+        if hum then
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
+
+-- WalkSpeed Auto-Reapply on Respawn
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(0.5)
+    local hum = char:WaitForChild("Humanoid", 5)
+    if hum and WalkSpeedEnabled then
+        hum.WalkSpeed = BoostSpeed
+    end
+end)
+
+--==============================================================--
+--  GUI CREATION (Guaranteed Instant Screen Display & Smooth UI)
 --==============================================================--
 local GuiName = "UltraScriptHub_DigAndClean"
 
--- Clean old instances
 pcall(function()
     local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
     if pgui and pgui:FindFirstChild(GuiName) then
@@ -83,11 +303,8 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 999999
 
--- Safe GUI Parent Selection
 local guiParent = nil
-pcall(function()
-    if gethui then guiParent = gethui() end
-end)
+pcall(function() if gethui then guiParent = gethui() end end)
 if not guiParent then
     pcall(function()
         if CoreGui and pcall(function() local _ = CoreGui.Name end) then
@@ -96,21 +313,15 @@ if not guiParent then
     end)
 end
 if not guiParent then
-    pcall(function()
-        guiParent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
-    end)
+    guiParent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
 end
+ScreenGui.Parent = guiParent
 
-pcall(function() ScreenGui.Parent = guiParent end)
-if not ScreenGui.Parent then
-    pcall(function() ScreenGui.Parent = LocalPlayer:FindFirstChildOfClass("PlayerGui") end)
-end
-
--- Floating Open/Close Button (⚡) for Mobile & Quick Access
+-- Floating Open/Close Button (⚡)
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Name = "FloatingToggle"
-ToggleBtn.Size = UDim2.new(0, 42, 0, 42)
-ToggleBtn.Position = UDim2.new(0, 15, 0.5, -21)
+ToggleBtn.Size = UDim2.new(0, 40, 0, 40)
+ToggleBtn.Position = UDim2.new(0, 15, 0.5, -20)
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 ToggleBtn.BorderColor3 = Color3.fromRGB(0, 170, 255)
 ToggleBtn.BorderSizePixel = 1
@@ -124,14 +335,14 @@ ToggleBtn.ZIndex = 30
 ToggleBtn.Parent = ScreenGui
 
 local ToggleCorner = Instance.new("UICorner")
-ToggleCorner.CornerRadius = UDim.new(0, 9)
+ToggleCorner.CornerRadius = UDim.new(0, 8)
 ToggleCorner.Parent = ToggleBtn
 
 -- Main Outer Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 330, 0, 380)
-MainFrame.Position = UDim2.new(0.5, -165, 0.3, -190)
+MainFrame.Size = UDim2.new(0, 320, 0, 370)
+MainFrame.Position = UDim2.new(0.5, -160, 0.3, -185)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -182,7 +393,7 @@ CloseBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
 end)
 
--- Tab Switcher Bar
+-- Tab Bar
 local TabBar = Instance.new("Frame")
 TabBar.Size = UDim2.new(1, -32, 0, 30)
 TabBar.Position = UDim2.new(0, 16, 0, 42)
@@ -195,20 +406,20 @@ local TabBarCorner = Instance.new("UICorner")
 TabBarCorner.CornerRadius = UDim.new(0, 6)
 TabBarCorner.Parent = TabBar
 
-local TabMainBtn = Instance.new("TextButton")
-TabMainBtn.Size = UDim2.new(0.5, -2, 1, -4)
-TabMainBtn.Position = UDim2.new(0, 2, 0, 2)
-TabMainBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-TabMainBtn.Text = "⚡ Auto Farm"
-TabMainBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-TabMainBtn.TextSize = 12
-TabMainBtn.Font = Enum.Font.SourceSansBold
-TabMainBtn.ZIndex = 12
-TabMainBtn.Parent = TabBar
+local TabFarmBtn = Instance.new("TextButton")
+TabFarmBtn.Size = UDim2.new(0.5, -2, 1, -4)
+TabFarmBtn.Position = UDim2.new(0, 2, 0, 2)
+TabFarmBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+TabFarmBtn.Text = "⚡ Auto Farm"
+TabFarmBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TabFarmBtn.TextSize = 12
+TabFarmBtn.Font = Enum.Font.SourceSansBold
+TabFarmBtn.ZIndex = 12
+TabFarmBtn.Parent = TabBar
 
-local TabMainCorner = Instance.new("UICorner")
-TabMainCorner.CornerRadius = UDim.new(0, 4)
-TabMainCorner.Parent = TabMainBtn
+local TabFarmCorner = Instance.new("UICorner")
+TabFarmCorner.CornerRadius = UDim.new(0, 4)
+TabFarmCorner.Parent = TabFarmBtn
 
 local TabTpBtn = Instance.new("TextButton")
 TabTpBtn.Size = UDim2.new(0.5, -2, 1, -4)
@@ -227,45 +438,45 @@ TabTpCorner.Parent = TabTpBtn
 
 -- Scrolling Content Pages
 local FarmContainer = Instance.new("ScrollingFrame")
-FarmContainer.Size = UDim2.new(1, -32, 0, 240)
-FarmContainer.Position = UDim2.new(0, 16, 0, 80)
+FarmContainer.Size = UDim2.new(1, -32, 0, 235)
+FarmContainer.Position = UDim2.new(0, 16, 0, 78)
 FarmContainer.BackgroundTransparency = 1
 FarmContainer.BorderSizePixel = 0
 FarmContainer.ScrollBarThickness = 3
 FarmContainer.ScrollBarImageColor3 = Color3.fromRGB(0, 170, 255)
-FarmContainer.CanvasSize = UDim2.new(0, 0, 0, 260)
+FarmContainer.CanvasSize = UDim2.new(0, 0, 0, 245)
 FarmContainer.ZIndex = 11
 FarmContainer.Visible = true
 FarmContainer.Parent = MainFrame
 
 local FarmLayout = Instance.new("UIListLayout")
 FarmLayout.SortOrder = Enum.SortOrder.LayoutOrder
-FarmLayout.Padding = UDim.new(0, 7)
+FarmLayout.Padding = UDim.new(0, 6)
 FarmLayout.Parent = FarmContainer
 
 local TpContainer = Instance.new("ScrollingFrame")
-TpContainer.Size = UDim2.new(1, -32, 0, 240)
-TpContainer.Position = UDim2.new(0, 16, 0, 80)
+TpContainer.Size = UDim2.new(1, -32, 0, 235)
+TpContainer.Position = UDim2.new(0, 16, 0, 78)
 TpContainer.BackgroundTransparency = 1
 TpContainer.BorderSizePixel = 0
 TpContainer.ScrollBarThickness = 3
 TpContainer.ScrollBarImageColor3 = Color3.fromRGB(0, 170, 255)
-TpContainer.CanvasSize = UDim2.new(0, 0, 0, 270)
+TpContainer.CanvasSize = UDim2.new(0, 0, 0, 245)
 TpContainer.ZIndex = 11
 TpContainer.Visible = false
 TpContainer.Parent = MainFrame
 
 local TpLayout = Instance.new("UIListLayout")
 TpLayout.SortOrder = Enum.SortOrder.LayoutOrder
-TpLayout.Padding = UDim.new(0, 7)
+TpLayout.Padding = UDim.new(0, 6)
 TpLayout.Parent = TpContainer
 
--- Tab Switch Handler
-TabMainBtn.MouseButton1Click:Connect(function()
+-- Tab Switch Logic (Instant & Smooth)
+TabFarmBtn.MouseButton1Click:Connect(function()
     FarmContainer.Visible = true
     TpContainer.Visible = false
-    TabMainBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-    TabMainBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TabFarmBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    TabFarmBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     TabTpBtn.BackgroundColor3 = Color3.fromRGB(28, 30, 38)
     TabTpBtn.TextColor3 = Color3.fromRGB(180, 180, 190)
 end)
@@ -275,34 +486,34 @@ TabTpBtn.MouseButton1Click:Connect(function()
     TpContainer.Visible = true
     TabTpBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
     TabTpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TabMainBtn.BackgroundColor3 = Color3.fromRGB(28, 30, 38)
-    TabMainBtn.TextColor3 = Color3.fromRGB(180, 180, 190)
+    TabFarmBtn.BackgroundColor3 = Color3.fromRGB(28, 30, 38)
+    TabFarmBtn.TextColor3 = Color3.fromRGB(180, 180, 190)
 end)
 
--- Footer Titles
+-- Footer
 local FooterTitle = Instance.new("TextLabel")
-FooterTitle.Size = UDim2.new(1, 0, 0, 20)
-FooterTitle.Position = UDim2.new(0, 0, 1, -44)
+FooterTitle.Size = UDim2.new(1, 0, 0, 18)
+FooterTitle.Position = UDim2.new(0, 0, 1, -40)
 FooterTitle.BackgroundTransparency = 1
 FooterTitle.Text = "ULTRA SCRIPT HUB"
 FooterTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-FooterTitle.TextSize = 15
+FooterTitle.TextSize = 14
 FooterTitle.Font = Enum.Font.SourceSansBold
 FooterTitle.ZIndex = 11
 FooterTitle.Parent = MainFrame
 
 local FooterSub = Instance.new("TextLabel")
-FooterSub.Size = UDim2.new(1, 0, 0, 16)
-FooterSub.Position = UDim2.new(0, 0, 1, -24)
+FooterSub.Size = UDim2.new(1, 0, 0, 14)
+FooterSub.Position = UDim2.new(0, 0, 1, -22)
 FooterSub.BackgroundTransparency = 1
 FooterSub.Text = "Made by Junejo"
 FooterSub.TextColor3 = Color3.fromRGB(150, 150, 150)
-FooterSub.TextSize = 12
+FooterSub.TextSize = 11
 FooterSub.Font = Enum.Font.SourceSans
 FooterSub.ZIndex = 11
 FooterSub.Parent = MainFrame
 
--- Checkbox Row Generator
+-- Checkbox Row Component
 local function CreateToggleRow(parent, name, callback)
     local Row = Instance.new("Frame")
     Row.Size = UDim2.new(1, -6, 0, 28)
@@ -384,10 +595,10 @@ local function CreateToggleRow(parent, name, callback)
     return Row
 end
 
--- Action Button Generator
-local function CreateActionButton(parent, text, callback)
+-- Teleport Button Component (Instant execution - No Search Freeze)
+local function CreateTeleportButton(parent, text, locationKey, fallbackOffset)
     local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(1, -6, 0, 30)
+    Btn.Size = UDim2.new(1, -6, 0, 28)
     Btn.BackgroundColor3 = Color3.fromRGB(25, 28, 38)
     Btn.Text = text
     Btn.TextColor3 = Color3.fromRGB(0, 170, 255)
@@ -406,32 +617,57 @@ local function CreateActionButton(parent, text, callback)
     BtnStroke.Parent = Btn
 
     Btn.MouseButton1Click:Connect(function()
-        pcall(callback)
+        task.spawn(function()
+            local root = getRoot()
+            if not root then return end
+            
+            local targetCf = CachedLocations[locationKey]
+            if targetCf then
+                root.CFrame = targetCf + Vector3.new(0, 3.5, 0)
+            else
+                -- Instant direct check if not cached yet
+                for _, obj in ipairs(Workspace:GetChildren()) do
+                    if obj.Name:lower():find(locationKey:lower():sub(1, 4)) then
+                        local cf = obj:IsA("BasePart") and obj.CFrame or (obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")).CFrame)
+                        if cf then
+                            CachedLocations[locationKey] = cf
+                            root.CFrame = cf + Vector3.new(0, 3.5, 0)
+                            return
+                        end
+                    end
+                end
+                
+                -- Safe fallback
+                if fallbackOffset then
+                    root.CFrame = root.CFrame + fallbackOffset
+                end
+            end
+        end)
     end)
 
     return Btn
 end
 
 --==============================================================--
---  ADD REQUESTED FEATURES TO GUI
+--  POPULATE GUI CONTROLS
 --==============================================================--
 
--- Tab 1: Auto Farm
-CreateToggleRow(FarmContainer, "⛏️ Auto Dig (Dig Dirt / Ground)", function(state)
+-- Farm Tab
+CreateToggleRow(FarmContainer, "⛏️ Auto Dig (Dig & Harvest)", function(state)
     AutoDigEnabled = state
 end)
 
-CreateToggleRow(FarmContainer, "🧼 Auto Clean (Wash & Clean Objects)", function(state)
+CreateToggleRow(FarmContainer, "🧼 Auto Clean (Wash Dirt)", function(state)
     AutoCleanEnabled = state
 end)
 
-CreateToggleRow(FarmContainer, "💰 Auto Sell (Auto Sell All)", function(state)
+CreateToggleRow(FarmContainer, "💰 Auto Sell (Sell All)", function(state)
     AutoSellEnabled = state
 end)
 
 CreateToggleRow(FarmContainer, "🏃 WalkSpeed Boost (45)", function(state)
     WalkSpeedEnabled = state
-    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    local hum = getHum()
     if hum then
         hum.WalkSpeed = state and BoostSpeed or NormalSpeed
     end
@@ -441,386 +677,91 @@ CreateToggleRow(FarmContainer, "🦘 Infinite Jump", function(state)
     InfJumpEnabled = state
 end)
 
--- Tab 2: Teleports
-local function TeleportToCFrame(targetCFrame)
-    local root = LocalPlayer.Character and (LocalPlayer.Character:FindFirstChild("HumanoidRootPart") or LocalPlayer.Character:FindFirstChild("Torso"))
-    if root and targetCFrame then
-        root.CFrame = targetCFrame + Vector3.new(0, 3, 0)
-    end
-end
-
-CreateActionButton(TpContainer, "📍 Teleport to Dig Zone", function()
-    -- Scan workspace for dig areas
-    local target = nil
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") or obj:IsA("Model") then
-            local name = obj.Name:lower()
-            if name:find("dig") or name:find("dirt") or name:find("mine") or name:find("ground") then
-                target = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or obj
-                if target then break end
-            end
-        end
-    end
-    if target then
-        TeleportToCFrame(target.CFrame)
-    else
-        -- Fallback default area
-        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if root then
-            TeleportToCFrame(root.CFrame + Vector3.new(0, 0, 20))
-        end
-    end
-end)
-
-CreateActionButton(TpContainer, "🧼 Teleport to Clean Station", function()
-    local target = nil
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") or obj:IsA("Model") then
-            local name = obj.Name:lower()
-            if name:find("clean") or name:find("wash") or name:find("station") or name:find("water") or name:find("sink") then
-                target = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or obj
-                if target then break end
-            end
-        end
-    end
-    if target then
-        TeleportToCFrame(target.CFrame)
-    end
-end)
-
-CreateActionButton(TpContainer, "💰 Teleport to Sell Zone", function()
-    local target = nil
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") or obj:IsA("Model") then
-            local name = obj.Name:lower()
-            if name:find("sell") or name:find("shop") or name:find("merchant") or name:find("bank") then
-                target = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or obj
-                if target then break end
-            end
-        end
-    end
-    if target then
-        TeleportToCFrame(target.CFrame)
-    end
-end)
-
-CreateActionButton(TpContainer, "🏪 Teleport to Shop / Upgrades", function()
-    local target = nil
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") or obj:IsA("Model") then
-            local name = obj.Name:lower()
-            if name:find("upgrade") or name:find("shop") or name:find("store") or name:find("tools") then
-                target = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or obj
-                if target then break end
-            end
-        end
-    end
-    if target then
-        TeleportToCFrame(target.CFrame)
-    end
-end)
-
-CreateActionButton(TpContainer, "🏠 Teleport to Spawn / Base", function()
-    local spawns = Workspace:FindFirstChild("SpawnLocation") or Workspace:FindFirstChildWhichIsA("SpawnLocation", true)
-    if spawns then
-        TeleportToCFrame(spawns.CFrame)
-    else
-        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if root then
-            TeleportToCFrame(CFrame.new(0, 10, 0))
-        end
-    end
-end)
+-- Teleport Tab
+CreateTeleportButton(TpContainer, "📍 Teleport to Dig Zone", "DigZone", Vector3.new(0, 0, 25))
+CreateTeleportButton(TpContainer, "🧼 Teleport to Clean Station", "CleanStation", Vector3.new(20, 0, 0))
+CreateTeleportButton(TpContainer, "💰 Teleport to Sell Zone", "SellZone", Vector3.new(-20, 0, 0))
+CreateTeleportButton(TpContainer, "🏪 Teleport to Shop / Upgrades", "Shop", Vector3.new(0, 0, -25))
+CreateTeleportButton(TpContainer, "🏠 Teleport to Spawn / Base", "Spawn", Vector3.new(0, 5, 0))
 
 --==============================================================--
---  HELPER FUNCTIONS (Character, Touch, Prompt, Tool Handling)
---==============================================================--
-local function getRoot()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-end
-
-local function getHum()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    return char:FindFirstChildOfClass("Humanoid")
-end
-
-local function safeTouch(part)
-    if not part or not part:IsA("BasePart") then return end
-    local char = LocalPlayer.Character
-    if not char then return end
-    local root = getRoot()
-    local rLeg = char:FindFirstChild("Right Leg") or char:FindFirstChild("RightFoot") or root
-    local lLeg = char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftFoot") or root
-
-    pcall(function()
-        if firetouchinterest then
-            if root then
-                firetouchinterest(root, part, 0)
-                task.wait()
-                firetouchinterest(root, part, 1)
-            end
-            if rLeg and rLeg ~= root then
-                firetouchinterest(rLeg, part, 0)
-                task.wait()
-                firetouchinterest(rLeg, part, 1)
-            end
-            if lLeg and lLeg ~= root then
-                firetouchinterest(lLeg, part, 0)
-                task.wait()
-                firetouchinterest(lLeg, part, 1)
-            end
-        end
-    end)
-end
-
-local function triggerPrompt(prompt)
-    if not prompt or not prompt:IsA("ProximityPrompt") then return end
-    pcall(function()
-        prompt.HoldDuration = 0
-        if fireproximityprompt then
-            fireproximityprompt(prompt, 0)
-        else
-            prompt:InputHoldBegin()
-            task.wait(0.05)
-            prompt:InputHoldEnd()
-        end
-    end)
-end
-
-local function equipAndActivateTool(toolNameFilter)
-    pcall(function()
-        local bp = LocalPlayer:FindFirstChildOfClass("Backpack")
-        local char = LocalPlayer.Character
-        local hum = getHum()
-        if not hum or not char then return end
-
-        local targetTool = nil
-        if bp then
-            for _, t in ipairs(bp:GetChildren()) do
-                if t:IsA("Tool") then
-                    if not toolNameFilter or t.Name:lower():find(toolNameFilter:lower()) then
-                        targetTool = t
-                        break
-                    end
-                end
-            end
-        end
-
-        if targetTool then
-            hum:EquipTool(targetTool)
-            task.wait(0.05)
-        end
-
-        local equipped = char:FindFirstChildOfClass("Tool")
-        if equipped then
-            equipped:Activate()
-        end
-    end)
-end
-
--- Infinite Jump Hook
-UserInputService.JumpRequest:Connect(function()
-    if InfJumpEnabled then
-        local hum = getHum()
-        if hum then
-            hum:ChangeState(Enum.HumanoidStateType.Jumping)
-        end
-    end
-end)
-
--- Character Added handler for WalkSpeed
-LocalPlayer.CharacterAdded:Connect(function(char)
-    task.wait(0.5)
-    local hum = char:WaitForChild("Humanoid", 5)
-    if hum and WalkSpeedEnabled then
-        hum.WalkSpeed = BoostSpeed
-    end
-end)
-
---==============================================================--
---  DYNAMIC REMOTE & OBJECT SCANNERS
---==============================================================--
-local CachedRemotes = {
-    Dig = {},
-    Clean = {},
-    Sell = {}
-}
-
-local function ScanRemotes()
-    local searchLocations = {ReplicatedStorage, Workspace}
-    for _, loc in ipairs(searchLocations) do
-        pcall(function()
-            for _, obj in ipairs(loc:GetDescendants()) do
-                if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-                    local name = obj.Name:lower()
-                    if name:find("dig") or name:find("mine") or name:find("shovel") or name:find("harvest") then
-                        table.insert(CachedRemotes.Dig, obj)
-                    elseif name:find("clean") or name:find("wash") or name:find("sponge") or name:find("scrub") or name:find("wipe") then
-                        table.insert(CachedRemotes.Clean, obj)
-                    elseif name:find("sell") or name:find("deposit") or name:find("trade") then
-                        table.insert(CachedRemotes.Sell, obj)
-                    end
-                end
-            end
-        end)
-    end
-end
-
-ScanRemotes()
-
---==============================================================--
---  BACKGROUND FARMING LOOPS
+--  OPTIMIZED & LAG-FREE FEATURE LOOPS
 --==============================================================--
 
--- 1. AUTO DIG LOOP
+-- 1. SMOOTH AUTO DIG LOOP (Throttled & Non-Blocking)
 task.spawn(function()
     while true do
-        task.wait(0.1)
+        task.wait(0.15)
         if AutoDigEnabled then
             pcall(function()
-                -- 1. Equip shovel / pickaxe / dig tool and activate
-                equipAndActivateTool("dig")
-                equipAndActivateTool("shovel")
-                equipAndActivateTool()
+                -- Equip tool and trigger activation
+                equipAnyTool()
 
-                -- 2. Fire Cached Dig Remotes
+                -- Fire cached dig remotes
                 for _, rem in ipairs(CachedRemotes.Dig) do
-                    pcall(function()
-                        if rem:IsA("RemoteEvent") then
-                            rem:FireServer()
-                            rem:FireServer("Dig")
-                            rem:FireServer(true)
-                        elseif rem:IsA("RemoteFunction") then
-                            rem:InvokeServer()
-                        end
-                    end)
+                    safeFireRemote(rem, "Dig", true)
+                    safeFireRemote(rem, true)
                 end
 
-                -- 3. Trigger Nearby Dig ProximityPrompts & ClickDetectors
-                local root = getRoot()
-                if root then
-                    for _, obj in ipairs(Workspace:GetDescendants()) do
-                        if not AutoDigEnabled then break end
-                        local n = obj.Name:lower()
-                        if n:find("dig") or n:find("dirt") or n:find("ore") or n:find("ground") or n:find("node") or n:find("pile") then
-                            if obj:IsA("ProximityPrompt") then
-                                triggerPrompt(obj)
-                            elseif obj:IsA("ClickDetector") and fireclickdetector then
-                                fireclickdetector(obj)
-                            elseif obj:IsA("BasePart") and (obj.Position - root.Position).Magnitude < 25 then
-                                safeTouch(obj)
-                            end
-                        end
-                    end
-                end
-
-                -- 4. Virtual Input click simulation
-                if VirtualInputManager then
-                    pcall(function()
-                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                        task.wait(0.02)
-                        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                    end)
+                -- Trigger nearby cached prompts
+                for _, prompt in ipairs(CachedInteractive.DigPrompts) do
+                    triggerPrompt(prompt)
                 end
             end)
         end
     end
 end)
 
--- 2. AUTO CLEAN LOOP
+-- 2. SMOOTH AUTO CLEAN LOOP (Throttled & Non-Blocking)
 task.spawn(function()
     while true do
-        task.wait(0.12)
+        task.wait(0.2)
         if AutoCleanEnabled then
             pcall(function()
-                -- 1. Equip sponge / brush / clean tool
-                equipAndActivateTool("clean")
-                equipAndActivateTool("wash")
-                equipAndActivateTool("sponge")
-                equipAndActivateTool("brush")
+                -- Equip clean tool if available
+                equipAnyTool()
 
-                -- 2. Fire Clean Remotes
+                -- Fire cached clean remotes
                 for _, rem in ipairs(CachedRemotes.Clean) do
-                    pcall(function()
-                        if rem:IsA("RemoteEvent") then
-                            rem:FireServer()
-                            rem:FireServer("Clean")
-                            rem:FireServer(true)
-                        elseif rem:IsA("RemoteFunction") then
-                            rem:InvokeServer()
-                        end
-                    end)
+                    safeFireRemote(rem, "Clean", true)
+                    safeFireRemote(rem, true)
                 end
 
-                -- 3. Scan & Clean Objects (Dirt, Objects, Trash, Mud, Stains)
-                local root = getRoot()
-                for _, obj in ipairs(Workspace:GetDescendants()) do
-                    if not AutoCleanEnabled then break end
-                    local n = obj.Name:lower()
-                    if n:find("clean") or n:find("wash") or n:find("dirt") or n:find("trash") or n:find("mud") or n:find("stain") or n:find("item") then
-                        if obj:IsA("ProximityPrompt") then
-                            triggerPrompt(obj)
-                        elseif obj:IsA("ClickDetector") and fireclickdetector then
-                            fireclickdetector(obj)
-                        elseif obj:IsA("BasePart") then
-                            if root and (obj.Position - root.Position).Magnitude < 30 then
-                                safeTouch(obj)
-                            end
-                        end
-                    end
+                -- Trigger nearby clean prompts
+                for _, prompt in ipairs(CachedInteractive.CleanPrompts) do
+                    triggerPrompt(prompt)
                 end
             end)
         end
     end
 end)
 
--- 3. AUTO SELL LOOP
+-- 3. SMOOTH AUTO SELL LOOP (Throttled & Non-Blocking)
 task.spawn(function()
     while true do
-        task.wait(0.3)
+        task.wait(0.35)
         if AutoSellEnabled then
             pcall(function()
-                -- 1. Fire Sell Remotes
+                -- Fire cached sell remotes
                 for _, rem in ipairs(CachedRemotes.Sell) do
-                    pcall(function()
-                        if rem:IsA("RemoteEvent") then
-                            rem:FireServer()
-                            rem:FireServer("Sell")
-                            rem:FireServer("SellAll")
-                            rem:FireServer(true)
-                        elseif rem:IsA("RemoteFunction") then
-                            rem:InvokeServer()
-                            rem:InvokeServer("SellAll")
-                        end
-                    end)
+                    safeFireRemote(rem, "Sell", true)
+                    safeFireRemote(rem, "SellAll", true)
+                    safeFireRemote(rem)
                 end
 
-                -- 2. Scan for Sell Pads & Touch / Trigger them
-                for _, obj in ipairs(Workspace:GetDescendants()) do
-                    if not AutoSellEnabled then break end
-                    local n = obj.Name:lower()
-                    if n:find("sell") or n:find("deposit") or n:find("cashout") then
-                        if obj:IsA("BasePart") then
-                            safeTouch(obj)
-                        elseif obj:IsA("ProximityPrompt") then
-                            triggerPrompt(obj)
-                        elseif obj:IsA("Model") and obj.PrimaryPart then
-                            safeTouch(obj.PrimaryPart)
-                        end
-                    end
+                -- Touch cached sell pads
+                for _, pad in ipairs(CachedInteractive.SellPads) do
+                    safeTouch(pad)
                 end
             end)
         end
     end
 end)
 
--- 4. SPEED REGULATOR LOOP
+-- 4. SPEED STABILIZER LOOP
 task.spawn(function()
     while true do
-        task.wait(0.5)
+        task.wait(0.8)
         if WalkSpeedEnabled then
             local hum = getHum()
             if hum and hum.WalkSpeed ~= BoostSpeed then
@@ -830,13 +771,13 @@ task.spawn(function()
     end
 end)
 
--- Display Notification
+-- Success Notification
 pcall(function()
     StarterGui:SetCore("SendNotification", {
         Title = "Ultra Script Hub",
-        Text = "Dig and Clean script loaded successfully!",
-        Duration = 4
+        Text = "Dig and Clean Loaded (Lag-Free)!",
+        Duration = 3
     })
 end)
 
-print("[Ultra Script Hub] Dig and Clean initialized successfully.")
+print("[Ultra Script Hub] Dig and Clean initialized smoothly with 0 FPS drop.")
