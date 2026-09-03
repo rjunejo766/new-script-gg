@@ -12,6 +12,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
+local VirtualUser = game:GetService("VirtualUser")
+local VirtualInputManager = nil
+pcall(function() VirtualInputManager = game:GetService("VirtualInputManager") end)
 
 -- Safe LocalPlayer Resolution
 local LocalPlayer = Players.LocalPlayer
@@ -24,7 +27,7 @@ end
 
 local Camera = Workspace.CurrentCamera
 
--- Feature Toggle States (Exact 4 Requested Features)
+-- Feature Toggle States
 local AutoWinEnabled = false
 local AutoFarmBlocksEnabled = false
 local AutoRebirthEnabled = false
@@ -58,7 +61,7 @@ local function safeTeleport(pos)
 
         if hum then hum.Sit = false end
 
-        local targetCFrame = CFrame.new(pos.X, pos.Y + 3, pos.Z)
+        local targetCFrame = CFrame.new(pos.X, pos.Y + 3.5, pos.Z)
         root.CFrame = targetCFrame
         char:PivotTo(targetCFrame)
         pcall(function() char:SetPrimaryPartCFrame(targetCFrame) end)
@@ -93,6 +96,33 @@ local function triggerPrompts(obj)
             elseif p:IsA("ClickDetector") and fireclickdetector then
                 fireclickdetector(p)
             end
+        end
+    end)
+end
+
+-- Universal Click / Attack / Build Simulator
+local function simulateClick()
+    pcall(function()
+        -- 1. VirtualInputManager Left Mouse Click
+        if VirtualInputManager then
+            local vp = Camera.ViewportSize
+            local x = math.floor(vp.X / 2)
+            local y = math.floor(vp.Y / 2)
+            VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
+            task.wait(0.02)
+            VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
+        end
+
+        -- 2. VirtualUser Left Click
+        if VirtualUser then
+            VirtualUser:Button1Down(Vector2.new(400, 400), Camera.CFrame)
+            task.wait(0.02)
+            VirtualUser:Button1Up(Vector2.new(400, 400), Camera.CFrame)
+        end
+
+        -- 3. mouse1click executor function
+        if mouse1click then
+            mouse1click()
         end
     end)
 end
@@ -321,7 +351,7 @@ local function CreateToggleRow(name, callback, isLast)
 end
 
 --==============================================================--
---  ALL 4 TOGGLE ROWS (Created Synchronously)
+--  ALL 4 TOGGLE ROWS
 --==============================================================--
 
 -- 1. Auto Win (Instant Finish / Claim Wins)
@@ -334,7 +364,7 @@ CreateToggleRow("Auto Win", function(state)
                     local root = getRoot()
                     if not root then return end
 
-                    -- Scan for Win Pads, Trophy Finish, Stages, Checkpoints
+                    -- Search for Win Pads, Trophies, End Stage lines
                     for _, obj in ipairs(Workspace:GetDescendants()) do
                         if not AutoWinEnabled then break end
                         if obj:IsA("BasePart") or obj:IsA("Model") then
@@ -351,11 +381,11 @@ CreateToggleRow("Auto Win", function(state)
                         end
                     end
 
-                    -- Fire Win Remotes if any exist
+                    -- Fire Win Remotes
                     for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
                         if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
                             local rName = remote.Name:lower()
-                            if rName:find("win") or rName:find("finish") or rName:find("claimwin") or rName:find("reward") then
+                            if rName:find("win") or rName:find("finish") or rName:find("claimwin") or rName:find("reward") or rName:find("complete") then
                                 pcall(function()
                                     if remote:IsA("RemoteEvent") then
                                         remote:FireServer()
@@ -373,57 +403,68 @@ CreateToggleRow("Auto Win", function(state)
     end
 end, false)
 
--- 2. Auto Farm Blocks (Claim +1 Blocks / Generator / Drops)
+-- 2. Auto Farm Blocks (Rapid Auto Build / Click / Generate Blocks)
 CreateToggleRow("Auto Farm Blocks", function(state)
     AutoFarmBlocksEnabled = state
     if AutoFarmBlocksEnabled then
         task.spawn(function()
             while AutoFarmBlocksEnabled do
                 pcall(function()
-                    local root = getRoot()
                     local char = getChar()
+                    local hum = getHum()
+                    local root = getRoot()
+                    if not char or not root then return end
 
-                    -- 1. Equip build/tool if in backpack
-                    local tool = LocalPlayer.Backpack:FindFirstChildOfClass("Tool")
-                    if tool and hum then
-                        hum:EquipTool(tool)
-                    end
-                    if char:FindFirstChildOfClass("Tool") then
-                        char:FindFirstChildOfClass("Tool"):Activate()
+                    -- 1. Auto Equip Building / Attack Tool
+                    local toolInBackpack = LocalPlayer.Backpack:FindFirstChildOfClass("Tool")
+                    if toolInBackpack and hum then
+                        hum:EquipTool(toolInBackpack)
                     end
 
-                    -- 2. Scan and collect floating blocks, generators, block pads
+                    local equippedTool = char:FindFirstChildOfClass("Tool")
+                    if equippedTool then
+                        pcall(function() equippedTool:Activate() end)
+                    end
+
+                    -- 2. Fast Left Mouse Click Simulation (Triggers block generation / attack / build)
+                    simulateClick()
+
+                    -- 3. Touch Generator Pads, Block Spawners & Ground Buttons
                     for _, obj in ipairs(Workspace:GetDescendants()) do
                         if not AutoFarmBlocksEnabled then break end
-                        if obj:IsA("BasePart") or obj:IsA("Model") then
+                        if obj:IsA("BasePart") then
                             local name = obj.Name:lower()
-                            if name:find("block") or name:find("brick") or name:find("generator") or name:find("collect") or name:find("drop") or name:find("coin") then
-                                local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart", true)
-                                if part and (part.Position - root.Position).Magnitude < 300 then
-                                    touchObject(part)
+                            if name:find("block") or name:find("part") or name:find("gen") or name:find("pad") or name:find("drop") or name:find("button") then
+                                if (obj.Position - root.Position).Magnitude <= 100 then
+                                    touchObject(obj)
                                     triggerPrompts(obj)
                                 end
                             end
                         end
                     end
 
-                    -- 3. Fire Block / Train Remotes
+                    -- 4. Fire All ReplicatedStorage Game Remotes related to Block / Click / Build / Train
                     for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
                         if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
                             local rName = remote.Name:lower()
-                            if rName:find("block") or rName:find("click") or rName:find("train") or rName:find("addblock") or rName:find("build") or rName:find("tap") then
+                            if rName:find("block") or rName:find("build") or rName:find("place") or rName:find("click") or rName:find("tap") or rName:find("train") or rName:find("add") or rName:find("hit") or rName:find("attack") or rName:find("part") then
                                 pcall(function()
+                                    local posAhead = root.Position + (root.CFrame.LookVector * 4)
                                     if remote:IsA("RemoteEvent") then
                                         remote:FireServer()
+                                        remote:FireServer(posAhead)
+                                        remote:FireServer(1)
+                                        remote:FireServer(true)
                                     else
                                         remote:InvokeServer()
+                                        remote:InvokeServer(posAhead)
                                     end
                                 end)
                             end
                         end
                     end
                 end)
-                task.wait(0.2)
+                task.wait(0.08)
             end
         end)
     end
@@ -542,4 +583,4 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
-print("[UltraScriptHub] +1 Build a Obby Script loaded successfully!")
+print("[UltraScriptHub] +1 Build a Obby Script loaded with Fast Multi-Layer Auto Build!")
