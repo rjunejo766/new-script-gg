@@ -87,8 +87,8 @@ end
 -- Main Outer Frame (Exact Screenshot Dimensions & Style)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 310, 0, 275)
-MainFrame.Position = UDim2.new(0.5, -155, 0.35, -137)
+MainFrame.Size = UDim2.new(0, 310, 0, 285)
+MainFrame.Position = UDim2.new(0.5, -155, 0.35, -142)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -158,10 +158,11 @@ end)
 
 -- Features Container
 local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -32, 0, 160)
+Container.Size = UDim2.new(1, -32, 0, 165)
 Container.Position = UDim2.new(0, 16, 0, 48)
 Container.BackgroundTransparency = 1
 Container.Parent = MainFrame
+
 
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
