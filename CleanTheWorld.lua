@@ -2,7 +2,7 @@
 --  ULTRA SCRIPT HUB - Made by Junejo
 --  Game: Clean the WORLD! [PRESTIGE!]
 --  Game Link: https://www.roblox.com/games/105767799784652/Clean-the-WORLD
---  Version: 1.0 (Auto Clean / Vacuum Aura, Auto Sell, Auto Prestige)
+--  Version: 2.0 (Exact 7 Features: Clean Aura, Sell, Prestige, Upgrade, Unlock Zones, ESP, Fly)
 --==============================================================--
 
 local Players = game:GetService("Players")
@@ -21,13 +21,13 @@ pcall(function() VirtualUser = game:GetService("VirtualUser") end)
 local VirtualInputManager = nil
 pcall(function() VirtualInputManager = game:GetService("VirtualInputManager") end)
 
--- Feature Toggle States
+-- Exact 7 Feature Toggle States
 local AutoCleanAuraEnabled = false
 local AutoSellEnabled = false
 local AutoPrestigeEnabled = false
 local AutoUpgradeEnabled = false
-local SpeedBoostEnabled = false
-local InfJumpEnabled = false
+local AutoUnlockZonesEnabled = false
+local TrashESPEnabled = false
 local FlyEnabled = false
 
 -- Movement Settings
@@ -208,7 +208,7 @@ local function isTrash(obj)
 
     local keywords = {
         "trash", "garbage", "waste", "clean", "pollution", "dirt", "debris", 
-        "can", "bottle", "bag", "barrel", "toxic", "leaf", "leaves", "sludge", "plastic", "drop"
+        "can", "bottle", "bag", "barrel", "toxic", "leaf", "leaves", "sludge", "plastic", "drop", "oil", "pile"
     }
 
     for _, kw in ipairs(keywords) do
@@ -242,7 +242,7 @@ local function getPartFromObj(obj)
 end
 
 --==============================================================--
---  GUI CREATION (Exact ULTRA SCRIPT HUB Design)
+--  GUI CREATION (Exact ULTRA SCRIPT HUB Saved Design)
 --==============================================================--
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UltraScriptHub_CleanTheWorld"
@@ -285,8 +285,8 @@ end
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 320, 0, 330)
-MainFrame.Position = UDim2.new(0.5, -160, 0.35, -165)
+MainFrame.Size = UDim2.new(0, 330, 0, 365)
+MainFrame.Position = UDim2.new(0.5, -165, 0.35, -182)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -360,7 +360,7 @@ end)
 
 -- Features Container
 local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -32, 0, 230)
+Container.Size = UDim2.new(1, -32, 0, 265)
 Container.Position = UDim2.new(0, 16, 0, 48)
 Container.BackgroundTransparency = 1
 Container.Parent = MainFrame
@@ -452,7 +452,7 @@ local function CreateToggleRow(name, callback, isLast)
     return Checkbox
 end
 
--- Toggle Rows
+-- Exact 7 Feature Toggle Rows
 CreateToggleRow("Auto Clean / Vacuum Aura", function(state)
     AutoCleanAuraEnabled = state
 end, false)
@@ -469,16 +469,12 @@ CreateToggleRow("Auto Upgrade", function(state)
     AutoUpgradeEnabled = state
 end, false)
 
-CreateToggleRow("WalkSpeed Boost (60)", function(state)
-    SpeedBoostEnabled = state
-    local hum = getHum()
-    if hum then
-        hum.WalkSpeed = state and BoostSpeed or DefaultSpeed
-    end
+CreateToggleRow("Auto Unlock Zones", function(state)
+    AutoUnlockZonesEnabled = state
 end, false)
 
-CreateToggleRow("Infinite Jump", function(state)
-    InfJumpEnabled = state
+CreateToggleRow("Trash ESP / Rare Chams", function(state)
+    TrashESPEnabled = state
 end, false)
 
 CreateToggleRow("Fly Mode", function(state)
@@ -598,7 +594,7 @@ task.spawn(function()
                     end)
                 end
             end)
-            task.wait(0.5)
+            task.wait(0.4)
         else
             task.wait(0.5)
         end
@@ -643,9 +639,9 @@ task.spawn(function()
                     end)
                 end
             end)
-            task.wait(1)
+            task.wait(0.8)
         else
-            task.wait(1)
+            task.wait(0.8)
         end
     end
 end)
@@ -658,7 +654,7 @@ task.spawn(function()
         if AutoUpgradeEnabled then
             pcall(function()
                 local upgradeRemotes = findRemotes({
-                    "upgrade", "buyupgrade", "purchase", "buystat", "speedupgrade", "capacity", "power"
+                    "upgrade", "buyupgrade", "purchase", "buystat", "speedupgrade", "capacity", "power", "range"
                 })
                 for _, rem in ipairs(upgradeRemotes) do
                     pcall(function()
@@ -676,7 +672,7 @@ task.spawn(function()
                     end)
                 end
             end)
-            task.wait(0.8)
+            task.wait(0.6)
         else
             task.wait(0.8)
         end
@@ -684,29 +680,145 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  5. MOVEMENT & UTILITY (Infinite Jump, Speed, Fly)
+--  5. AUTO UNLOCK ZONES / WORLDS
 --==============================================================--
--- Infinite Jump
-UserInputService.JumpRequest:Connect(function()
-    if InfJumpEnabled then
-        local hum = getHum()
-        if hum then
-            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+task.spawn(function()
+    while true do
+        if AutoUnlockZonesEnabled then
+            pcall(function()
+                local root = getRoot()
+                if not root then return end
+
+                -- Find zone gates, doors, unlock pads
+                for _, obj in ipairs(Workspace:GetDescendants()) do
+                    if not AutoUnlockZonesEnabled then break end
+                    if obj:IsA("BasePart") then
+                        local n = obj.Name:lower()
+                        local p = obj.Parent and obj.Parent.Name:lower() or ""
+                        if n:find("zone") or n:find("gate") or n:find("unlock") or n:find("portal") or n:find("door") or
+                           p:find("zones") or p:find("gates") or p:find("worlds") then
+                            safeTouch(obj)
+                            local prompt = obj:FindFirstChildWhichIsA("ProximityPrompt", true)
+                            if prompt then triggerPrompt(prompt) end
+                        end
+                    end
+                end
+
+                -- Fire Zone Remotes
+                local zoneRemotes = findRemotes({
+                    "zone", "unlockzone", "buyzone", "unlockworld", "portal", "gate"
+                })
+                for _, rem in ipairs(zoneRemotes) do
+                    pcall(function()
+                        if rem:IsA("RemoteEvent") then
+                            rem:FireServer(1)
+                            rem:FireServer(2)
+                            rem:FireServer(3)
+                            rem:FireServer(true)
+                        elseif rem:IsA("RemoteFunction") then
+                            rem:InvokeServer(1)
+                        end
+                    end)
+                end
+            end)
+            task.wait(1.5)
+        else
+            task.wait(1)
         end
     end
 end)
 
--- Speed Boost Keeper (Heartbeat Bypass)
-RunService.Heartbeat:Connect(function()
-    if SpeedBoostEnabled then
-        local hum = getHum()
-        if hum and hum.WalkSpeed ~= BoostSpeed then
-            hum.WalkSpeed = BoostSpeed
+--==============================================================--
+--  6. TRASH ESP / RARE CHAMS
+--==============================================================--
+local activeESP = {}
+
+local function clearESP()
+    for _, obj in pairs(activeESP) do
+        if obj.highlight then pcall(function() obj.highlight:Destroy() end) end
+        if obj.billboard then pcall(function() obj.billboard:Destroy() end) end
+    end
+    table.clear(activeESP)
+end
+
+task.spawn(function()
+    while true do
+        if TrashESPEnabled then
+            pcall(function()
+                local root = getRoot()
+                local foundKeys = {}
+
+                for _, obj in ipairs(Workspace:GetDescendants()) do
+                    if not TrashESPEnabled then break end
+                    if isTrash(obj) then
+                        local part = getPartFromObj(obj)
+                        if part and part.Parent and part:IsA("BasePart") then
+                            local key = part:GetDebugId() or tostring(part:GetFullName())
+                            foundKeys[key] = true
+
+                            if not activeESP[key] then
+                                -- Create Glowing Highlight
+                                local hl = Instance.new("Highlight")
+                                hl.Name = "TrashESP_HL"
+                                hl.FillColor = Color3.fromRGB(0, 255, 170)
+                                hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                                hl.FillTransparency = 0.3
+                                hl.OutlineTransparency = 0
+                                hl.Adornee = obj:IsA("Model") and obj or part
+                                hl.Parent = ScreenGui
+
+                                -- Create BillboardGui
+                                local bb = Instance.new("BillboardGui")
+                                bb.Name = "TrashESP_BB"
+                                bb.Size = UDim2.new(0, 130, 0, 30)
+                                bb.AlwaysOnTop = true
+                                bb.Adornee = part
+                                bb.Parent = ScreenGui
+
+                                local txt = Instance.new("TextLabel")
+                                txt.Name = "DistLabel"
+                                txt.Size = UDim2.new(1, 0, 1, 0)
+                                txt.BackgroundTransparency = 1
+                                txt.TextColor3 = Color3.fromRGB(80, 255, 200)
+                                txt.TextStrokeTransparency = 0
+                                txt.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+                                txt.TextSize = 13
+                                txt.Font = Enum.Font.SourceSansBold
+                                txt.Parent = bb
+
+                                activeESP[key] = {highlight = hl, billboard = bb, label = txt, part = part, name = obj.Name}
+                            end
+
+                            -- Update Distance
+                            if activeESP[key] and activeESP[key].label and root then
+                                local dist = math.floor((part.Position - root.Position).Magnitude)
+                                activeESP[key].label.Text = "🗑️ " .. activeESP[key].name .. " [" .. tostring(dist) .. "m]"
+                            end
+                        end
+                    end
+                end
+
+                -- Clean dead items
+                for key, data in pairs(activeESP) do
+                    if not foundKeys[key] or not data.part or not data.part.Parent then
+                        if data.highlight then pcall(function() data.highlight:Destroy() end) end
+                        if data.billboard then pcall(function() data.billboard:Destroy() end) end
+                        activeESP[key] = nil
+                    end
+                end
+            end)
+            task.wait(0.3)
+        else
+            clearESP()
+            task.wait(0.5)
         end
     end
 end)
 
--- Fly Controller (Full PC & Mobile Directional Flying)
+--==============================================================--
+--  7. FLY MODE & MOVEMENT UTILITY
+--==============================================================--
+-- Fly Controller (Directional Flight with PC & Mobile Support)
 local bodyGyro, bodyVelocity
 RunService.RenderStepped:Connect(function()
     if FlyEnabled then
@@ -776,7 +888,7 @@ print("[ULTRA SCRIPT HUB] Clean the WORLD! [PRESTIGE!] Loaded Successfully!")
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "ULTRA SCRIPT HUB",
-        Text = "Clean the WORLD! (Active & Ready)!",
+        Text = "Clean the WORLD! v2.0 (Active & Ready)!",
         Duration = 5
     })
 end)

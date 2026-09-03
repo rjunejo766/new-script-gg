@@ -314,12 +314,13 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 loadstring(readfile("CleanTheWorld.lua"))()
 ```
 
-### ✨ Features
+### ✨ Features (Exact 7 Features)
 1. 🧹 **Auto Clean / Vacuum Aura**: Fast continuous vacuuming of all trash, debris, oil barrels, sludge & waste across the map.
 2. 💰 **Auto Sell Waste**: Automatically touches sell pads and fires deposit/sell remotes.
 3. 🔄 **Auto Prestige**: Automatically triggers and claims prestiges for non-stop prestige multipliers.
 4. ⚡ **Auto Upgrade**: Automatically buys capacity, vacuum speed, and power upgrades.
-5. 🏃 **WalkSpeed Boost (60)**: High movement speed boost.
-6. 🦘 **Infinite Jump**: Unlimited air jumping.
+5. 🔓 **Auto Unlock Zones**: Automatically unlocks and opens new polluted worlds and zones.
+6. 🔮 **Trash ESP / Rare Chams**: 3D Glowing Chams and real-time distance visualizer on all trash items.
 7. 🕊️ **Fly Mode**: Smooth flight with camera direction and Mobile joystick support.
+
 
