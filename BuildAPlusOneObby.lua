@@ -103,7 +103,6 @@ end
 -- Universal Click / Attack / Build Simulator
 local function simulateClick()
     pcall(function()
-        -- 1. VirtualInputManager Left Mouse Click
         if VirtualInputManager then
             local vp = Camera.ViewportSize
             local x = math.floor(vp.X / 2)
@@ -113,14 +112,12 @@ local function simulateClick()
             VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
         end
 
-        -- 2. VirtualUser Left Click
         if VirtualUser then
             VirtualUser:Button1Down(Vector2.new(400, 400), Camera.CFrame)
             task.wait(0.02)
             VirtualUser:Button1Up(Vector2.new(400, 400), Camera.CFrame)
         end
 
-        -- 3. mouse1click executor function
         if mouse1click then
             mouse1click()
         end
@@ -176,7 +173,7 @@ if not ScreenGui.Parent then
     end)
 end
 
--- Main Outer Frame (Exact Screenshot Styling)
+-- Main Outer Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 310, 0, 290)
@@ -354,7 +351,7 @@ end
 --  ALL 4 TOGGLE ROWS
 --==============================================================--
 
--- 1. Auto Win (Instant Finish / Claim Wins)
+-- 1. Auto Win & Auto Collect Zone (Instant Win Farm + Cash Collection)
 CreateToggleRow("Auto Win", function(state)
     AutoWinEnabled = state
     if AutoWinEnabled then
@@ -364,31 +361,51 @@ CreateToggleRow("Auto Win", function(state)
                     local root = getRoot()
                     if not root then return end
 
-                    -- Search for Win Pads, Trophies, End Stage lines
+                    -- 1. Find and Claim All Win Pads, Trophies, Finish Lines & Collect Zones
                     for _, obj in ipairs(Workspace:GetDescendants()) do
                         if not AutoWinEnabled then break end
                         if obj:IsA("BasePart") or obj:IsA("Model") then
                             local name = obj.Name:lower()
-                            if name:find("win") or name:find("trophy") or name:find("finish") or name:find("endpad") or name:find("claim") or name:find("stage") then
-                                local part = obj:IsA("BasePart") and obj or (obj:FindFirstChildWhichIsA("BasePart", true))
-                                if part then
+                            local isWinOrCollect = false
+
+                            -- Check object name
+                            if name:find("win") or name:find("trophy") or name:find("finish") or name:find("collect") or name:find("zone") or name:find("stage") or name:find("endpad") or name:find("claim") then
+                                isWinOrCollect = true
+                            end
+
+                            -- Check BillboardGui labels (e.g. "Collect Zone $1K / $1K")
+                            local bb = obj:FindFirstChildOfClass("BillboardGui", true)
+                            if bb then
+                                for _, txt in ipairs(bb:GetDescendants()) do
+                                    if txt:IsA("TextLabel") and (txt.Text:lower():find("collect") or txt.Text:lower():find("win") or txt.Text:find("%$")) then
+                                        isWinOrCollect = true
+                                        break
+                                    end
+                                end
+                            end
+
+                            if isWinOrCollect then
+                                local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart", true)
+                                if part and part.Position.Y > -500 then
                                     safeTeleport(part.Position)
                                     touchObject(part)
                                     triggerPrompts(obj)
-                                    task.wait(0.3)
+                                    task.wait(0.25)
                                 end
                             end
                         end
                     end
 
-                    -- Fire Win Remotes
+                    -- 2. Fire All Win / Collect / Claim Remotes
                     for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
                         if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
                             local rName = remote.Name:lower()
-                            if rName:find("win") or rName:find("finish") or rName:find("claimwin") or rName:find("reward") or rName:find("complete") then
+                            if rName:find("win") or rName:find("finish") or rName:find("claim") or rName:find("collect") or rName:find("reward") or rName:find("cash") or rName:find("money") then
                                 pcall(function()
                                     if remote:IsA("RemoteEvent") then
                                         remote:FireServer()
+                                        remote:FireServer(true)
+                                        remote:FireServer(1)
                                     else
                                         remote:InvokeServer()
                                     end
@@ -397,7 +414,7 @@ CreateToggleRow("Auto Win", function(state)
                         end
                     end
                 end)
-                task.wait(1)
+                task.wait(0.5)
             end
         end)
     end
@@ -426,7 +443,7 @@ CreateToggleRow("Auto Farm Blocks", function(state)
                         pcall(function() equippedTool:Activate() end)
                     end
 
-                    -- 2. Fast Left Mouse Click Simulation (Triggers block generation / attack / build)
+                    -- 2. Fast Left Mouse Click Simulation
                     simulateClick()
 
                     -- 3. Touch Generator Pads, Block Spawners & Ground Buttons
@@ -477,7 +494,6 @@ CreateToggleRow("Auto Rebirth", function(state)
         task.spawn(function()
             while AutoRebirthEnabled do
                 pcall(function()
-                    -- 1. Trigger Rebirth Remotes
                     for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
                         if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
                             local rName = remote.Name:lower()
@@ -493,7 +509,6 @@ CreateToggleRow("Auto Rebirth", function(state)
                         end
                     end
 
-                    -- 2. Trigger Rebirth Pads in Workspace
                     for _, obj in ipairs(Workspace:GetDescendants()) do
                         if obj:IsA("BasePart") and obj.Name:lower():find("rebirth") then
                             touchObject(obj)
@@ -583,4 +598,4 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
-print("[UltraScriptHub] +1 Build a Obby Script loaded with Fast Multi-Layer Auto Build!")
+print("[UltraScriptHub] +1 Build a Obby Script loaded with Fast Auto Win & Collect Zone!")
