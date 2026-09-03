@@ -245,5 +245,6 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 1. 🕊️ **Fly Mode**: Smooth flying in camera direction using WASD, Space (Up), and Shift/Ctrl (Down) with full Mobile joystick support.
 2. 🏃 **WalkSpeed Boost (60)**: High movement speed boost.
 3. 🦘 **Infinite Jump**: Unlimited air jumping.
+4. 🔮 **Rare Egg ESP**: Highlights eggs with ESP and automatically teleports the player directly to the rarest egg on the map.
 
 

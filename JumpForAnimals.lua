@@ -3,7 +3,7 @@
 --  Game: Jump for Animals!
 --  Game Link: https://www.roblox.com/games/126870639873289/Jump-for-Animals
 --  GitHub: https://github.com/rjunejo766/new-script-gg
---  Features: Fly Mode, Walkspeed, Infinite Jump
+--  Features: Fly Mode, Walkspeed, Infinite Jump, Rare Egg ESP
 --==============================================================--
 
 local Players = game:GetService("Players")
@@ -27,10 +27,13 @@ local Camera = Workspace.CurrentCamera
 local FlyEnabled = false
 local WalkSpeedEnabled = false
 local InfJumpEnabled = false
+local RareEggESPEnabled = false
 
 local NormalSpeed = 16
 local BoostSpeed = 60
 local FlySpeed = 60
+
+local ActiveESPObjects = {}
 
 --==============================================================--
 --  GUI CREATION (Exact Ultra Script Hub Official Theme)
@@ -84,8 +87,8 @@ end
 -- Main Outer Frame (Exact Screenshot Dimensions & Style)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 310, 0, 240)
-MainFrame.Position = UDim2.new(0.5, -155, 0.35, -120)
+MainFrame.Size = UDim2.new(0, 310, 0, 275)
+MainFrame.Position = UDim2.new(0.5, -155, 0.35, -137)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -155,8 +158,8 @@ end)
 
 -- Features Container
 local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -32, 0, 125)
-Container.Position = UDim2.new(0, 16, 0, 50)
+Container.Size = UDim2.new(1, -32, 0, 160)
+Container.Position = UDim2.new(0, 16, 0, 48)
 Container.BackgroundTransparency = 1
 Container.Parent = MainFrame
 
@@ -229,7 +232,7 @@ local function CreateToggleRow(name, callback, isLast)
     CheckIconCorner.CornerRadius = UDim.new(0, 3)
     CheckIconCorner.Parent = CheckIcon
 
-    -- Subtle horizontal divider line (like screenshot)
+    -- Subtle horizontal divider line
     if not isLast then
         local Divider = Instance.new("Frame")
         Divider.Size = UDim2.new(1, 0, 0, 1)
@@ -369,7 +372,7 @@ end)
 --==============================================================--
 CreateToggleRow("Infinite Jump", function(state)
     InfJumpEnabled = state
-end, true)
+end, false)
 
 UserInputService.JumpRequest:Connect(function()
     if InfJumpEnabled then
@@ -379,6 +382,182 @@ UserInputService.JumpRequest:Connect(function()
         end
     end
 end)
+
+--==============================================================--
+--  4. RARE EGG ESP (Highlights + Direct Teleport to Rarest Egg)
+--==============================================================--
+local function clearEggESP()
+    for _, esp in ipairs(ActiveESPObjects) do
+        if esp and esp.Parent then
+            pcall(function() esp:Destroy() end)
+        end
+    end
+    table.clear(ActiveESPObjects)
+end
+
+local function getEggScore(obj)
+    local name = obj.Name:lower()
+    local parentName = (obj.Parent and obj.Parent.Name:lower()) or ""
+    local full = name .. " " .. parentName
+
+    local score = 0
+    if full:find("secret") then
+        score = 1000
+    elseif full:find("divine") or full:find("godly") then
+        score = 800
+    elseif full:find("mythic") or full:find("mythical") then
+        score = 600
+    elseif full:find("legendary") then
+        score = 400
+    elseif full:find("epic") then
+        score = 250
+    elseif full:find("rare") then
+        score = 150
+    elseif full:find("uncommon") then
+        score = 80
+    elseif full:find("egg") or full:find("nest") or full:find("animal") then
+        score = 50
+    end
+
+    -- Add altitude / Y bonus (higher islands usually have rarer eggs)
+    local pos = obj:IsA("BasePart") and obj.Position or (obj:IsA("Model") and obj:GetPivot().Position)
+    if pos then
+        score = score + math.floor(pos.Y / 10)
+    end
+    return score
+end
+
+local function findRarestEgg()
+    local bestEgg = nil
+    local highestScore = -1
+    local bestPosition = nil
+
+    local searchRoots = {
+        Workspace:FindFirstChild("Eggs"),
+        Workspace:FindFirstChild("Nests"),
+        Workspace:FindFirstChild("Spawns"),
+        Workspace:FindFirstChild("Map"),
+        Workspace:FindFirstChild("Islands"),
+        Workspace
+    }
+
+    for _, rootFolder in ipairs(searchRoots) do
+        if rootFolder then
+            for _, obj in ipairs(rootFolder:GetDescendants()) do
+                if obj:IsA("BasePart") or obj:IsA("Model") then
+                    local name = obj.Name:lower()
+                    local parentName = (obj.Parent and obj.Parent.Name:lower()) or ""
+                    
+                    -- Check if it's an egg / nest / animal spawn
+                    local isEgg = name:find("egg") or name:find("nest") or parentName:find("egg") or parentName:find("nest")
+                    if not isEgg then
+                        if obj:FindFirstChildOfClass("ProximityPrompt") or obj:FindFirstChildOfClass("ClickDetector") then
+                            if name:find("steal") or name:find("grab") or name:find("collect") or name:find("claim") then
+                                isEgg = true
+                            end
+                        end
+                    end
+
+                    if isEgg then
+                        local score = getEggScore(obj)
+                        local pos = obj:IsA("BasePart") and obj.Position or obj:GetPivot().Position
+                        if score > highestScore and pos then
+                            highestScore = score
+                            bestEgg = obj
+                            bestPosition = pos
+                        end
+                    end
+                end
+            end
+        end
+        if bestEgg and highestScore > 100 then break end
+    end
+
+    return bestEgg, bestPosition, highestScore
+end
+
+local function createESPForEgg(obj, isRarest)
+    pcall(function()
+        local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart", true)
+        if not part then return end
+
+        local bb = Instance.new("BillboardGui")
+        bb.Name = "EggESP"
+        bb.Adornee = part
+        bb.Size = UDim2.new(0, 160, 0, 40)
+        bb.StudsOffset = Vector3.new(0, 3.5, 0)
+        bb.AlwaysOnTop = true
+
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Font = Enum.Font.SourceSansBold
+        label.TextSize = isRarest and 15 or 13
+        label.TextColor3 = isRarest and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(0, 255, 255)
+        label.TextStrokeTransparency = 0
+        label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        label.Text = (isRarest and "👑 [RAREST EGG]\n" or "🥚 ") .. obj.Name
+        label.Parent = bb
+
+        bb.Parent = part
+        table.insert(ActiveESPObjects, bb)
+
+        -- Highlight Box
+        local highlight = Instance.new("Highlight")
+        highlight.Adornee = obj
+        highlight.FillColor = isRarest and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(0, 170, 255)
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlight.FillTransparency = 0.5
+        highlight.OutlineTransparency = 0
+        highlight.Parent = obj
+        table.insert(ActiveESPObjects, highlight)
+    end)
+end
+
+CreateToggleRow("Rare Egg ESP", function(state)
+    RareEggESPEnabled = state
+    if not RareEggESPEnabled then
+        clearEggESP()
+        return
+    end
+
+    task.spawn(function()
+        local teleportedOnce = false
+
+        while RareEggESPEnabled do
+            clearEggESP()
+            local rarestEgg, rarestPos, score = findRarestEgg()
+            local root = getRoot()
+
+            if rarestEgg and rarestPos then
+                -- 1. Create ESP on Rarest Egg
+                createESPForEgg(rarestEgg, true)
+
+                -- 2. Direct Teleport to Rarest Egg (Lands directly on it)
+                if root and (not teleportedOnce or (root.Position - rarestPos).Magnitude > 250) then
+                    root.CFrame = CFrame.new(rarestPos + Vector3.new(0, 4, 0))
+                    teleportedOnce = true
+
+                    -- Auto trigger proximity prompt if available
+                    task.wait(0.2)
+                    for _, p in ipairs(rarestEgg:GetDescendants()) do
+                        if p:IsA("ProximityPrompt") then
+                            p.HoldDuration = 0
+                            if fireproximityprompt then
+                                fireproximityprompt(p, 0)
+                            end
+                        elseif p:IsA("ClickDetector") and fireclickdetector then
+                            fireclickdetector(p)
+                        end
+                    end
+                end
+            end
+
+            task.wait(3)
+        end
+        clearEggESP()
+    end)
+end, true)
 
 --==============================================================--
 --  RESPAWN HANDLER
@@ -403,4 +582,4 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
-print("[UltraScriptHub] +1 Jump for Animals Script loaded with Exact Screenshot UI!")
+print("[UltraScriptHub] +1 Jump for Animals Script with Rare Egg ESP loaded!")
