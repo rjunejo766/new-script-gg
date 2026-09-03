@@ -278,8 +278,24 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 2. 🔤 **Auto Collect Letters**: Vacuums all letters (A-Z), diamonds, and dropped items across the map.
 3. 💎 **Auto Sell Duplicates**: Automatically sells duplicate letters to generate maximum diamonds.
 4. ⚡ **Auto Upgrade**: Automatically upgrades pack speed, rarity, and luck at arcade machines.
-5. 🕊️ **Fly Mode**: Smooth flight in camera direction with WASD & Mobile joystick.
+---
 
+## 🎮 19. Search for the Needle
+- **Game**: Search for the Needle
 
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/SearchForTheNeedle_Hub.lua?t=" .. tostring(os.time())))()
+```
+*Or local execution in executor:*
+```lua
+loadstring(readfile("SearchForTheNeedle_Hub.lua"))()
+```
 
-
+### ✨ Features
+1. 🪡 **Auto Collect Needles**: Instantly scans, teleports, touches, and claims all needles (Common, Rare, Golden, Secret) across the map.
+2. 🔮 **Needle ESP / Radar**: 3D Highlight chams and distance bill-board labels on every needle in real-time.
+3. 🌾 **Auto Search Haystack**: Rapidly searches, digs, and interacts with all haystacks, piles, click detectors & proximity prompts.
+4. 🏃 **WalkSpeed Boost (60)**: Fast movement speed toggle.
+5. 🦘 **Infinite Jump**: Unlimited air jumping.
+6. 🕊️ **Fly Mode**: Smooth noclip flight with camera direction.
