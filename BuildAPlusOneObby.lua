@@ -100,7 +100,7 @@ local function triggerPrompts(obj)
     end)
 end
 
--- Universal Click / Attack / Build Simulator
+-- Fast Left Click Simulation (Trigger placement)
 local function simulateClick()
     pcall(function()
         if VirtualInputManager then
@@ -108,13 +108,13 @@ local function simulateClick()
             local x = math.floor(vp.X / 2)
             local y = math.floor(vp.Y / 2)
             VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
-            task.wait(0.02)
+            task.wait(0.01)
             VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
         end
 
         if VirtualUser then
             VirtualUser:Button1Down(Vector2.new(400, 400), Camera.CFrame)
-            task.wait(0.02)
+            task.wait(0.01)
             VirtualUser:Button1Up(Vector2.new(400, 400), Camera.CFrame)
         end
 
@@ -122,6 +122,31 @@ local function simulateClick()
             mouse1click()
         end
     end)
+end
+
+-- Find the nearest Finish Line / Win Pad
+local function findNearestFinish()
+    local bestPart = nil
+    local shortestDist = 999999
+    local root = getRoot()
+    if not root then return nil end
+
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") or obj:IsA("Model") then
+            local name = obj.Name:lower()
+            if name:find("finish") or name:find("win") or name:find("trophy") or name:find("stage") or name:find("endpad") then
+                local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart", true)
+                if part and part.Position.Y > -500 then
+                    local dist = (part.Position - root.Position).Magnitude
+                    if dist < shortestDist then
+                        shortestDist = dist
+                        bestPart = part
+                    end
+                end
+            end
+        end
+    end
+    return bestPart
 end
 
 --==============================================================--
@@ -173,7 +198,7 @@ if not ScreenGui.Parent then
     end)
 end
 
--- Main Outer Frame
+-- Main Outer Frame (Spacious Height & Non-overlapping Layout)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 310, 0, 290)
@@ -247,7 +272,7 @@ end)
 
 -- Features Container
 local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -32, 0, 170)
+Container.Size = UDim2.new(1, -32, 0, 165)
 Container.Position = UDim2.new(0, 16, 0, 48)
 Container.BackgroundTransparency = 1
 Container.Parent = MainFrame
@@ -351,7 +376,7 @@ end
 --  ALL 4 TOGGLE ROWS
 --==============================================================--
 
--- 1. Auto Win & Auto Collect Zone (Instant Win Farm + Cash Collection)
+-- 1. Auto Win & Auto Collect Zone
 CreateToggleRow("Auto Win", function(state)
     AutoWinEnabled = state
     if AutoWinEnabled then
@@ -361,19 +386,17 @@ CreateToggleRow("Auto Win", function(state)
                     local root = getRoot()
                     if not root then return end
 
-                    -- 1. Find and Claim All Win Pads, Trophies, Finish Lines & Collect Zones
+                    -- Find and Claim Win Pads & Collect Zones
                     for _, obj in ipairs(Workspace:GetDescendants()) do
                         if not AutoWinEnabled then break end
                         if obj:IsA("BasePart") or obj:IsA("Model") then
                             local name = obj.Name:lower()
                             local isWinOrCollect = false
 
-                            -- Check object name
                             if name:find("win") or name:find("trophy") or name:find("finish") or name:find("collect") or name:find("zone") or name:find("stage") or name:find("endpad") or name:find("claim") then
                                 isWinOrCollect = true
                             end
 
-                            -- Check BillboardGui labels (e.g. "Collect Zone $1K / $1K")
                             local bb = obj:FindFirstChildOfClass("BillboardGui", true)
                             if bb then
                                 for _, txt in ipairs(bb:GetDescendants()) do
@@ -390,22 +413,21 @@ CreateToggleRow("Auto Win", function(state)
                                     safeTeleport(part.Position)
                                     touchObject(part)
                                     triggerPrompts(obj)
-                                    task.wait(0.25)
+                                    task.wait(0.2)
                                 end
                             end
                         end
                     end
 
-                    -- 2. Fire All Win / Collect / Claim Remotes
+                    -- Fire Remotes
                     for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
                         if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
                             local rName = remote.Name:lower()
-                            if rName:find("win") or rName:find("finish") or rName:find("claim") or rName:find("collect") or rName:find("reward") or rName:find("cash") or rName:find("money") then
+                            if rName:find("win") or rName:find("finish") or rName:find("claim") or rName:find("collect") or rName:find("reward") then
                                 pcall(function()
                                     if remote:IsA("RemoteEvent") then
                                         remote:FireServer()
                                         remote:FireServer(true)
-                                        remote:FireServer(1)
                                     else
                                         remote:InvokeServer()
                                     end
@@ -420,7 +442,7 @@ CreateToggleRow("Auto Win", function(state)
     end
 end, false)
 
--- 2. Auto Farm Blocks (Rapid Auto Build / Click / Generate Blocks)
+-- 2. Auto Farm Blocks (AUTO-BUILD PATH FORWARD TO FINISH LINE)
 CreateToggleRow("Auto Farm Blocks", function(state)
     AutoFarmBlocksEnabled = state
     if AutoFarmBlocksEnabled then
@@ -432,10 +454,11 @@ CreateToggleRow("Auto Farm Blocks", function(state)
                     local root = getRoot()
                     if not char or not root then return end
 
-                    -- 1. Auto Equip Building / Attack Tool
-                    local toolInBackpack = LocalPlayer.Backpack:FindFirstChildOfClass("Tool")
-                    if toolInBackpack and hum then
-                        hum:EquipTool(toolInBackpack)
+                    -- 1. Auto Equip Building Tool from Backpack
+                    for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
+                        if tool:IsA("Tool") and hum then
+                            hum:EquipTool(tool)
+                        end
                     end
 
                     local equippedTool = char:FindFirstChildOfClass("Tool")
@@ -443,45 +466,49 @@ CreateToggleRow("Auto Farm Blocks", function(state)
                         pcall(function() equippedTool:Activate() end)
                     end
 
-                    -- 2. Fast Left Mouse Click Simulation
+                    -- 2. Rapid Left Click (Place block / step forward)
                     simulateClick()
 
-                    -- 3. Touch Generator Pads, Block Spawners & Ground Buttons
-                    for _, obj in ipairs(Workspace:GetDescendants()) do
-                        if not AutoFarmBlocksEnabled then break end
-                        if obj:IsA("BasePart") then
-                            local name = obj.Name:lower()
-                            if name:find("block") or name:find("part") or name:find("gen") or name:find("pad") or name:find("drop") or name:find("button") then
-                                if (obj.Position - root.Position).Magnitude <= 100 then
-                                    touchObject(obj)
-                                    triggerPrompts(obj)
-                                end
-                            end
+                    -- 3. Calculate target position ahead along obby path towards finish
+                    local finishPart = findNearestFinish()
+                    local stepDirection = root.CFrame.LookVector
+                    if finishPart then
+                        local diff = (finishPart.Position - root.Position)
+                        if diff.Magnitude > 4 then
+                            stepDirection = diff.Unit
                         end
                     end
 
-                    -- 4. Fire All ReplicatedStorage Game Remotes related to Block / Click / Build / Train
+                    local placeTargetPos = root.Position + (stepDirection * 3.5)
+
+                    -- 4. Move forward smoothly onto the placed block
+                    root.CFrame = CFrame.new(placeTargetPos.X, root.Position.Y, placeTargetPos.Z, root.CFrame:ToEulerAnglesXYZ())
+
+                    -- 5. Fire All ReplicatedStorage Game Placement Remotes
                     for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
                         if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
                             local rName = remote.Name:lower()
-                            if rName:find("block") or rName:find("build") or rName:find("place") or rName:find("click") or rName:find("tap") or rName:find("train") or rName:find("add") or rName:find("hit") or rName:find("attack") or rName:find("part") then
+                            if rName:find("block") or rName:find("build") or rName:find("place") or rName:find("step") or rName:find("add") or rName:find("click") or rName:find("train") then
                                 pcall(function()
-                                    local posAhead = root.Position + (root.CFrame.LookVector * 4)
                                     if remote:IsA("RemoteEvent") then
+                                        remote:FireServer(placeTargetPos)
                                         remote:FireServer()
-                                        remote:FireServer(posAhead)
                                         remote:FireServer(1)
                                         remote:FireServer(true)
                                     else
-                                        remote:InvokeServer()
-                                        remote:InvokeServer(posAhead)
+                                        remote:InvokeServer(placeTargetPos)
                                     end
                                 end)
                             end
                         end
                     end
+
+                    -- 6. Touch any newly created bridge parts or finish pads
+                    if finishPart and (finishPart.Position - root.Position).Magnitude < 10 then
+                        touchObject(finishPart)
+                    end
                 end)
-                task.wait(0.08)
+                task.wait(0.12)
             end
         end)
     end
@@ -598,4 +625,4 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
-print("[UltraScriptHub] +1 Build a Obby Script loaded with Fast Auto Win & Collect Zone!")
+print("[UltraScriptHub] +1 Build a Obby Script loaded with Auto Path Building to Finish Line!")
