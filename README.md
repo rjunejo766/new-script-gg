@@ -299,3 +299,27 @@ loadstring(readfile("SearchForTheNeedle_Hub.lua"))()
 4. 🏃 **WalkSpeed Boost (60)**: Fast movement speed toggle.
 5. 🦘 **Infinite Jump**: Unlimited air jumping.
 6. 🕊️ **Fly Mode**: Smooth noclip flight with camera direction.
+
+---
+
+## 🎮 20. Clean the WORLD! [PRESTIGE!]
+- **Game Link**: [https://www.roblox.com/games/105767799784652/Clean-the-WORLD](https://www.roblox.com/games/105767799784652/Clean-the-WORLD)
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/CleanTheWorld.lua?t=" .. tostring(os.time())))()
+```
+*Or local execution in executor:*
+```lua
+loadstring(readfile("CleanTheWorld.lua"))()
+```
+
+### ✨ Features
+1. 🧹 **Auto Clean / Vacuum Aura**: Fast continuous vacuuming of all trash, debris, oil barrels, sludge & waste across the map.
+2. 💰 **Auto Sell Waste**: Automatically touches sell pads and fires deposit/sell remotes.
+3. 🔄 **Auto Prestige**: Automatically triggers and claims prestiges for non-stop prestige multipliers.
+4. ⚡ **Auto Upgrade**: Automatically buys capacity, vacuum speed, and power upgrades.
+5. 🏃 **WalkSpeed Boost (60)**: High movement speed boost.
+6. 🦘 **Infinite Jump**: Unlimited air jumping.
+7. 🕊️ **Fly Mode**: Smooth flight with camera direction and Mobile joystick support.
+
