@@ -23,7 +23,7 @@ end
 
 local Camera = Workspace.CurrentCamera
 
--- Feature Toggle States
+-- Feature Toggle States (Requested 3 Features)
 local FlyEnabled = false
 local WalkSpeedEnabled = false
 local InfJumpEnabled = false
@@ -33,45 +33,63 @@ local BoostSpeed = 60
 local FlySpeed = 60
 
 --==============================================================--
---  GUI CREATION (Guaranteed Instant Screen Display)
+--  GUI CREATION (Official Ultra Script Hub Design)
 --==============================================================--
-
--- Clean old instances
-pcall(function()
-    local pgui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
-    if pgui and pgui:FindFirstChild("UltraScriptHub_JumpForAnimals") then
-        pgui:FindFirstChild("UltraScriptHub_JumpForAnimals"):Destroy()
-    end
-end)
-pcall(function()
-    if CoreGui and CoreGui:FindFirstChild("UltraScriptHub_JumpForAnimals") then
-        CoreGui:FindFirstChild("UltraScriptHub_JumpForAnimals"):Destroy()
-    end
-end)
-pcall(function()
-    if gethui and gethui():FindFirstChild("UltraScriptHub_JumpForAnimals") then
-        gethui():FindFirstChild("UltraScriptHub_JumpForAnimals"):Destroy()
-    end
-end)
-
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UltraScriptHub_JumpForAnimals"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 999999
-ScreenGui.Enabled = true
+
+-- Safe Parent Resolution
+local parentGui = nil
+pcall(function()
+    if gethui then parentGui = gethui() end
+end)
+if not parentGui then
+    pcall(function()
+        if syn and syn.protect_gui then syn.protect_gui(ScreenGui) end
+        parentGui = CoreGui
+    end)
+end
+if not parentGui then
+    pcall(function()
+        parentGui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+    end)
+end
+
+-- Cleanup Old Instances
+pcall(function()
+    if parentGui and parentGui:FindFirstChild("UltraScriptHub_JumpForAnimals") then
+        parentGui:FindFirstChild("UltraScriptHub_JumpForAnimals"):Destroy()
+    end
+    if CoreGui and CoreGui:FindFirstChild("UltraScriptHub_JumpForAnimals") then
+        CoreGui:FindFirstChild("UltraScriptHub_JumpForAnimals"):Destroy()
+    end
+    local lpGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if lpGui and lpGui:FindFirstChild("UltraScriptHub_JumpForAnimals") then
+        lpGui:FindFirstChild("UltraScriptHub_JumpForAnimals"):Destroy()
+    end
+end)
+
+pcall(function()
+    ScreenGui.Parent = parentGui
+end)
+if not ScreenGui.Parent then
+    pcall(function()
+        ScreenGui.Parent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or CoreGui
+    end)
+end
 
 -- Main Outer Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 300, 0, 210)
-MainFrame.Position = UDim2.new(0.5, -150, 0.35, -105)
+MainFrame.Size = UDim2.new(0, 310, 0, 270)
+MainFrame.Position = UDim2.new(0.5, -155, 0.35, -135)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.Visible = true
-MainFrame.ZIndex = 10
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
@@ -83,96 +101,88 @@ UIStroke.Color = Color3.fromRGB(45, 48, 60)
 UIStroke.Thickness = 1.2
 UIStroke.Parent = MainFrame
 
--- Floating Open/Close Button (⚡) for Mobile & Quick Access
+-- Floating Open/Close Button (⚡) for Mobile & PC
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Name = "FloatingToggle"
-ToggleBtn.Size = UDim2.new(0, 38, 0, 38)
-ToggleBtn.Position = UDim2.new(0, 15, 0.5, -19)
+ToggleBtn.Size = UDim2.new(0, 42, 0, 42)
+ToggleBtn.Position = UDim2.new(0, 15, 0.5, -21)
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
 ToggleBtn.BorderColor3 = Color3.fromRGB(0, 170, 255)
 ToggleBtn.BorderSizePixel = 1
 ToggleBtn.Text = "⚡"
 ToggleBtn.TextColor3 = Color3.fromRGB(0, 170, 255)
-ToggleBtn.TextSize = 18
+ToggleBtn.TextSize = 20
 ToggleBtn.Font = Enum.Font.SourceSansBold
-ToggleBtn.Visible = true
-ToggleBtn.ZIndex = 100
 ToggleBtn.Active = true
 ToggleBtn.Draggable = true
+ToggleBtn.ZIndex = 20
 ToggleBtn.Parent = ScreenGui
 
-local ToggleBtnCorner = Instance.new("UICorner")
-ToggleBtnCorner.CornerRadius = UDim.new(0, 8)
-ToggleBtnCorner.Parent = ToggleBtn
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 8)
+ToggleCorner.Parent = ToggleBtn
 
 ToggleBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
--- Title Header
-local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 36)
-Header.BackgroundColor3 = Color3.fromRGB(22, 24, 30)
-Header.BorderSizePixel = 0
-Header.Parent = MainFrame
+-- Header Title
+local HeaderTitle = Instance.new("TextLabel")
+HeaderTitle.Size = UDim2.new(1, -50, 0, 35)
+HeaderTitle.Position = UDim2.new(0, 16, 0, 8)
+HeaderTitle.BackgroundTransparency = 1
+HeaderTitle.Text = "JUMP FOR ANIMALS"
+HeaderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+HeaderTitle.TextSize = 14
+HeaderTitle.Font = Enum.Font.SourceSansBold
+HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
+HeaderTitle.Parent = MainFrame
 
-local HeaderCorner = Instance.new("UICorner")
-HeaderCorner.CornerRadius = UDim.new(0, 10)
-HeaderCorner.Parent = Header
-
--- Square bottom fix for header
-local HeaderFix = Instance.new("Frame")
-HeaderFix.Size = UDim2.new(1, 0, 0, 8)
-HeaderFix.Position = UDim2.new(0, 0, 1, -8)
-HeaderFix.BackgroundColor3 = Color3.fromRGB(22, 24, 30)
-HeaderFix.BorderSizePixel = 0
-HeaderFix.Parent = Header
-
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -40, 1, 0)
-Title.Position = UDim2.new(0, 12, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "Jump for Animals"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 14
-Title.Font = Enum.Font.SourceSansBold
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = Header
-
+-- Close Button (X)
 local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 24, 0, 24)
-CloseBtn.Position = UDim2.new(1, -30, 0.5, -12)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(35, 38, 48)
-CloseBtn.Text = "✕"
-CloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-CloseBtn.TextSize = 12
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -34, 0, 8)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+CloseBtn.TextSize = 16
 CloseBtn.Font = Enum.Font.SourceSansBold
-CloseBtn.Parent = Header
-
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 6)
-CloseCorner.Parent = CloseBtn
+CloseBtn.Parent = MainFrame
 
 CloseBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
 end)
 
--- Features Container
-local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -20, 1, -74)
-Container.Position = UDim2.new(0, 10, 0, 44)
+-- Content Scrolling Container
+local Container = Instance.new("ScrollingFrame")
+Container.Size = UDim2.new(1, -24, 0, 150)
+Container.Position = UDim2.new(0, 12, 0, 45)
 Container.BackgroundTransparency = 1
+Container.BorderSizePixel = 0
+Container.ScrollBarThickness = 3
+Container.ScrollBarImageColor3 = Color3.fromRGB(0, 170, 255)
+Container.CanvasSize = UDim2.new(0, 0, 0, 150)
 Container.Parent = MainFrame
 
 local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Padding = UDim.new(0, 8)
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 6)
 UIListLayout.Parent = Container
 
--- Footer Label
+-- Footer Branding (Official Ultra Script Hub)
+local FooterTitle = Instance.new("TextLabel")
+FooterTitle.Size = UDim2.new(1, 0, 0, 20)
+FooterTitle.Position = UDim2.new(0, 0, 1, -44)
+FooterTitle.BackgroundTransparency = 1
+FooterTitle.Text = "ULTRA SCRIPT HUB"
+FooterTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+FooterTitle.TextSize = 15
+FooterTitle.Font = Enum.Font.SourceSansBold
+FooterTitle.Parent = MainFrame
+
 local FooterSub = Instance.new("TextLabel")
-FooterSub.Size = UDim2.new(1, 0, 0, 20)
-FooterSub.Position = UDim2.new(0, 0, 1, -22)
+FooterSub.Size = UDim2.new(1, 0, 0, 16)
+FooterSub.Position = UDim2.new(0, 0, 1, -24)
 FooterSub.BackgroundTransparency = 1
 FooterSub.Text = "Made by Junejo"
 FooterSub.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -180,38 +190,34 @@ FooterSub.TextSize = 12
 FooterSub.Font = Enum.Font.SourceSans
 FooterSub.Parent = MainFrame
 
--- Helper Function for Checkbox Row
+-- Checkbox Row Generator (Official Theme)
 local function CreateToggleRow(name, callback)
     local Row = Instance.new("Frame")
-    Row.Size = UDim2.new(1, 0, 0, 32)
+    Row.Size = UDim2.new(1, 0, 0, 28)
     Row.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+    Row.BackgroundTransparency = 0.5
     Row.Parent = Container
 
     local RowCorner = Instance.new("UICorner")
     RowCorner.CornerRadius = UDim.new(0, 6)
     RowCorner.Parent = Row
 
-    local RowStroke = Instance.new("UIStroke")
-    RowStroke.Color = Color3.fromRGB(35, 38, 48)
-    RowStroke.Thickness = 1
-    RowStroke.Parent = Row
-
     local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, -45, 1, 0)
-    Label.Position = UDim2.new(0, 10, 0, 0)
+    Label.Size = UDim2.new(1, -40, 1, 0)
+    Label.Position = UDim2.new(0, 8, 0, 0)
     Label.BackgroundTransparency = 1
     Label.Text = name
-    Label.TextColor3 = Color3.fromRGB(230, 230, 235)
+    Label.TextColor3 = Color3.fromRGB(220, 220, 225)
     Label.TextSize = 13
     Label.Font = Enum.Font.SourceSansBold
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = Row
 
     local Checkbox = Instance.new("TextButton")
-    Checkbox.Size = UDim2.new(0, 22, 0, 22)
-    Checkbox.Position = UDim2.new(1, -30, 0.5, -11)
-    Checkbox.BackgroundColor3 = Color3.fromRGB(28, 30, 38)
-    Checkbox.BorderColor3 = Color3.fromRGB(50, 54, 68)
+    Checkbox.Size = UDim2.new(0, 20, 0, 20)
+    Checkbox.Position = UDim2.new(1, -26, 0.5, -10)
+    Checkbox.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
+    Checkbox.BorderColor3 = Color3.fromRGB(45, 48, 60)
     Checkbox.Text = ""
     Checkbox.AutoButtonColor = false
     Checkbox.Parent = Row
@@ -232,10 +238,23 @@ local function CreateToggleRow(name, callback)
     CheckIconCorner.Parent = CheckIcon
 
     local toggled = false
-    Checkbox.MouseButton1Click:Connect(function()
-        toggled = not toggled
+    local function setToggle(state)
+        toggled = state
         CheckIcon.Visible = toggled
+        if toggled then
+            Checkbox.BackgroundColor3 = Color3.fromRGB(30, 35, 48)
+            Checkbox.BorderColor3 = Color3.fromRGB(0, 170, 255)
+            Row.BackgroundColor3 = Color3.fromRGB(25, 30, 45)
+        else
+            Checkbox.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
+            Checkbox.BorderColor3 = Color3.fromRGB(45, 48, 60)
+            Row.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+        end
         callback(toggled)
+    end
+
+    Checkbox.MouseButton1Click:Connect(function()
+        setToggle(not toggled)
     end)
 end
 
@@ -257,7 +276,7 @@ local function getRoot()
 end
 
 --==============================================================--
---  FEATURE 1: FLY MODE
+--  1. FLY MODE (WASD / Space / Shift + Mobile Joystick)
 --==============================================================--
 CreateToggleRow("🕊️ Fly Mode", function(state)
     FlyEnabled = state
@@ -324,7 +343,7 @@ CreateToggleRow("🕊️ Fly Mode", function(state)
 end)
 
 --==============================================================--
---  FEATURE 2: WALKSPEED BOOST
+--  2. WALKSPEED BOOST
 --==============================================================--
 CreateToggleRow("🏃 WalkSpeed Boost (60)", function(state)
     WalkSpeedEnabled = state
@@ -348,7 +367,7 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  FEATURE 3: INFINITE JUMP
+--  3. INFINITE JUMP
 --==============================================================--
 CreateToggleRow("🦘 Infinite Jump", function(state)
     InfJumpEnabled = state
@@ -386,18 +405,4 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
---==============================================================--
---  ROBUST PARENTING (Delta, Fluxus, Arceus, Solara, Synapse, etc.)
---==============================================================--
-local function parentGui()
-    if gethui then
-        ScreenGui.Parent = gethui()
-    elseif CoreGui and pcall(function() return CoreGui.Name end) then
-        ScreenGui.Parent = CoreGui
-    else
-        ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    end
-end
-
-parentGui()
-print("[UltraScriptHub] Jump for Animals loaded successfully!")
+print("[UltraScriptHub] Jump for Animals loaded with Official UI!")
