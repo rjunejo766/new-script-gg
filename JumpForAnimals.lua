@@ -36,7 +36,7 @@ local FlySpeed = 60
 local ActiveESPObjects = {}
 
 --==============================================================--
---  CHARACTER UTILITIES
+--  CHARACTER UTILITIES & TELEPORT
 --==============================================================--
 local function getChar()
     return LocalPlayer.Character or (LocalPlayer.CharacterAdded:Wait())
@@ -49,7 +49,26 @@ end
 
 local function getRoot()
     local char = getChar()
-    return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+    return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
+end
+
+local function safeTeleport(targetPos)
+    pcall(function()
+        local char = getChar()
+        local root = getRoot()
+        local hum = getHum()
+        if not char or not root then return end
+
+        if hum then
+            hum.Sit = false
+        end
+
+        local destination = CFrame.new(targetPos + Vector3.new(0, 3.5, 0))
+        root.CFrame = destination
+        char:PivotTo(destination)
+        root.AssemblyLinearVelocity = Vector3.zero
+        root.AssemblyAngularVelocity = Vector3.zero
+    end)
 end
 
 --==============================================================--
@@ -65,120 +84,166 @@ local function clearEggESP()
 end
 
 local function getEggScore(obj)
+    local score = 100
     local name = obj.Name:lower()
     local parentName = (obj.Parent and obj.Parent.Name:lower()) or ""
-    local full = name .. " " .. parentName
+    local combined = name .. " " .. parentName
 
-    local score = 0
-    if full:find("secret") then
-        score = 1000
-    elseif full:find("divine") or full:find("godly") then
-        score = 800
-    elseif full:find("mythic") or full:find("mythical") then
-        score = 600
-    elseif full:find("legendary") then
-        score = 400
-    elseif full:find("epic") then
-        score = 250
-    elseif full:find("rare") then
-        score = 150
-    elseif full:find("uncommon") then
-        score = 80
-    elseif full:find("egg") or full:find("nest") or full:find("animal") then
-        score = 50
+    -- Check ProximityPrompt Text if available
+    local prompt = obj:FindFirstChildOfClass("ProximityPrompt") or obj:FindFirstChildWhichIsA("ProximityPrompt", true)
+    if prompt then
+        score = score + 200
+        local actionText = (prompt.ActionText or ""):lower()
+        local objectText = (prompt.ObjectText or ""):lower()
+        combined = combined .. " " .. actionText .. " " .. objectText
     end
 
+    if obj:FindFirstChildOfClass("ClickDetector") or obj:FindFirstChildWhichIsA("ClickDetector", true) then
+        score = score + 150
+    end
+
+    -- Rarity Scoring
+    if combined:find("secret") then
+        score = score + 3000
+    elseif combined:find("divine") or combined:find("godly") then
+        score = score + 2000
+    elseif combined:find("mythic") or combined:find("mythical") then
+        score = score + 1500
+    elseif combined:find("legendary") then
+        score = score + 1000
+    elseif combined:find("epic") then
+        score = score + 600
+    elseif combined:find("rare") then
+        score = score + 400
+    elseif combined:find("uncommon") then
+        score = score + 200
+    elseif combined:find("egg") or combined:find("nest") or combined:find("animal") then
+        score = score + 100
+    end
+
+    -- Altitude bonus (Higher platforms = Rarer eggs)
     local pos = obj:IsA("BasePart") and obj.Position or (obj:IsA("Model") and obj:GetPivot().Position)
     if pos then
-        score = score + math.floor(pos.Y / 10)
+        score = score + math.floor(pos.Y * 3)
     end
+
     return score
 end
 
-local function findRarestEgg()
-    local bestEgg = nil
-    local highestScore = -1
-    local bestPosition = nil
-
-    local searchRoots = {
-        Workspace:FindFirstChild("Eggs"),
-        Workspace:FindFirstChild("Nests"),
-        Workspace:FindFirstChild("Spawns"),
-        Workspace:FindFirstChild("Map"),
-        Workspace:FindFirstChild("Islands"),
-        Workspace
-    }
-
-    for _, rootFolder in ipairs(searchRoots) do
-        if rootFolder then
-            for _, obj in ipairs(rootFolder:GetDescendants()) do
-                pcall(function()
-                    if obj:IsA("BasePart") or obj:IsA("Model") then
-                        local name = obj.Name:lower()
-                        local parentName = (obj.Parent and obj.Parent.Name:lower()) or ""
-                        
-                        local isEgg = name:find("egg") or name:find("nest") or parentName:find("egg") or parentName:find("nest")
-                        if not isEgg then
-                            if obj:FindFirstChildOfClass("ProximityPrompt") or obj:FindFirstChildOfClass("ClickDetector") then
-                                if name:find("steal") or name:find("grab") or name:find("collect") or name:find("claim") then
-                                    isEgg = true
-                                end
-                            end
-                        end
-
-                        if isEgg then
-                            local score = getEggScore(obj)
-                            local pos = obj:IsA("BasePart") and obj.Position or obj:GetPivot().Position
-                            if score > highestScore and pos then
-                                highestScore = score
-                                bestEgg = obj
-                                bestPosition = pos
-                            end
-                        end
-                    end
-                end)
-            end
-        end
-        if bestEgg and highestScore > 100 then break end
+local function isEggCandidate(obj)
+    if not (obj:IsA("BasePart") or obj:IsA("Model")) then return false end
+    if obj:IsDescendantOf(LocalPlayer.Character or Workspace) and LocalPlayer.Character and obj:IsDescendantOf(LocalPlayer.Character) then
+        return false
     end
 
-    return bestEgg, bestPosition, highestScore
+    local name = obj.Name:lower()
+    local parentName = (obj.Parent and obj.Parent.Name:lower()) or ""
+    local combined = name .. " " .. parentName
+
+    -- Ignore player characters and terrain
+    if obj:IsA("Terrain") or obj:FindFirstChildOfClass("Humanoid") then return false end
+
+    -- Check keywords
+    if combined:find("egg") or combined:find("nest") or combined:find("animal") or combined:find("pet") or combined:find("steal") or combined:find("cage") or combined:find("spawn") then
+        return true
+    end
+
+    -- Check ProximityPrompt
+    local prompt = obj:FindFirstChildOfClass("ProximityPrompt") or obj:FindFirstChildWhichIsA("ProximityPrompt", true)
+    if prompt then
+        return true
+    end
+
+    -- Check ClickDetector
+    if obj:FindFirstChildOfClass("ClickDetector") or obj:FindFirstChildWhichIsA("ClickDetector", true) then
+        return true
+    end
+
+    return false
 end
 
-local function createESPForEgg(obj, isRarest)
+local function scanMapForEggs()
+    local candidates = {}
+
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        pcall(function()
+            if isEggCandidate(obj) then
+                local pos = obj:IsA("BasePart") and obj.Position or (obj:IsA("Model") and obj:GetPivot().Position)
+                if pos and pos.Y > -500 then
+                    local score = getEggScore(obj)
+                    table.insert(candidates, {
+                        Object = obj,
+                        Position = pos,
+                        Score = score,
+                        Name = obj.Name
+                    })
+                end
+            end
+        end)
+    end
+
+    -- Sort candidates by highest score descending
+    table.sort(candidates, function(a, b)
+        return a.Score > b.Score
+    end)
+
+    return candidates
+end
+
+local function createESP(obj, isRarest, customName)
     pcall(function()
-        local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart", true)
-        if not part then return end
+        local adorneePart = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart", true)
+        if not adorneePart then return end
 
         local bb = Instance.new("BillboardGui")
-        bb.Name = "EggESP"
-        bb.Adornee = part
-        bb.Size = UDim2.new(0, 160, 0, 40)
-        bb.StudsOffset = Vector3.new(0, 3.5, 0)
+        bb.Name = "UltraEggESP"
+        bb.Adornee = adorneePart
+        bb.Size = UDim2.new(0, 180, 0, 45)
+        bb.StudsOffset = Vector3.new(0, 4, 0)
         bb.AlwaysOnTop = true
 
         local label = Instance.new("TextLabel")
         label.Size = UDim2.new(1, 0, 1, 0)
         label.BackgroundTransparency = 1
         label.Font = Enum.Font.SourceSansBold
-        label.TextSize = isRarest and 15 or 13
+        label.TextSize = isRarest and 16 or 13
         label.TextColor3 = isRarest and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(0, 255, 255)
         label.TextStrokeTransparency = 0
         label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-        label.Text = (isRarest and "👑 [RAREST EGG]\n" or "🥚 ") .. obj.Name
+        label.Text = (isRarest and "👑 [RAREST EGG]\n" or "🥚 ") .. (customName or obj.Name)
         label.Parent = bb
 
-        bb.Parent = part
+        bb.Parent = adorneePart
         table.insert(ActiveESPObjects, bb)
 
         local highlight = Instance.new("Highlight")
+        highlight.Name = "UltraEggHighlight"
         highlight.Adornee = obj
         highlight.FillColor = isRarest and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(0, 170, 255)
         highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-        highlight.FillTransparency = 0.5
+        highlight.FillTransparency = 0.4
         highlight.OutlineTransparency = 0
         highlight.Parent = obj
         table.insert(ActiveESPObjects, highlight)
+    end)
+end
+
+local function triggerPrompts(obj)
+    pcall(function()
+        for _, p in ipairs(obj:GetDescendants()) do
+            if p:IsA("ProximityPrompt") then
+                p.HoldDuration = 0
+                if fireproximityprompt then
+                    fireproximityprompt(p, 0)
+                elseif p.InputHoldBegin and p.InputHoldEnd then
+                    p:InputHoldBegin()
+                    task.wait(0.01)
+                    p:InputHoldEnd()
+                end
+            elseif p:IsA("ClickDetector") and fireclickdetector then
+                fireclickdetector(p)
+            end
+        end
     end)
 end
 
@@ -231,7 +296,7 @@ if not ScreenGui.Parent then
     end)
 end
 
--- Main Outer Frame (Exact Dimensions to fit all 4 Features perfectly)
+-- Main Outer Frame
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 310, 0, 290)
@@ -251,7 +316,7 @@ UIStroke.Color = Color3.fromRGB(35, 38, 48)
 UIStroke.Thickness = 1.2
 UIStroke.Parent = MainFrame
 
--- Floating Open/Close Button (⚡) for Mobile & Quick Access
+-- Floating Open/Close Button (⚡)
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Name = "FloatingToggle"
 ToggleBtn.Size = UDim2.new(0, 40, 0, 40)
@@ -276,7 +341,7 @@ ToggleBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
--- Header Title (Exact Screenshot: "+1 JUMP FOR ANIMALS SCRIPT")
+-- Header Title
 local HeaderTitle = Instance.new("TextLabel")
 HeaderTitle.Size = UDim2.new(1, -50, 0, 32)
 HeaderTitle.Position = UDim2.new(0, 16, 0, 12)
@@ -315,7 +380,7 @@ UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Padding = UDim.new(0, 0)
 UIListLayout.Parent = Container
 
--- Footer Branding (Exact Screenshot: Centered)
+-- Footer Branding
 local FooterTitle = Instance.new("TextLabel")
 FooterTitle.Size = UDim2.new(1, 0, 0, 18)
 FooterTitle.Position = UDim2.new(0, 0, 1, -40)
@@ -336,7 +401,7 @@ FooterSub.TextSize = 12
 FooterSub.Font = Enum.Font.SourceSans
 FooterSub.Parent = MainFrame
 
--- Checkbox Row Generator (Exact Screenshot Styling)
+-- Checkbox Row Generator
 local function CreateToggleRow(name, callback, isLast)
     local Row = Instance.new("Frame")
     Row.Size = UDim2.new(1, 0, 0, 38)
@@ -406,7 +471,7 @@ local function CreateToggleRow(name, callback, isLast)
 end
 
 --==============================================================--
---  ALL 4 TOGGLE ROWS CREATED INSTANTLY & SYNCHRONOUSLY
+--  ALL 4 TOGGLE ROWS
 --==============================================================--
 
 -- 1. Fly Mode
@@ -487,7 +552,7 @@ CreateToggleRow("Infinite Jump", function(state)
     InfJumpEnabled = state
 end, false)
 
--- 4. Rare Egg ESP (Guaranteed 4th Row)
+-- 4. Rare Egg ESP (Instant Teleport + Deep Map Scan + ESP)
 CreateToggleRow("Rare Egg ESP", function(state)
     RareEggESPEnabled = state
     if not RareEggESPEnabled then
@@ -496,35 +561,28 @@ CreateToggleRow("Rare Egg ESP", function(state)
     end
 
     task.spawn(function()
-        local teleportedOnce = false
-
         while RareEggESPEnabled do
             clearEggESP()
-            local rarestEgg, rarestPos, score = findRarestEgg()
-            local root = getRoot()
+            local eggList = scanMapForEggs()
 
-            if rarestEgg and rarestPos then
-                createESPForEgg(rarestEgg, true)
+            if #eggList > 0 then
+                local rarest = eggList[1]
 
-                if root and (not teleportedOnce or (root.Position - rarestPos).Magnitude > 250) then
-                    root.CFrame = CFrame.new(rarestPos + Vector3.new(0, 4, 0))
-                    teleportedOnce = true
-
-                    task.wait(0.2)
-                    for _, p in ipairs(rarestEgg:GetDescendants()) do
-                        if p:IsA("ProximityPrompt") then
-                            p.HoldDuration = 0
-                            if fireproximityprompt then
-                                fireproximityprompt(p, 0)
-                            end
-                        elseif p:IsA("ClickDetector") and fireclickdetector then
-                            fireclickdetector(p)
-                        end
-                    end
+                -- 1. Create ESP on top 10 eggs and Highlight the Rarest Egg
+                for i = 1, math.min(#eggList, 10) do
+                    local eggData = eggList[i]
+                    createESP(eggData.Object, (i == 1), eggData.Name)
                 end
+
+                -- 2. INSTANT SAFE TELEPORT TO RAREST EGG
+                safeTeleport(rarest.Position)
+
+                -- 3. Auto-Trigger Prompts / Grabs
+                task.wait(0.15)
+                triggerPrompts(rarest.Object)
             end
 
-            task.wait(3)
+            task.wait(2.5)
         end
         clearEggESP()
     end)
@@ -576,4 +634,4 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
-print("[UltraScriptHub] +1 Jump for Animals Script loaded with all 4 features!")
+print("[UltraScriptHub] +1 Jump for Animals Script loaded with Enhanced Rare Egg ESP & Teleport!")
