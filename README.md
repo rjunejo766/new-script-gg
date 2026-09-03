@@ -230,3 +230,20 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 2. 🏆 **Auto Win (Escape Track)**: Automatically claims track wins, reaches finish pads, and completes stages.
 3. 🔄 **Auto Rebirth**: Automatically performs rebirths via remotes and pads.
 4. 🏃 **WalkSpeed Boost (60)**: High movement speed boost.
+
+---
+
+## 🎮 16. Jump for Animals!
+- **Game Link**: [https://www.roblox.com/games/126870639873289/Jump-for-Animals](https://www.roblox.com/games/126870639873289/Jump-for-Animals)
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/JumpForAnimals.lua?t=" .. tostring(os.time())))()
+```
+
+### ✨ Features
+1. 🕊️ **Fly Mode**: Smooth flying in camera direction using WASD, Space (Up), and Shift/Ctrl (Down) with full Mobile joystick support.
+2. 🏃 **WalkSpeed Boost (60)**: High movement speed boost.
+3. 🦘 **Infinite Jump**: Unlimited air jumping.
+
+
