@@ -263,5 +263,23 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 3. 🔄 **Auto Rebirth**: Automatically performs rebirths via remotes and rebirth pads.
 4. 🕊️ **Fly Mode**: Smooth flying in camera direction using WASD, Space (Up), and Shift/Ctrl (Down) with Mobile joystick support.
 
+---
+
+## 🎮 18. Collect The Alphabet
+- **Game Link**: [https://www.roblox.com/games/127103413498148/Collect-The-Alphabet](https://www.roblox.com/games/127103413498148/Collect-The-Alphabet)
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/CollectTheAlphabet.lua?t=" .. tostring(os.time())))()
+```
+
+### ✨ Features
+1. 📦 **Auto Open Packs**: Automatically opens letter packs (Mythic, Secret, Normal) from conveyor belts and inventory.
+2. 🔤 **Auto Collect Letters**: Vacuums all letters (A-Z), diamonds, and dropped items across the map.
+3. 💎 **Auto Sell Duplicates**: Automatically sells duplicate letters to generate maximum diamonds.
+4. ⚡ **Auto Upgrade**: Automatically upgrades pack speed, rarity, and luck at arcade machines.
+5. 🕊️ **Fly Mode**: Smooth flight in camera direction with WASD & Mobile joystick.
+
+
 
 
