@@ -247,4 +247,21 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 3. 🦘 **Infinite Jump**: Unlimited air jumping.
 4. 🔮 **Rare Egg ESP**: Highlights eggs with ESP and automatically teleports the player directly to the rarest egg on the map.
 
+---
+
+## 🎮 17. Build a +1 Obby
+- **Game Link**: [https://www.roblox.com/games/122507029092776/Build-a-1-Obby](https://www.roblox.com/games/122507029092776/Build-a-1-Obby)
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/BuildAPlusOneObby.lua?t=" .. tostring(os.time())))()
+```
+
+### ✨ Features (Exact 4 Features)
+1. 🏆 **Auto Win**: Automatically reaches checkpoints, win pads, and finishes obby stages to farm wins.
+2. 🧱 **Auto Farm Blocks**: Automatically claims and collects +1 blocks, drops, generators, and equips tools.
+3. 🔄 **Auto Rebirth**: Automatically performs rebirths via remotes and rebirth pads.
+4. 🕊️ **Fly Mode**: Smooth flying in camera direction using WASD, Space (Up), and Shift/Ctrl (Down) with Mobile joystick support.
+
+
 
