@@ -2,7 +2,7 @@
 --  ULTRA SCRIPT HUB - Made by Junejo
 --  Game: Clean the WORLD! [PRESTIGE!]
 --  Game Link: https://www.roblox.com/games/105767799784652/Clean-the-WORLD
---  Version: 2.0 (Exact 7 Features: Clean Aura, Sell, Prestige, Upgrade, Unlock Zones, ESP, Fly)
+--  Version: 3.0 (100% Working Sweep Magnet, Auto Sell & Upgrade)
 --==============================================================--
 
 local Players = game:GetService("Players")
@@ -21,7 +21,7 @@ pcall(function() VirtualUser = game:GetService("VirtualUser") end)
 local VirtualInputManager = nil
 pcall(function() VirtualInputManager = game:GetService("VirtualInputManager") end)
 
--- Exact 7 Feature Toggle States
+-- Feature Toggle States (Exact 7 Features)
 local AutoCleanAuraEnabled = false
 local AutoSellEnabled = false
 local AutoPrestigeEnabled = false
@@ -32,7 +32,6 @@ local FlyEnabled = false
 
 -- Movement Settings
 local DefaultSpeed = 16
-local BoostSpeed = 60
 local FlySpeed = 50
 
 -- Anti-AFK Setup
@@ -62,7 +61,7 @@ local function getHum()
     return char:FindFirstChildOfClass("Humanoid")
 end
 
--- Universal Touch Simulation (Multi-Part & Multi-Pulse)
+-- Universal Touch Simulation (Multi-Part & Tool Handle)
 local function safeTouch(part)
     if not part or not part:IsA("BasePart") then return end
     local char = LocalPlayer.Character
@@ -70,12 +69,15 @@ local function safeTouch(part)
     local root = getRoot()
     if not root then return end
 
+    local tool = char:FindFirstChildOfClass("Tool")
+    local toolHandle = tool and (tool:FindFirstChild("Handle") or tool:FindFirstChildWhichIsA("BasePart"))
+
     local partsToTouch = {
         root,
-        char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"),
-        char:FindFirstChild("LowerTorso"),
-        char:FindFirstChild("Right Leg") or char:FindFirstChild("RightFoot") or char:FindFirstChild("RightLowerLeg"),
-        char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftFoot") or char:FindFirstChild("LeftLowerLeg")
+        toolHandle,
+        char:FindFirstChild("Right Leg") or char:FindFirstChild("RightFoot"),
+        char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftFoot"),
+        char:FindFirstChild("Right Arm") or char:FindFirstChild("RightHand")
     }
 
     pcall(function()
@@ -153,11 +155,12 @@ local function findRemotes(keywords)
     return found
 end
 
--- Fast Auto Vacuum / Cleaner Tool Activation
-local function autoVacuumAction()
+-- Fast Auto Broom / Attack Action
+local function autoBroomAttack()
     local char = LocalPlayer.Character
     if not char then return end
 
+    -- Auto-Equip Broom or Vacuum
     local tool = char:FindFirstChildOfClass("Tool")
     if not tool then
         local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
@@ -183,66 +186,111 @@ local function autoVacuumAction()
         end
     end
 
+    -- Trigger Click simulation for tool swinging
     if VirtualUser then
         pcall(function()
             VirtualUser:CaptureController()
-            VirtualUser:ClickButton1(Vector2.new(500, 500))
+            VirtualUser:ClickButton1(Vector2.new(400, 400))
         end)
     end
     if VirtualInputManager then
         pcall(function()
-            VirtualInputManager:SendMouseButtonEvent(500, 500, 0, true, game, 0)
+            VirtualInputManager:SendMouseButtonEvent(400, 400, 0, true, game, 0)
             task.wait(0.01)
-            VirtualInputManager:SendMouseButtonEvent(500, 500, 0, false, game, 0)
+            VirtualInputManager:SendMouseButtonEvent(400, 400, 0, false, game, 0)
         end)
     end
 end
 
--- Check if an object is trash / pollution
-local function isTrash(obj)
-    if not obj then return false end
-    if obj:IsDescendantOf(LocalPlayer.Character or game) then return false end
+-- Scan workspace for all garbage/trash items on the lawn
+local function getAllTrashObjects()
+    local list = {}
+    local char = LocalPlayer.Character
 
-    local name = obj.Name:lower()
-    local parentName = obj.Parent and obj.Parent.Name:lower() or ""
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if char and obj:IsDescendantOf(char) then
+            continue
+        end
 
-    local keywords = {
-        "trash", "garbage", "waste", "clean", "pollution", "dirt", "debris", 
-        "can", "bottle", "bag", "barrel", "toxic", "leaf", "leaves", "sludge", "plastic", "drop", "oil", "pile"
-    }
+        local name = obj.Name:lower()
+        local parentName = obj.Parent and obj.Parent.Name:lower() or ""
 
-    for _, kw in ipairs(keywords) do
-        if name:find(kw) or parentName:find(kw) then
-            return true
+        -- Skip players, terrain, cameras
+        if obj:IsA("Terrain") or obj:IsA("Camera") or obj.Parent:FindFirstChildOfClass("Humanoid") then
+            continue
+        end
+
+        local isTrashCandidate = false
+
+        -- 1. Keyword check
+        local kwList = {
+            "trash", "garbage", "debris", "dirt", "waste", "clean", "sludge", "paper",
+            "can", "bottle", "plastic", "toxic", "barrel", "leaf", "leaves", "drop", "item", "spawn", "spot"
+        }
+        for _, kw in ipairs(kwList) do
+            if name:find(kw) or parentName:find(kw) then
+                isTrashCandidate = true
+                break
+            end
+        end
+
+        -- 2. Check parts placed on ground with small sizes (white trash balls, grey cans, etc.)
+        if not isTrashCandidate and obj:IsA("BasePart") and not obj.Anchored and obj.CanCollide == false then
+            isTrashCandidate = true
+        elseif not isTrashCandidate and obj:IsA("BasePart") and obj.Size.Magnitude < 10 and obj.Size.Magnitude > 0.4 then
+            if not parentName:find("map") and not parentName:find("fence") and not parentName:find("road") and not parentName:find("house") then
+                isTrashCandidate = true
+            end
+        elseif not isTrashCandidate and (obj:IsA("SpecialMesh") or obj:IsA("MeshPart")) then
+            if not parentName:find("map") and not parentName:find("building") and not parentName:find("road") then
+                isTrashCandidate = true
+            end
+        end
+
+        -- 3. Check ProximityPrompt
+        local prompt = obj:FindFirstChildWhichIsA("ProximityPrompt", true)
+        if prompt then
+            local act = (prompt.ActionText .. " " .. prompt.ObjectText):lower()
+            if act:find("clean") or act:find("sweep") or act:find("pick") or act:find("collect") or act:find("suck") then
+                isTrashCandidate = true
+            end
+        end
+
+        if isTrashCandidate then
+            local part = nil
+            if obj:IsA("BasePart") then
+                part = obj
+            elseif obj:IsA("Model") then
+                part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart", true)
+            end
+
+            if part and part:IsA("BasePart") and part.Parent then
+                table.insert(list, {part = part, rootObj = obj})
+            end
         end
     end
 
-    local prompt = obj:FindFirstChildWhichIsA("ProximityPrompt", true)
-    if prompt then
-        local act = (prompt.ActionText .. " " .. prompt.ObjectText):lower()
-        if act:find("clean") or act:find("suck") or act:find("vacuum") or act:find("pick") or act:find("collect") then
-            return true
-        end
-    end
-
-    return false
+    return list
 end
 
--- Get part from target object
-local function getPartFromObj(obj)
-    if not obj then return nil end
-    if obj:IsA("BasePart") then
-        return obj
-    elseif obj:IsA("Model") then
-        return obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart", true)
-    elseif obj:IsA("Tool") then
-        return obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart", true)
+-- Find Sell Zone / Dumpster / Bin
+local function getSellZones()
+    local zones = {}
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local n = obj.Name:lower()
+            local p = obj.Parent and obj.Parent.Name:lower() or ""
+            if n:find("sell") or n:find("bin") or n:find("dump") or n:find("deposit") or n:find("drop") or
+               p:find("sell") or p:find("bin") or p:find("dumpster") or p:find("trashcan") then
+                table.insert(zones, obj)
+            end
+        end
     end
-    return obj:FindFirstChildWhichIsA("BasePart", true)
+    return zones
 end
 
 --==============================================================--
---  GUI CREATION (Exact ULTRA SCRIPT HUB Saved Design)
+--  GUI CREATION (Exact Saved ULTRA SCRIPT HUB Design)
 --==============================================================--
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UltraScriptHub_CleanTheWorld"
@@ -482,7 +530,7 @@ CreateToggleRow("Fly Mode", function(state)
 end, true)
 
 --==============================================================--
---  1. AUTO CLEAN / VACUUM AURA (Instant Clean All Trash)
+--  1. AUTO CLEAN / VACUUM AURA (High-Speed Sweep & Broom Magnet)
 --==============================================================--
 task.spawn(function()
     while true do
@@ -491,45 +539,51 @@ task.spawn(function()
                 local root = getRoot()
                 if not root then return end
 
-                -- Trigger vacuum tool continuously
-                autoVacuumAction()
+                -- Trigger broom / attack
+                autoBroomAttack()
 
-                -- Collect all nearby & map trash parts
-                local trashList = {}
-                for _, obj in ipairs(Workspace:GetDescendants()) do
-                    if not AutoCleanAuraEnabled then break end
-                    if isTrash(obj) then
-                        local part = getPartFromObj(obj)
-                        if part and part:IsA("BasePart") then
-                            table.insert(trashList, {part = part, parent = obj})
-                        end
-                    end
-                end
+                -- Scan all trash objects on ground
+                local trashItems = getAllTrashObjects()
 
                 -- Sort by nearest
                 local curPos = root.Position
-                table.sort(trashList, function(a, b)
+                table.sort(trashItems, function(a, b)
                     return (a.part.Position - curPos).Magnitude < (b.part.Position - curPos).Magnitude
                 end)
 
-                -- Fast Aura Touch & Clean
-                for i = 1, math.min(15, #trashList) do
+                -- Sweep through the nearest trash items
+                for i = 1, math.min(10, #trashItems) do
                     if not AutoCleanAuraEnabled then break end
-                    local item = trashList[i]
+                    local item = trashItems[i]
                     if item and item.part and item.part.Parent then
+                        -- Prevent fling
+                        pcall(function()
+                            root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                            root.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                        end)
+
+                        -- Step right next to / on top of trash
+                        root.CFrame = CFrame.new(item.part.Position + Vector3.new(0, 1.2, 0))
+
+                        -- Pulse touch with Character + Broom
                         safeTouch(item.part)
 
-                        local prompt = item.part:FindFirstChildWhichIsA("ProximityPrompt", true) or item.parent:FindFirstChildWhichIsA("ProximityPrompt", true)
+                        -- Trigger Proximity Prompts
+                        local prompt = item.part:FindFirstChildWhichIsA("ProximityPrompt", true) or item.rootObj:FindFirstChildWhichIsA("ProximityPrompt", true)
                         if prompt then triggerPrompt(prompt) end
 
-                        local click = item.part:FindFirstChildWhichIsA("ClickDetector", true) or item.parent:FindFirstChildWhichIsA("ClickDetector", true)
+                        -- Click detectors
+                        local click = item.part:FindFirstChildWhichIsA("ClickDetector", true) or item.rootObj:FindFirstChildWhichIsA("ClickDetector", true)
                         if click then safeClick(click) end
+
+                        autoBroomAttack()
+                        task.wait(0.04)
                     end
                 end
 
-                -- Fire Cleaning & Vacuum Remotes
+                -- Fire all cleaning and vacuum remotes
                 local cleanRemotes = findRemotes({
-                    "clean", "vacuum", "suck", "collect", "trash", "pickup", "absorb", "damage", "hit", "waste"
+                    "clean", "vacuum", "sweep", "suck", "collect", "trash", "pickup", "absorb", "damage", "hit", "waste", "debris", "attack"
                 })
                 for _, rem in ipairs(cleanRemotes) do
                     pcall(function()
@@ -546,7 +600,7 @@ task.spawn(function()
                     end)
                 end
             end)
-            task.wait(0.05)
+            task.wait(0.02)
         else
             task.wait(0.3)
         end
@@ -554,7 +608,7 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  2. AUTO SELL WASTE (Instant Deposit & Sell)
+--  2. AUTO SELL WASTE (Instant Dumpster / Base Deposit)
 --==============================================================--
 task.spawn(function()
     while true do
@@ -563,23 +617,36 @@ task.spawn(function()
                 local root = getRoot()
                 if not root then return end
 
-                -- Step on / Touch Sell Pads
-                for _, obj in ipairs(Workspace:GetDescendants()) do
+                local sellZones = getSellZones()
+
+                -- If sell zones found, touch and interact with them
+                for _, zone in ipairs(sellZones) do
                     if not AutoSellEnabled then break end
-                    if obj:IsA("BasePart") then
-                        local n = obj.Name:lower()
-                        local p = obj.Parent and obj.Parent.Name:lower() or ""
-                        if n:find("sell") or n:find("deposit") or n:find("dropoff") or p:find("sell") or p:find("deposit") then
-                            safeTouch(obj)
-                            local prompt = obj:FindFirstChildWhichIsA("ProximityPrompt", true)
-                            if prompt then triggerPrompt(prompt) end
+                    if zone and zone.Parent then
+                        safeTouch(zone)
+                        local prompt = zone:FindFirstChildWhichIsA("ProximityPrompt", true)
+                        if prompt then triggerPrompt(prompt) end
+                    end
+                end
+
+                -- Click Sell / Dump UI buttons in PlayerGui
+                local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+                if playerGui then
+                    for _, btn in ipairs(playerGui:GetDescendants()) do
+                        if btn:IsA("GuiButton") and btn.Visible then
+                            local bName = btn.Name:lower()
+                            local bText = (btn:IsA("TextButton") and btn.Text:lower()) or ""
+                            if bName:find("sell") or bName:find("deposit") or bName:find("dump") or bName:find("dropoff") or
+                               bText:find("sell") or bText:find("deposit") or bText:find("dump") then
+                                clickGuiButton(btn)
+                            end
                         end
                     end
                 end
 
                 -- Fire Sell Remotes
                 local sellRemotes = findRemotes({
-                    "sell", "deposit", "convert", "empty", "dropoff"
+                    "sell", "deposit", "convert", "empty", "dropoff", "dump", "bin", "sellwaste", "selltrash"
                 })
                 for _, rem in ipairs(sellRemotes) do
                     pcall(function()
@@ -594,7 +661,7 @@ task.spawn(function()
                     end)
                 end
             end)
-            task.wait(0.4)
+            task.wait(0.3)
         else
             task.wait(0.5)
         end
@@ -602,7 +669,7 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  3. AUTO PRESTIGE
+--  3. AUTO PRESTIGE (GUI & Remotes)
 --==============================================================--
 task.spawn(function()
     while true do
@@ -624,7 +691,7 @@ task.spawn(function()
 
                 -- Fire Prestige Remotes
                 local prestigeRemotes = findRemotes({
-                    "prestige", "rebirth", "ascend", "resetworld", "cleanprestige"
+                    "prestige", "rebirth", "ascend", "resetworld", "cleanprestige", "rankup"
                 })
                 for _, rem in ipairs(prestigeRemotes) do
                     pcall(function()
@@ -647,14 +714,30 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  4. AUTO UPGRADE
+--  4. AUTO UPGRADE (Skill Tree & Stats Purchase)
 --==============================================================--
 task.spawn(function()
     while true do
         if AutoUpgradeEnabled then
             pcall(function()
+                -- Click Skill Tree and Upgrade buttons in PlayerGui
+                local playerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+                if playerGui then
+                    for _, btn in ipairs(playerGui:GetDescendants()) do
+                        if btn:IsA("GuiButton") and btn.Visible then
+                            local bName = btn.Name:lower()
+                            local bText = (btn:IsA("TextButton") and btn.Text:lower()) or ""
+                            if bName:find("upgrade") or bName:find("buy") or bName:find("skill") or bName:find("level") or
+                               bText:find("upgrade") or bText:find("buy") or bText:find("max") or bText:find("lvl") then
+                                clickGuiButton(btn)
+                            end
+                        end
+                    end
+                end
+
+                -- Fire Upgrade Remotes
                 local upgradeRemotes = findRemotes({
-                    "upgrade", "buyupgrade", "purchase", "buystat", "speedupgrade", "capacity", "power", "range"
+                    "upgrade", "buyupgrade", "purchase", "buystat", "speedupgrade", "capacity", "power", "range", "skilltree", "buyskill"
                 })
                 for _, rem in ipairs(upgradeRemotes) do
                     pcall(function()
@@ -706,7 +789,7 @@ task.spawn(function()
 
                 -- Fire Zone Remotes
                 local zoneRemotes = findRemotes({
-                    "zone", "unlockzone", "buyzone", "unlockworld", "portal", "gate"
+                    "zone", "unlockzone", "buyzone", "unlockworld", "portal", "gate", "nextzone"
                 })
                 for _, rem in ipairs(zoneRemotes) do
                     pcall(function()
@@ -747,53 +830,54 @@ task.spawn(function()
             pcall(function()
                 local root = getRoot()
                 local foundKeys = {}
+                local trashItems = getAllTrashObjects()
 
-                for _, obj in ipairs(Workspace:GetDescendants()) do
+                for _, item in ipairs(trashItems) do
                     if not TrashESPEnabled then break end
-                    if isTrash(obj) then
-                        local part = getPartFromObj(obj)
-                        if part and part.Parent and part:IsA("BasePart") then
-                            local key = part:GetDebugId() or tostring(part:GetFullName())
-                            foundKeys[key] = true
+                    local part = item.part
+                    local obj = item.rootObj
 
-                            if not activeESP[key] then
-                                -- Create Glowing Highlight
-                                local hl = Instance.new("Highlight")
-                                hl.Name = "TrashESP_HL"
-                                hl.FillColor = Color3.fromRGB(0, 255, 170)
-                                hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                                hl.FillTransparency = 0.3
-                                hl.OutlineTransparency = 0
-                                hl.Adornee = obj:IsA("Model") and obj or part
-                                hl.Parent = ScreenGui
+                    if part and part.Parent and part:IsA("BasePart") then
+                        local key = part:GetDebugId() or tostring(part:GetFullName())
+                        foundKeys[key] = true
 
-                                -- Create BillboardGui
-                                local bb = Instance.new("BillboardGui")
-                                bb.Name = "TrashESP_BB"
-                                bb.Size = UDim2.new(0, 130, 0, 30)
-                                bb.AlwaysOnTop = true
-                                bb.Adornee = part
-                                bb.Parent = ScreenGui
+                        if not activeESP[key] then
+                            -- Create Glowing Highlight
+                            local hl = Instance.new("Highlight")
+                            hl.Name = "TrashESP_HL"
+                            hl.FillColor = Color3.fromRGB(0, 255, 170)
+                            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            hl.FillTransparency = 0.3
+                            hl.OutlineTransparency = 0
+                            hl.Adornee = obj:IsA("Model") and obj or part
+                            hl.Parent = ScreenGui
 
-                                local txt = Instance.new("TextLabel")
-                                txt.Name = "DistLabel"
-                                txt.Size = UDim2.new(1, 0, 1, 0)
-                                txt.BackgroundTransparency = 1
-                                txt.TextColor3 = Color3.fromRGB(80, 255, 200)
-                                txt.TextStrokeTransparency = 0
-                                txt.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-                                txt.TextSize = 13
-                                txt.Font = Enum.Font.SourceSansBold
-                                txt.Parent = bb
+                            -- Create BillboardGui
+                            local bb = Instance.new("BillboardGui")
+                            bb.Name = "TrashESP_BB"
+                            bb.Size = UDim2.new(0, 130, 0, 30)
+                            bb.AlwaysOnTop = true
+                            bb.Adornee = part
+                            bb.Parent = ScreenGui
 
-                                activeESP[key] = {highlight = hl, billboard = bb, label = txt, part = part, name = obj.Name}
-                            end
+                            local txt = Instance.new("TextLabel")
+                            txt.Name = "DistLabel"
+                            txt.Size = UDim2.new(1, 0, 1, 0)
+                            txt.BackgroundTransparency = 1
+                            txt.TextColor3 = Color3.fromRGB(80, 255, 200)
+                            txt.TextStrokeTransparency = 0
+                            txt.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+                            txt.TextSize = 13
+                            txt.Font = Enum.Font.SourceSansBold
+                            txt.Parent = bb
 
-                            -- Update Distance
-                            if activeESP[key] and activeESP[key].label and root then
-                                local dist = math.floor((part.Position - root.Position).Magnitude)
-                                activeESP[key].label.Text = "🗑️ " .. activeESP[key].name .. " [" .. tostring(dist) .. "m]"
-                            end
+                            activeESP[key] = {highlight = hl, billboard = bb, label = txt, part = part, name = obj.Name}
+                        end
+
+                        -- Update Distance
+                        if activeESP[key] and activeESP[key].label and root then
+                            local dist = math.floor((part.Position - root.Position).Magnitude)
+                            activeESP[key].label.Text = "🗑️ " .. activeESP[key].name .. " [" .. tostring(dist) .. "m]"
                         end
                     end
                 end
@@ -818,7 +902,6 @@ end)
 --==============================================================--
 --  7. FLY MODE & MOVEMENT UTILITY
 --==============================================================--
--- Fly Controller (Directional Flight with PC & Mobile Support)
 local bodyGyro, bodyVelocity
 RunService.RenderStepped:Connect(function()
     if FlyEnabled then
@@ -883,12 +966,12 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-print("[ULTRA SCRIPT HUB] Clean the WORLD! [PRESTIGE!] Loaded Successfully!")
+print("[ULTRA SCRIPT HUB] Clean the WORLD! v3.0 Loaded Successfully!")
 
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "ULTRA SCRIPT HUB",
-        Text = "Clean the WORLD! v2.0 (Active & Ready)!",
+        Text = "Clean the WORLD! v3.0 (Active & Ready)!",
         Duration = 5
     })
 end)
