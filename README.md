@@ -323,4 +323,20 @@ loadstring(readfile("CleanTheWorld.lua"))()
 6. 🔮 **Trash ESP / Rare Chams**: 3D Glowing Chams and real-time distance visualizer on all trash items.
 7. 🕊️ **Fly Mode**: Smooth flight with camera direction and Mobile joystick support.
 
+---
 
+## 🎮 21. 99 Nights in the Forest
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/99NightsInTheForest.lua?t=" .. tostring(os.time())))()
+```
+
+### ✨ Features (Exact 7 Features)
+1. 📜 **Auto Daily & Weekly Quests**: Automatically completes & claims all daily/weekly quests and prizes.
+2. 🌟 **Auto Talent & Class Progression**: Automatically rolls, unlocks talents and upgrades class ranks.
+3. ⚔️ **Cultist Wave Defense & Kill Aura**: Auto attacks monsters/cultists and claims wave defense benefits.
+4. 🪵 **Auto Tools & Fire Upgrades**: Auto upgrades campfires and tools tier.
+5. 🍬 **Auto Collect Loot, Pets & Candies**: Multi-item magnet collecting sticks, wood, candies, toys and drops.
+6. 🎁 **In-Game Shops & Supply Crates**: Auto claims badge diamonds, opens presents and equips crates.
+7. ⏩ **Skip Cutscenes & Instant Dialogue**: Instantly fast-forwards and skips story cutscenes and dialogues.
