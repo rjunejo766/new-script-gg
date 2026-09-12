@@ -1,7 +1,7 @@
 --==============================================================--
 --  ULTRA SCRIPT HUB - Made by Junejo
 --  Game: Grow Beanstalk To Steal An Egg (Roblox)
---  Version: 7.0 (Rock-Solid Universal UI & 7 Best Features)
+--  Version: 8.0 (Guaranteed UI Visibility & Centered Layout)
 --==============================================================--
 
 local Players = game:GetService("Players")
@@ -11,7 +11,10 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 
-local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
+local LocalPlayer = Players.LocalPlayer
+if not LocalPlayer then
+    repeat task.wait() LocalPlayer = Players.LocalPlayer until LocalPlayer
+end
 
 -- Anti-AFK
 pcall(function()
@@ -25,59 +28,55 @@ pcall(function()
 end)
 
 --==============================================================--
---  GUI CREATION (Instant & 100% Guaranteed Parent Resolution)
+--  100% GUARANTEED SCREEN GUI CREATION
 --==============================================================--
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UltraScriptHub_StealAnEgg"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.DisplayOrder = 999999
+ScreenGui.IgnoreGuiInset = true
 
--- Safe Parent Resolution (Works on ALL Executors + Roblox Studio)
-local parentFound = false
+-- Multi-Tier Safe Parenting (Works everywhere: Delta, Fluxus, Codex, Arceus, Solara, Studio)
+local parentTarget = nil
 if gethui then
+    pcall(function() parentTarget = gethui() end)
+end
+
+if not parentTarget then
     pcall(function()
-        ScreenGui.Parent = gethui()
-        parentFound = true
+        parentTarget = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 4)
     end)
 end
 
-if not parentFound then
+if not parentTarget then
     pcall(function()
-        if syn and syn.protect_gui then
-            syn.protect_gui(ScreenGui)
-        end
-        ScreenGui.Parent = CoreGui
-        parentFound = true
+        if syn and syn.protect_gui then syn.protect_gui(ScreenGui) end
+        parentTarget = CoreGui
     end)
 end
 
-if not parentFound or ScreenGui.Parent == nil then
-    pcall(function()
-        local playerGui = LocalPlayer:WaitForChild("PlayerGui", 5) or LocalPlayer:FindFirstChildOfClass("PlayerGui")
-        ScreenGui.Parent = playerGui
-    end)
-end
-
--- Clean previous instances
+-- Remove older UI copies
 pcall(function()
-    local targets = {CoreGui, LocalPlayer:FindFirstChildOfClass("PlayerGui")}
-    if gethui then pcall(function() table.insert(targets, gethui()) end) end
-    for _, container in ipairs(targets) do
-        if container then
-            for _, child in ipairs(container:GetChildren()) do
-                if child.Name == "UltraScriptHub_StealAnEgg" and child ~= ScreenGui then
-                    child:Destroy()
-                end
-            end
+    local places = {parentTarget, CoreGui, LocalPlayer:FindFirstChildOfClass("PlayerGui")}
+    for _, pl in ipairs(places) do
+        if pl then
+            local old = pl:FindFirstChild("UltraScriptHub_StealAnEgg")
+            if old and old ~= ScreenGui then old:Destroy() end
         end
     end
 end)
 
--- Main Outer Frame
+ScreenGui.Parent = parentTarget or LocalPlayer:FindFirstChildOfClass("PlayerGui") or CoreGui
+
+--==============================================================--
+--  MAIN UI FRAME (AnchorPoint Centered - 100% Visible on PC & Mobile)
+--==============================================================--
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 330, 0, 360)
-MainFrame.Position = UDim2.new(0.5, -165, 0.3, -180)
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainFrame.Size = UDim2.new(0, 330, 0, 370)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -88,35 +87,93 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 10)
 UICorner.Parent = MainFrame
 
--- Header
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(45, 48, 60)
+UIStroke.Thickness = 1.5
+UIStroke.Parent = MainFrame
+
+-- Floating Toggle Button (To reopen if minimized)
+local OpenBtn = Instance.new("TextButton")
+OpenBtn.Name = "OpenHubButton"
+OpenBtn.Size = UDim2.new(0, 45, 0, 45)
+OpenBtn.Position = UDim2.new(0, 15, 0.5, -22)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+OpenBtn.BorderSizePixel = 0
+OpenBtn.Text = "🥚"
+OpenBtn.TextSize = 22
+OpenBtn.Visible = false
+OpenBtn.Active = true
+OpenBtn.Draggable = true
+OpenBtn.Parent = ScreenGui
+
+local OpenBtnCorner = Instance.new("UICorner")
+OpenBtnCorner.CornerRadius = UDim.new(0, 10)
+OpenBtnCorner.Parent = OpenBtn
+
+local OpenBtnStroke = Instance.new("UIStroke")
+OpenBtnStroke.Color = Color3.fromRGB(0, 170, 255)
+OpenBtnStroke.Thickness = 1.5
+OpenBtnStroke.Parent = OpenBtn
+
+OpenBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    OpenBtn.Visible = false
+end)
+
+-- Header Bar
 local HeaderTitle = Instance.new("TextLabel")
-HeaderTitle.Size = UDim2.new(1, -50, 0, 35)
+HeaderTitle.Size = UDim2.new(1, -75, 0, 35)
 HeaderTitle.Position = UDim2.new(0, 16, 0, 8)
 HeaderTitle.BackgroundTransparency = 1
 HeaderTitle.Text = "GROW BEANSTALK & STEAL EGG"
 HeaderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-HeaderTitle.TextSize = 14
+HeaderTitle.TextSize = 13
 HeaderTitle.Font = Enum.Font.SourceSansBold
 HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
 HeaderTitle.Parent = MainFrame
 
--- Close Button
+-- Minimize Button (-)
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 26, 0, 26)
+MinBtn.Position = UDim2.new(1, -58, 0, 12)
+MinBtn.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
+MinBtn.Text = "-"
+MinBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+MinBtn.TextSize = 16
+MinBtn.Font = Enum.Font.SourceSansBold
+MinBtn.Parent = MainFrame
+
+local MinBtnCorner = Instance.new("UICorner")
+MinBtnCorner.CornerRadius = UDim.new(0, 5)
+MinBtnCorner.Parent = MinBtn
+
+MinBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    OpenBtn.Visible = true
+end)
+
+-- Close Button (X)
 local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -34, 0, 8)
-CloseBtn.BackgroundTransparency = 1
+CloseBtn.Size = UDim2.new(0, 26, 0, 26)
+CloseBtn.Position = UDim2.new(1, -28, 0, 12)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(35, 20, 25)
 CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
-CloseBtn.TextSize = 16
+CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+CloseBtn.TextSize = 14
 CloseBtn.Font = Enum.Font.SourceSansBold
 CloseBtn.Parent = MainFrame
+
+local CloseBtnCorner = Instance.new("UICorner")
+CloseBtnCorner.CornerRadius = UDim.new(0, 5)
+CloseBtnCorner.Parent = CloseBtn
+
 CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
 -- Container for Toggles
 local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -32, 0, 240)
+Container.Size = UDim2.new(1, -32, 0, 245)
 Container.Position = UDim2.new(0, 16, 0, 48)
 Container.BackgroundTransparency = 1
 Container.Parent = MainFrame
@@ -150,7 +207,7 @@ FooterSub.Parent = MainFrame
 -- Helper to Create Toggle Rows
 local function CreateToggleRow(name, callback)
     local Row = Instance.new("Frame")
-    Row.Size = UDim2.new(1, 0, 0, 26)
+    Row.Size = UDim2.new(1, 0, 0, 27)
     Row.BackgroundTransparency = 1
     Row.Parent = Container
 
@@ -205,7 +262,7 @@ local function CreateToggleRow(name, callback)
 end
 
 --==============================================================--
---  FEATURE STATES & VARIABLES
+--  FEATURE VARIABLES & CORE LOGIC
 --==============================================================--
 local AutoStealAndDeposit = false
 local AutoGrowBeanstalk = false
@@ -242,7 +299,6 @@ local function isHoldingEgg()
     return false
 end
 
--- Save Base CFrame
 task.spawn(function()
     local root = getRoot()
     if root then SavedBaseCFrame = root.CFrame end
@@ -260,7 +316,6 @@ LocalPlayer.CharacterAdded:Connect(function()
     end
 end)
 
--- Universal Event Invoker
 local function fireGameRemote(remoteName, ...)
     local remote = ReplicatedStorage:FindFirstChild(remoteName, true)
     if remote then
@@ -276,7 +331,6 @@ local function fireGameRemote(remoteName, ...)
     return false
 end
 
--- Universal Proximity Prompt Trigger
 local function triggerPrompt(prompt)
     if not prompt or not prompt.Parent then return end
     pcall(function()
@@ -291,7 +345,6 @@ local function triggerPrompt(prompt)
     end)
 end
 
--- Universal Touch Simulation
 local function safeTouch(part1, part2)
     if not part1 or not part2 then return end
     pcall(function()
@@ -303,7 +356,6 @@ local function safeTouch(part1, part2)
     end)
 end
 
--- Find User's Incubator / Base CFrame
 local function getIncubatorCFrame()
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("Model") or obj:IsA("Folder") then
@@ -327,11 +379,8 @@ local function getIncubatorCFrame()
     return SavedBaseCFrame or (getRoot() and getRoot().CFrame)
 end
 
---==============================================================--
---  1. AUTO STEAL & DEPOSIT EGG
---==============================================================--
+-- 1. Auto Steal & Deposit Egg
 local isStealingCycle = false
-
 local function returnAndDepositAtBase(baseCFrame)
     local root = getRoot()
     local hum = getHum()
@@ -442,9 +491,7 @@ task.spawn(function()
     end
 end)
 
---==============================================================--
---  2. AUTO GROW BEANSTALK (Water, Fertilizer & Upgrades)
---==============================================================--
+-- 2. Auto Grow Beanstalk
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -476,11 +523,8 @@ task.spawn(function()
     end
 end)
 
---==============================================================--
---  3. EGG & BEANSTALK ESP
---==============================================================--
+-- 3. Egg & Beanstalk ESP
 local activeESP = {}
-
 local function clearAllESP()
     for _, esp in pairs(activeESP) do
         if esp.Highlight then pcall(function() esp.Highlight:Destroy() end) end
@@ -555,9 +599,7 @@ task.spawn(function()
     end
 end)
 
---==============================================================--
---  4. AUTO HATCH & INCUBATE
---==============================================================--
+-- 4. Auto Hatch & Incubate
 task.spawn(function()
     while true do
         task.wait(0.8)
@@ -588,9 +630,7 @@ task.spawn(function()
     end
 end)
 
---==============================================================--
---  5. AUTO COLLECT DROPS & COINS
---==============================================================--
+-- 5. Auto Collect Drops & Coins
 task.spawn(function()
     while true do
         task.wait(0.4)
@@ -614,9 +654,7 @@ task.spawn(function()
     end
 end)
 
---==============================================================--
---  6. NOCLIP & WALL PASS
---==============================================================--
+-- 6. NoClip
 RunService.Stepped:Connect(function()
     if NoclipEnabled then
         local char = LocalPlayer.Character
@@ -630,9 +668,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
---==============================================================--
---  7. MOVEMENT BOOST & INFINITE JUMP
---==============================================================--
+-- 7. Movement Boost & Infinite Jump
 UserInputService.JumpRequest:Connect(function()
     if MovementBoost then
         local hum = getHum()
@@ -654,9 +690,7 @@ task.spawn(function()
     end
 end)
 
---==============================================================--
---  REGISTER ALL 7 TOGGLES TO UI
---==============================================================--
+-- Register 7 Toggles
 CreateToggleRow("Auto Steal & Deposit Egg", function(enabled)
     AutoStealAndDeposit = enabled
     if enabled then
@@ -671,11 +705,7 @@ end)
 
 CreateToggleRow("Egg & Beanstalk ESP", function(enabled)
     EggESPEnabled = enabled
-    if enabled then
-        refreshESP()
-    else
-        clearAllESP()
-    end
+    if enabled then refreshESP() else clearAllESP() end
 end)
 
 CreateToggleRow("Auto Hatch & Incubate", function(enabled)
