@@ -33,18 +33,21 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 
 ---
 
-## 🎮 3. Steal an Egg
+## 🎮 3. Grow Beanstalk To Steal An Egg (Steal an Egg)
 
 ### ⚡ Loadstring (Execute in Roblox)
 ```lua
 loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/StealAnEgg.lua?t=" .. tostring(os.time())))()
 ```
 
-### ✨ Features (Exact 4 Features)
-1. 🥚 **Auto Steal Egg**: Auto steals eggs, detects held egg in hand, and returns to deposit at base/incubator.
-2. 🏃 **WalkSpeed Boost (60)**: High movement speed multiplier for fast navigation.
-3. 🦘 **Infinite Jump**: Unlimited air jumping.
-4. 🔮 **Egg Prediction**: Full ESP chams and real-time distance visualizer for all eggs on the map.
+### ✨ Features (7 Best Main Features)
+1. 🥚 **Auto Steal & Deposit Egg**: Auto steals eggs, detects held egg in hand, and returns to deposit at base/incubator.
+2. 🌱 **Auto Grow Beanstalk**: Auto waters plant, applies fertilizer, and claims height upgrades.
+3. 🔮 **Egg & Beanstalk ESP**: Full ESP chams and real-time distance visualizer for all eggs, beanstalks, and nests.
+4. 🐣 **Auto Hatch & Incubate**: Auto places eggs in incubator and triggers auto hatching/fusing.
+5. 🧲 **Auto Collect Drops & Coins**: Magnet collects all floating coins, gems, seeds, and fertilizer.
+6. 👻 **NoClip (Pass Walls)**: Walk through all walls and obstacles without collision.
+7. 🏃 **Speed Boost (60) & Infinite Jump**: High movement speed multiplier + unlimited air jumping.
 
 ---
 
