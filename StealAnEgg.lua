@@ -1,7 +1,7 @@
 --==============================================================--
 --  ULTRA SCRIPT HUB - Made by Junejo
 --  Game: Grow Beanstalk To Steal An Egg (Roblox)
---  Version: 6.0 (Top 7 Best Features Edition)
+--  Version: 7.0 (Rock-Solid Universal UI & 7 Best Features)
 --==============================================================--
 
 local Players = game:GetService("Players")
@@ -10,36 +10,215 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
-local VirtualUser = nil
-pcall(function() VirtualUser = game:GetService("VirtualUser") end)
 
-local LocalPlayer = Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
 
--- Anti-AFK Setup
-LocalPlayer.Idled:Connect(function()
-    if VirtualUser then
+-- Anti-AFK
+pcall(function()
+    local VirtualUser = game:GetService("VirtualUser")
+    LocalPlayer.Idled:Connect(function()
         pcall(function()
             VirtualUser:CaptureController()
-            VirtualUser:ClickButton2(Vector2.new())
+            VirtualUser:ClickButton2(Vector2.new(0, 0))
         end)
+    end)
+end)
+
+--==============================================================--
+--  GUI CREATION (Instant & 100% Guaranteed Parent Resolution)
+--==============================================================--
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "UltraScriptHub_StealAnEgg"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Safe Parent Resolution (Works on ALL Executors + Roblox Studio)
+local parentFound = false
+if gethui then
+    pcall(function()
+        ScreenGui.Parent = gethui()
+        parentFound = true
+    end)
+end
+
+if not parentFound then
+    pcall(function()
+        if syn and syn.protect_gui then
+            syn.protect_gui(ScreenGui)
+        end
+        ScreenGui.Parent = CoreGui
+        parentFound = true
+    end)
+end
+
+if not parentFound or ScreenGui.Parent == nil then
+    pcall(function()
+        local playerGui = LocalPlayer:WaitForChild("PlayerGui", 5) or LocalPlayer:FindFirstChildOfClass("PlayerGui")
+        ScreenGui.Parent = playerGui
+    end)
+end
+
+-- Clean previous instances
+pcall(function()
+    local targets = {CoreGui, LocalPlayer:FindFirstChildOfClass("PlayerGui")}
+    if gethui then pcall(function() table.insert(targets, gethui()) end) end
+    for _, container in ipairs(targets) do
+        if container then
+            for _, child in ipairs(container:GetChildren()) do
+                if child.Name == "UltraScriptHub_StealAnEgg" and child ~= ScreenGui then
+                    child:Destroy()
+                end
+            end
+        end
     end
 end)
 
--- Feature States (7 Best Main Features)
-local AutoStealAndDeposit = false  -- 1. Auto Steal & Deposit Egg
-local AutoGrowBeanstalk = false     -- 2. Auto Grow Beanstalk (Water & Fertilizer)
-local EggESPEnabled = false         -- 3. Egg & Beanstalk ESP
-local AutoHatchIncubate = false     -- 4. Auto Hatch & Incubate
-local AutoCollectDrops = false      -- 5. Auto Collect Drops & Coins
-local NoclipEnabled = false         -- 6. NoClip & Wall Pass
-local MovementBoost = false         -- 7. Speed Boost (60) & Infinite Jump
+-- Main Outer Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 330, 0, 360)
+MainFrame.Position = UDim2.new(0.5, -165, 0.3, -180)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+-- Header
+local HeaderTitle = Instance.new("TextLabel")
+HeaderTitle.Size = UDim2.new(1, -50, 0, 35)
+HeaderTitle.Position = UDim2.new(0, 16, 0, 8)
+HeaderTitle.BackgroundTransparency = 1
+HeaderTitle.Text = "GROW BEANSTALK & STEAL EGG"
+HeaderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+HeaderTitle.TextSize = 14
+HeaderTitle.Font = Enum.Font.SourceSansBold
+HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
+HeaderTitle.Parent = MainFrame
+
+-- Close Button
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -34, 0, 8)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+CloseBtn.TextSize = 16
+CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.Parent = MainFrame
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Container for Toggles
+local Container = Instance.new("Frame")
+Container.Size = UDim2.new(1, -32, 0, 240)
+Container.Position = UDim2.new(0, 16, 0, 48)
+Container.BackgroundTransparency = 1
+Container.Parent = MainFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 7)
+UIListLayout.Parent = Container
+
+-- Footer Branding
+local FooterTitle = Instance.new("TextLabel")
+FooterTitle.Size = UDim2.new(1, 0, 0, 20)
+FooterTitle.Position = UDim2.new(0, 0, 1, -44)
+FooterTitle.BackgroundTransparency = 1
+FooterTitle.Text = "ULTRA SCRIPT HUB"
+FooterTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+FooterTitle.TextSize = 16
+FooterTitle.Font = Enum.Font.SourceSansBold
+FooterTitle.Parent = MainFrame
+
+local FooterSub = Instance.new("TextLabel")
+FooterSub.Size = UDim2.new(1, 0, 0, 16)
+FooterSub.Position = UDim2.new(0, 0, 1, -22)
+FooterSub.BackgroundTransparency = 1
+FooterSub.Text = "Made by Junejo"
+FooterSub.TextColor3 = Color3.fromRGB(150, 150, 150)
+FooterSub.TextSize = 12
+FooterSub.Font = Enum.Font.SourceSans
+FooterSub.Parent = MainFrame
+
+-- Helper to Create Toggle Rows
+local function CreateToggleRow(name, callback)
+    local Row = Instance.new("Frame")
+    Row.Size = UDim2.new(1, 0, 0, 26)
+    Row.BackgroundTransparency = 1
+    Row.Parent = Container
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -35, 1, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = name
+    Label.TextColor3 = Color3.fromRGB(220, 220, 225)
+    Label.TextSize = 13
+    Label.Font = Enum.Font.SourceSansBold
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Row
+
+    local Checkbox = Instance.new("TextButton")
+    Checkbox.Size = UDim2.new(0, 21, 0, 21)
+    Checkbox.Position = UDim2.new(1, -23, 0.5, -10)
+    Checkbox.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
+    Checkbox.BorderColor3 = Color3.fromRGB(45, 48, 60)
+    Checkbox.Text = ""
+    Checkbox.AutoButtonColor = false
+    Checkbox.Parent = Row
+
+    local BoxCorner = Instance.new("UICorner")
+    BoxCorner.CornerRadius = UDim.new(0, 4)
+    BoxCorner.Parent = Checkbox
+
+    local CheckIcon = Instance.new("Frame")
+    CheckIcon.Size = UDim2.new(1, -6, 1, -6)
+    CheckIcon.Position = UDim2.new(0, 3, 0, 3)
+    CheckIcon.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    CheckIcon.Visible = false
+    CheckIcon.Parent = Checkbox
+
+    local CheckIconCorner = Instance.new("UICorner")
+    CheckIconCorner.CornerRadius = UDim.new(0, 2)
+    CheckIconCorner.Parent = CheckIcon
+
+    local toggled = false
+    Checkbox.MouseButton1Click:Connect(function()
+        toggled = not toggled
+        CheckIcon.Visible = toggled
+        if toggled then
+            Checkbox.BackgroundColor3 = Color3.fromRGB(30, 35, 48)
+            Checkbox.BorderColor3 = Color3.fromRGB(0, 170, 255)
+        else
+            Checkbox.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
+            Checkbox.BorderColor3 = Color3.fromRGB(45, 48, 60)
+        end
+        pcall(callback, toggled)
+    end)
+    return Row
+end
+
+--==============================================================--
+--  FEATURE STATES & VARIABLES
+--==============================================================--
+local AutoStealAndDeposit = false
+local AutoGrowBeanstalk = false
+local EggESPEnabled = false
+local AutoHatchIncubate = false
+local AutoCollectDrops = false
+local NoclipEnabled = false
+local MovementBoost = false
 
 local NormalSpeed = 16
 local BoostSpeed = 60
 local SavedBaseCFrame = nil
 
--- Helper Functions
 local function getRoot()
     local char = LocalPlayer.Character
     if not char then return nil end
@@ -63,7 +242,7 @@ local function isHoldingEgg()
     return false
 end
 
--- Save Base CFrame on Spawn
+-- Save Base CFrame
 task.spawn(function()
     local root = getRoot()
     if root then SavedBaseCFrame = root.CFrame end
@@ -97,7 +276,7 @@ local function fireGameRemote(remoteName, ...)
     return false
 end
 
--- Universal Proximity Prompt Trigger (0-sec fast execution)
+-- Universal Proximity Prompt Trigger
 local function triggerPrompt(prompt)
     if not prompt or not prompt.Parent then return end
     pcall(function()
@@ -139,7 +318,7 @@ local function getIncubatorCFrame()
         if obj:IsA("BasePart") then
             local name = obj.Name:lower()
             if name:find("incubator") or name:find("fuse") or name:find("egg machine") then
-                if SavedBaseCFrame and (obj.Position - SavedBaseCFrame.Position).Magnitude <= 100 then
+                if SavedBaseCFrame and (obj.Position - SavedBaseCFrame.Position).Magnitude <= 120 then
                     return obj.CFrame
                 end
             end
@@ -164,7 +343,6 @@ local function returnAndDepositAtBase(baseCFrame)
         task.wait(0.1)
     end
 
-    -- Trigger incubator / deposit prompts
     for _, p in ipairs(Workspace:GetDescendants()) do
         if p:IsA("ProximityPrompt") and p.Enabled then
             local pName = (p.Parent and p.Parent.Name or ""):lower()
@@ -177,7 +355,6 @@ local function returnAndDepositAtBase(baseCFrame)
         end
     end
 
-    -- Touch deposit parts
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("BasePart") then
             local name = obj.Name:lower()
@@ -273,14 +450,12 @@ task.spawn(function()
         task.wait(0.5)
         if AutoGrowBeanstalk then
             pcall(function()
-                -- Remotes
                 fireGameRemote("WaterBeanstalk")
                 fireGameRemote("UpgradeBeanstalk")
                 fireGameRemote("ApplyFertilizer")
                 fireGameRemote("ClaimHeightReward")
                 fireGameRemote("GrowPlant")
 
-                -- Proximity prompts for watering / fertilizing
                 local root = getRoot()
                 if root then
                     for _, p in ipairs(Workspace:GetDescendants()) do
@@ -302,7 +477,7 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  3. EGG & BEANSTALK ESP (Prediction & Visual Highlights)
+--  3. EGG & BEANSTALK ESP
 --==============================================================--
 local activeESP = {}
 
@@ -456,7 +631,7 @@ RunService.Stepped:Connect(function()
 end)
 
 --==============================================================--
---  7. MOVEMENT BOOST (60) & INFINITE JUMP
+--  7. MOVEMENT BOOST & INFINITE JUMP
 --==============================================================--
 UserInputService.JumpRequest:Connect(function()
     if MovementBoost then
@@ -480,150 +655,7 @@ task.spawn(function()
 end)
 
 --==============================================================--
---  GUI CREATION (Pixel-Perfect ULTRA SCRIPT HUB Design)
---==============================================================--
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UltraScriptHub_StealAnEgg"
-ScreenGui.ResetOnSpawn = false
-
-local parentGui = nil
-if gethui then pcall(function() parentGui = gethui() end) end
-if not parentGui then parentGui = CoreGui end
-if not parentGui then parentGui = LocalPlayer:FindFirstChildOfClass("PlayerGui") end
-
-pcall(function()
-    if parentGui and parentGui:FindFirstChild("UltraScriptHub_StealAnEgg") then
-        parentGui:FindFirstChild("UltraScriptHub_StealAnEgg"):Destroy()
-    end
-end)
-
-ScreenGui.Parent = parentGui
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 340, 0, 360)
-MainFrame.Position = UDim2.new(0.5, -170, 0.3, -180)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Parent = ScreenGui
-
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 10)
-UICorner.Parent = MainFrame
-
-local HeaderTitle = Instance.new("TextLabel")
-HeaderTitle.Size = UDim2.new(1, -50, 0, 35)
-HeaderTitle.Position = UDim2.new(0, 16, 0, 10)
-HeaderTitle.BackgroundTransparency = 1
-HeaderTitle.Text = "GROW BEANSTALK & STEAL EGG"
-HeaderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-HeaderTitle.TextSize = 14
-HeaderTitle.Font = Enum.Font.SourceSansBold
-HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
-HeaderTitle.Parent = MainFrame
-
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -34, 0, 10)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
-CloseBtn.TextSize = 16
-CloseBtn.Font = Enum.Font.SourceSansBold
-CloseBtn.Parent = MainFrame
-CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
-
-local Container = Instance.new("Frame")
-Container.Size = UDim2.new(1, -32, 0, 240)
-Container.Position = UDim2.new(0, 16, 0, 48)
-Container.BackgroundTransparency = 1
-Container.Parent = MainFrame
-
-local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, 7)
-UIListLayout.Parent = Container
-
-local FooterTitle = Instance.new("TextLabel")
-FooterTitle.Size = UDim2.new(1, 0, 0, 20)
-FooterTitle.Position = UDim2.new(0, 0, 1, -42)
-FooterTitle.BackgroundTransparency = 1
-FooterTitle.Text = "ULTRA SCRIPT HUB"
-FooterTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-FooterTitle.TextSize = 16
-FooterTitle.Font = Enum.Font.SourceSansBold
-FooterTitle.Parent = MainFrame
-
-local FooterSub = Instance.new("TextLabel")
-FooterSub.Size = UDim2.new(1, 0, 0, 16)
-FooterSub.Position = UDim2.new(0, 0, 1, -20)
-FooterSub.BackgroundTransparency = 1
-FooterSub.Text = "Made by Junejo"
-FooterSub.TextColor3 = Color3.fromRGB(150, 150, 150)
-FooterSub.TextSize = 12
-FooterSub.Font = Enum.Font.SourceSans
-FooterSub.Parent = MainFrame
-
-local function CreateToggleRow(name, callback)
-    local Row = Instance.new("Frame")
-    Row.Size = UDim2.new(1, 0, 0, 26)
-    Row.BackgroundTransparency = 1
-    Row.Parent = Container
-
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, -35, 1, 0)
-    Label.BackgroundTransparency = 1
-    Label.Text = name
-    Label.TextColor3 = Color3.fromRGB(220, 220, 225)
-    Label.TextSize = 13
-    Label.Font = Enum.Font.SourceSansBold
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Row
-
-    local Checkbox = Instance.new("TextButton")
-    Checkbox.Size = UDim2.new(0, 21, 0, 21)
-    Checkbox.Position = UDim2.new(1, -23, 0.5, -10)
-    Checkbox.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
-    Checkbox.BorderColor3 = Color3.fromRGB(45, 48, 60)
-    Checkbox.Text = ""
-    Checkbox.AutoButtonColor = false
-    Checkbox.Parent = Row
-
-    local BoxCorner = Instance.new("UICorner")
-    BoxCorner.CornerRadius = UDim.new(0, 4)
-    BoxCorner.Parent = Checkbox
-
-    local CheckIcon = Instance.new("Frame")
-    CheckIcon.Size = UDim2.new(1, -6, 1, -6)
-    CheckIcon.Position = UDim2.new(0, 3, 0, 3)
-    CheckIcon.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-    CheckIcon.Visible = false
-    CheckIcon.Parent = Checkbox
-
-    local CheckIconCorner = Instance.new("UICorner")
-    CheckIconCorner.CornerRadius = UDim.new(0, 2)
-    CheckIconCorner.Parent = CheckIcon
-
-    local toggled = false
-    Checkbox.MouseButton1Click:Connect(function()
-        toggled = not toggled
-        CheckIcon.Visible = toggled
-        if toggled then
-            Checkbox.BackgroundColor3 = Color3.fromRGB(30, 35, 48)
-            Checkbox.BorderColor3 = Color3.fromRGB(0, 170, 255)
-        else
-            Checkbox.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
-            Checkbox.BorderColor3 = Color3.fromRGB(45, 48, 60)
-        end
-        pcall(callback, toggled)
-    end)
-    return Row
-end
-
---==============================================================--
---  REGISTER ALL 7 TOGGLES
+--  REGISTER ALL 7 TOGGLES TO UI
 --==============================================================--
 CreateToggleRow("Auto Steal & Deposit Egg", function(enabled)
     AutoStealAndDeposit = enabled
