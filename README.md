@@ -329,6 +329,7 @@ loadstring(readfile("CleanTheWorld.lua"))()
 ---
 
 ## 🎮 21. 99 Nights in the Forest
+- **Game Link**: [https://www.roblox.com/games/79546208627805/99-Nights-in-the-Forest](https://www.roblox.com/games/79546208627805/99-Nights-in-the-Forest)
 
 ### ⚡ Loadstring (Execute in Roblox)
 ```lua
@@ -336,10 +337,10 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 ```
 
 ### ✨ Features (Exact 7 Features)
-1. 📜 **Auto Daily & Weekly Quests**: Automatically completes & claims all daily/weekly quests and prizes.
-2. 🌟 **Auto Talent & Class Progression**: Automatically rolls, unlocks talents and upgrades class ranks.
-3. ⚔️ **Cultist Wave Defense & Kill Aura**: Auto attacks monsters/cultists and claims wave defense benefits.
-4. 🪵 **Auto Tools & Fire Upgrades**: Auto upgrades campfires and tools tier.
-5. 🍬 **Auto Collect Loot, Pets & Candies**: Multi-item magnet collecting sticks, wood, candies, toys and drops.
-6. 🎁 **In-Game Shops & Supply Crates**: Auto claims badge diamonds, opens presents and equips crates.
-7. ⏩ **Skip Cutscenes & Instant Dialogue**: Instantly fast-forwards and skips story cutscenes and dialogues.
+1. 🔥 **Auto Feed Campfire & Wood**: Auto-equips wood, sticks & fuel and continuously feeds the campfire.
+2. ⚔️ **Kill Aura (Cultists & Monsters)**: Auto attacks and damages approaching cultists, the deer monster, wolves, and night mobs.
+3. 🧲 **Auto Collect Loot & Drops**: Automatically vacuums and collects wood, logs, meat, ammo, scrap, and survival items.
+4. 🔦 **FullBright (Night Vision)**: Illuminates the entire dark forest with full daylight clarity and zero fog.
+5. 👶 **Lost Children & Mob ESP**: Real-time visual Chams and distance visualizer for the 4 missing children, campfire, and monsters.
+6. 🏃 **Speed Boost (35)**: High-speed forest navigation.
+7. 🦘 **Infinite Jump & NoClip**: Unlimited air jumping and walking freely through dense trees and barricades.
