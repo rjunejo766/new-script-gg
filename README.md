@@ -366,3 +366,25 @@ loadstring(readfile("BlueLockFarm.lua"))()
 3. 📈 **Auto Upgrade Multipliers**: Automatically upgrades field converters and income multipliers.
 4. 🎁 **Auto Redeem Codes & Gifts**: Automatically redeems active codes and claims playtime / daily rewards.
 5. 🏃 **Speed (50) + Infinite Jump**: Fast movement speed multiplier + unlimited air jumping.
+
+
+---
+
+## 🎮 23. Depth Egg Chase
+- **Game Link**: [https://www.roblox.com/games/132670444232795/Depth-Egg-Chase](https://www.roblox.com/games/132670444232795/Depth-Egg-Chase)
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/DepthEggChase.lua?t=" .. tostring(os.time())))()
+```
+*Or local execution in executor:*
+```lua
+loadstring(readfile("DepthEggChase.lua"))()
+```
+
+### ✨ Features (Exact 5 Features)
+1. 🚣 **Auto Train (Rowing Speed)**: Automatically trains on rowing machines & gyms to max out rowing speed.
+2. 🪝 **Auto Catch Deep Sea Eggs**: Plunges claw and grabs deepest high-rarity sea fish eggs.
+3. 🛡️ **Auto Escape to Base (Safety)**: Instantly teleports back to safety zone / base to avoid guardians.
+4. 🐣 **Auto Hatch & Deposit Eggs**: Places eggs in base incubators and auto-hatches cash-generating animals.
+5. 🏃 **Speed (60) + Infinite Jump**: Fast movement speed multiplier + unlimited air jumping.
