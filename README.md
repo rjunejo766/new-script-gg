@@ -344,3 +344,25 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script
 5. 👶 **Lost Children & Mob ESP**: Real-time visual Chams and distance visualizer for the 4 missing children, campfire, and monsters.
 6. 🏃 **Speed Boost (35)**: High-speed forest navigation.
 7. 🦘 **Infinite Jump & NoClip**: Unlimited air jumping and walking freely through dense trees and barricades.
+
+
+---
+
+## 🎮 22. Blue Lock Farm
+- **Game Link**: [https://www.roblox.com/games/132767904294856/Blue-Lock-Farm](https://www.roblox.com/games/132767904294856/Blue-Lock-Farm)
+
+### ⚡ Loadstring (Execute in Roblox)
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/rjunejo766/new-script-gg/main/BlueLockFarm.lua?t=" .. tostring(os.time())))()
+```
+*Or local execution in executor:*
+```lua
+loadstring(readfile("BlueLockFarm.lua"))()
+```
+
+### ✨ Features (Exact 5 Features)
+1. 💰 **Auto Collect Cash / Balls**: Automatically collects all cash, coins, and soccer drops across the field.
+2. 📦 **Auto Roll Lockers (Gacha)**: Automatically opens lockers to summon characters (Isagi, Bachira, etc.).
+3. 📈 **Auto Upgrade Multipliers**: Automatically upgrades field converters and income multipliers.
+4. 🎁 **Auto Redeem Codes & Gifts**: Automatically redeems active codes and claims playtime / daily rewards.
+5. 🏃 **Speed (50) + Infinite Jump**: Fast movement speed multiplier + unlimited air jumping.
